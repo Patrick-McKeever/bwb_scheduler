@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -115,6 +116,7 @@ type WorkflowNode struct {
 	Command        []string
 	ArgTypes       map[string]WorkflowArgType
 	Props          map[string]interface{}
+    ArgOrder       []string
 	OptionsChecked map[string]bool
     RequiredParams []string
 	ResourceReqs   ResourceVector
@@ -143,10 +145,13 @@ func copyWorkflowNode(node WorkflowNode) WorkflowNode {
     nodeCopy.Props = copyMapOfScalars(node.Props)
     nodeCopy.OptionsChecked = copyMapOfScalars(node.OptionsChecked)
     nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
+
     nodeCopy.Command = make([]string, len(node.Command))
     copy(nodeCopy.Command, node.Command)
     nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
     copy(nodeCopy.RequiredParams, node.RequiredParams)
+    nodeCopy.ArgOrder = make([]string, len(node.ArgOrder))
+    copy(nodeCopy.ArgOrder, node.ArgOrder)
 
     return nodeCopy
 }
@@ -219,7 +224,14 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
 
 func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 	var xmlNodeInfo XmlNodeInfo
-	cmd := exec.Command("python3", "pickle_to_json.py", node_props.Format)
+
+    _, currentFilename, _, ok := runtime.Caller(0)
+    if ! ok {
+        return xmlNodeInfo, fmt.Errorf("unable to find pickle_to_json.py script")
+    }
+    pythonScriptPath := filepath.Join(filepath.Dir(currentFilename), "pickle_to_json.py")
+
+	cmd := exec.Command("python3", pythonScriptPath, node_props.Format)
 	cmd.Stdin = bytes.NewReader(node_props.RawStr)
 	out_json, err := cmd.CombinedOutput()
 	if err != nil {
@@ -332,6 +344,13 @@ func parseWorkflowNode(jsonWorkflowNode BwbJsonWorkflowNode, props OwsRawNodePro
 	workflowNode.Command = jsonWorkflowNode.Command
 	workflowNode.ArgTypes = jsonWorkflowNode.ArgTypes
     workflowNode.RequiredParams = jsonWorkflowNode.RequiredParams
+
+    workflowNode.ArgOrder = make([]string, 0)
+    for arg, argType := range jsonWorkflowNode.ArgTypes {
+        if argType.IsArgument != nil && *argType.IsArgument {
+            workflowNode.ArgOrder = append(workflowNode.ArgOrder, arg)
+        }
+    }
 
 	parsedXml, err := parseNodeProps(props)
 	if err != nil {

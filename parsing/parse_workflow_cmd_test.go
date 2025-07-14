@@ -1,11 +1,11 @@
 package parsing
 
 import (
-    "strings"
-    "os"
-    "encoding/json"
+	"encoding/json"
 	"fmt"
 	"math"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -586,7 +586,7 @@ func TestIterValNonListErr(t *testing.T) {
 }
 
 func TestDryRun(t *testing.T) {
-    data, err := os.ReadFile("testdata/bulk_rna.json")
+	data, err := os.ReadFile("testdata/bulkrna_seq.json")
 	if err != nil {
 		t.Fatalf("failed to read JSON file: %v", err)
 	}
@@ -596,9 +596,14 @@ func TestDryRun(t *testing.T) {
 		t.Fatalf("failed to unmarshal JSON: %v", err)
 	}
 
-    cmdStrs, cmdStrErr := dryRun(workflow)
-    if cmdStrErr != nil {
+	topSort, err := layeredTopSort(workflow)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	PrettyPrint(topSort)
+	cmdStrs, cmdStrErr := dryRun(workflow)
+	if cmdStrErr != nil {
 		t.Fatalf("failed to execute dry run: %s", cmdStrErr)
-    }
-    fmt.Print(strings.Join(cmdStrs, "\n\n"))
+	}
+	fmt.Print(strings.Join(cmdStrs, "\n\n"))
 }
