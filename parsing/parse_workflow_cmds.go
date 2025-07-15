@@ -134,6 +134,150 @@ func parsePatternQuery(pqRaw any) (PatternQuery, error) {
 
 }
 
+func (tp *TypedParams) lookupParam(
+    pname string, argType WorkflowArgType,
+) (any, bool) {
+    if argType.ArgType == "bool" {
+        val, ok := tp.Bools[pname]
+        return any(val), ok
+    } else if argType.ArgType == "int" {
+        val, ok := tp.Ints[pname]
+        return any(val), ok
+    } else if argType.ArgType == "double" {
+        val, ok := tp.Doubles[pname]
+        return any(val), ok
+    } else if argTypeIsStr(argType.ArgType) {
+        val, ok := tp.Strings[pname]
+        return any(val), ok
+    } else if strings.HasSuffix(argType.ArgType, "list") {
+		listType := strings.Split(argType.ArgType, " ")[0]
+        if argTypeIsStr(listType) {
+            val, ok := tp.StrLists[pname]
+            return any(val), ok
+        } else if listType == "int" {
+            val, ok := tp.IntLists[pname]
+            return any(val), ok
+        } else if listType == "double" {
+            val, ok := tp.DoubleLists[pname]
+            return any(val), ok
+        }
+    } else if argType.ArgType == "patternQuery" {
+        val, ok := tp.PatternQueries[pname]
+        return any(val), ok
+    }
+
+    return nil, false
+}
+
+func (tp *TypedParams) addParam(
+    propValRaw any, pname string, argType WorkflowArgType,
+) (error) {
+	castErr := fmt.Errorf("var %s cannot be cast to %s", pname, argType.ArgType)
+	if argType.ArgType == "bool" {
+		pValBool, ok := propValRaw.(bool)
+		if !ok {
+			return castErr
+		}
+		tp.Bools[pname] = pValBool
+	} else if argType.ArgType == "int" {
+		pValDouble, ok := propValRaw.(float64)
+		if !ok {
+			return castErr
+		}
+		tp.Ints[pname] = int(pValDouble)
+	} else if argType.ArgType == "double" {
+		pValDouble, ok := propValRaw.(float64)
+		if !ok {
+			return castErr
+		}
+		tp.Doubles[pname] = pValDouble
+	} else if argTypeIsStr(argType.ArgType) {
+		pValStr, ok := propValRaw.(string)
+		if !ok {
+			return castErr
+		}
+		tp.Strings[pname] = pValStr
+	} else if strings.HasSuffix(argType.ArgType, "list") {
+		pValList, ok := propValRaw.([]any)
+		if !ok {
+			return castErr
+		}
+		listType := strings.Split(argType.ArgType, " ")[0]
+
+		if argTypeIsStr(listType) {
+			tp.StrLists[pname] = make([]string, len(pValList))
+			for i, v := range pValList {
+				pValStr, ok := v.(string)
+				if !ok {
+					return castErr
+				}
+				tp.StrLists[pname][i] = pValStr
+			}
+		} else if listType == "int" {
+			tp.IntLists[pname] = make([]int, len(pValList))
+			for i, v := range pValList {
+				// Casting JSON to interface{} makes numbers into floats by default,
+				// so v.(int) would fail.
+				pValDouble, ok := v.(float64)
+				intError := fmt.Errorf("var %s cannot be cast to int", pname)
+				var pValInt int
+				if ok {
+					pValInt = int(pValDouble)
+				} else {
+					// The default behavior of BWB seems to be storing int / double lists as JSON
+					// lists of strs. This seems counterintuitive, so I want to support both this
+					// and the more natural format of using JSON ints / numbers.
+					pValStr, strOk := v.(string)
+					if !strOk {
+						return intError
+					}
+
+					var convErr error
+					pValInt, convErr = strconv.Atoi(pValStr)
+					if convErr != nil {
+						return intError
+					}
+				}
+
+				tp.IntLists[pname][i] = pValInt
+			}
+		} else if listType == "double" {
+			tp.DoubleLists[pname] = make([]float64, len(pValList))
+			for i, v := range pValList {
+				doubleError := fmt.Errorf("var %s cannot be cast to double", pname)
+				pValDouble, ok := v.(float64)
+				if !ok {
+					pValStr, strOk := v.(string)
+					if !strOk {
+						return doubleError
+					}
+
+					var convErr error
+					pValDouble, convErr = strconv.ParseFloat(pValStr, 64)
+					if convErr != nil {
+						return doubleError
+					}
+				}
+
+				tp.DoubleLists[pname][i] = pValDouble
+			}
+		}
+	} else if argType.ArgType == "patternQuery" {
+		pq, pqError := parsePatternQuery(propValRaw)
+		if pqError != nil {
+			return fmt.Errorf(
+				"var %s cannot be parsed as pattern query: %s",
+				pname, pqError,
+			)
+		}
+		tp.PatternQueries[pname] = pq
+	} else {
+        return fmt.Errorf("invalid arg type %s", argType.ArgType)
+    }
+
+    return nil 
+}
+
 func parseTypedParams(node WorkflowNode) (TypedParams, error) {
 	var tp TypedParams
 	tp.Bools = make(map[string]bool)
@@ -151,107 +295,11 @@ func parseTypedParams(node WorkflowNode) (TypedParams, error) {
 			continue
 		}
 
-		castErr := fmt.Errorf("node %d, var %s cannot be cast to %s", node.Id, pname, argType.ArgType)
-		if argType.ArgType == "bool" {
-			pValBool, ok := propValRaw.(bool)
-			if !ok {
-				return tp, castErr
-			}
-			tp.Bools[pname] = pValBool
-		} else if argType.ArgType == "int" {
-			pValDouble, ok := propValRaw.(float64)
-			if !ok {
-				return tp, castErr
-			}
-			tp.Ints[pname] = int(pValDouble)
-		} else if argType.ArgType == "double" {
-			pValDouble, ok := propValRaw.(float64)
-			if !ok {
-				return tp, castErr
-			}
-			tp.Doubles[pname] = pValDouble
-		} else if argTypeIsStr(argType.ArgType) {
-			pValStr, ok := propValRaw.(string)
-			if !ok {
-				return tp, castErr
-			}
-			tp.Strings[pname] = pValStr
-		} else if strings.HasSuffix(argType.ArgType, "list") {
-			pValList, ok := propValRaw.([]any)
-			if !ok {
-				return tp, castErr
-			}
-			listType := strings.Split(argType.ArgType, " ")[0]
-
-			if argTypeIsStr(listType) {
-				tp.StrLists[pname] = make([]string, len(pValList))
-				for i, v := range pValList {
-					pValStr, ok := v.(string)
-					if !ok {
-						return tp, castErr
-					}
-					tp.StrLists[pname][i] = pValStr
-				}
-			} else if listType == "int" {
-				tp.IntLists[pname] = make([]int, len(pValList))
-				for i, v := range pValList {
-					// Casting JSON to interface{} makes numbers into floats by default,
-					// so v.(int) would fail.
-					pValDouble, ok := v.(float64)
-					intError := fmt.Errorf("node %d, var %s cannot be cast to int", node.Id, pname)
-					var pValInt int
-					if ok {
-						pValInt = int(pValDouble)
-					} else {
-						// The default behavior of BWB seems to be storing int / double lists as JSON
-						// lists of strs. This seems counterintuitive, so I want to support both this
-						// and the more natural format of using JSON ints / numbers.
-						pValStr, strOk := v.(string)
-						if !strOk {
-							return tp, intError
-						}
-
-						var convErr error
-						pValInt, convErr = strconv.Atoi(pValStr)
-						if convErr != nil {
-							return tp, intError
-						}
-					}
-
-					tp.IntLists[pname][i] = pValInt
-				}
-			} else if listType == "double" {
-				tp.DoubleLists[pname] = make([]float64, len(pValList))
-				for i, v := range pValList {
-					doubleError := fmt.Errorf("node %d, var %s cannot be cast to double", node.Id, pname)
-					pValDouble, ok := v.(float64)
-					if !ok {
-						pValStr, strOk := v.(string)
-						if !strOk {
-							return tp, doubleError
-						}
-
-						var convErr error
-						pValDouble, convErr = strconv.ParseFloat(pValStr, 64)
-						if convErr != nil {
-							return tp, doubleError
-						}
-					}
-
-					tp.DoubleLists[pname][i] = pValDouble
-				}
-			}
-		} else if argType.ArgType == "patternQuery" {
-			pq, pqError := parsePatternQuery(propValRaw)
-			if pqError != nil {
-				return tp, fmt.Errorf(
-					"node %d, var %s cannot be parsed as pattern query: %s",
-					node.Id, pname, pqError,
-				)
-			}
-			tp.PatternQueries[pname] = pq
-		}
+        if err := tp.addParam(propValRaw, pname, argType); err != nil {
+            return tp, fmt.Errorf("error parsing node %d: %s", node.Id, err)
+        }
 	}
+
 	return tp, nil
 }
 
