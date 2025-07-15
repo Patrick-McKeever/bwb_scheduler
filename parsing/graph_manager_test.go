@@ -142,3 +142,175 @@ func TestAsyncAncestorValidation(t *testing.T) {
     }
     fmt.Println(err)
 }
+
+func Test1234(t *testing.T) {
+    workflow := Workflow{
+        Nodes: map[int]WorkflowNode {
+            1: {
+                Async: true,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                },
+            },
+            2: {
+                Async: true,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                },
+            },
+            3: {
+                Async: false,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                },
+            },
+        },
+        Links: []WorkflowLink {
+            {
+                SourceNodeId: 1,
+                SinkNodeId: 2,
+                SourceChannel: "p1",
+                SinkChannel: "p1",
+            },
+            {
+                SourceNodeId: 2,
+                SinkNodeId: 3,
+                SourceChannel: "p1",
+                SinkChannel: "p1",
+            },
+        },
+    }
+
+    index, err := parseAndValidateWorkflow(&workflow)
+    PrettyPrint(index)
+    state := WorkflowExecutionState{
+        workflow: workflow,
+        index: index,
+    }
+    err = state.addOutputs(
+        NodeParams{ancList: []int{}, nodeId: 1}, 
+        []TypedParams{
+            {
+                Strings: map[string]string {
+                    "p1": "1",
+                },
+            },
+        })
+    fmt.Println(err)
+    succs, err := state.getEligibleSuccessors(1)
+    fmt.Println(err)
+    PrettyPrint(succs)
+}
+
+func TestNegativeVal(t *testing.T) {
+    workflow := Workflow{
+        Nodes: map[int]WorkflowNode {
+            1: {
+                Async: false,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                    "p2": {
+                        ArgType: "str",
+                    },
+                },
+            },
+            2: {
+                Async: true,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                },
+            },
+            3: {
+                Async: false,
+                ArgTypes: map[string]WorkflowArgType {
+                    "p1": {
+                        ArgType: "str",
+                    },
+                },
+            },
+        },
+        Links: []WorkflowLink {
+            {
+                SourceNodeId: 1,
+                SinkNodeId: 2,
+                SourceChannel: "p1",
+                SinkChannel: "p1",
+            },
+            {
+                SourceNodeId: 1,
+                SinkNodeId: 3,
+                SourceChannel: "p2",
+                SinkChannel: "p2",
+            },
+            {
+                SourceNodeId: 2,
+                SinkNodeId: 3,
+                SourceChannel: "p1",
+                SinkChannel: "p1",
+            },
+        },
+    }
+
+    index, err := parseAndValidateWorkflow(&workflow)
+    if err != nil {
+        t.Fatalf("could not build index")
+    }
+
+    PrettyPrint(index)
+    state := WorkflowExecutionState{
+        workflow: workflow,
+        index: index,
+    }
+    err = state.addOutputs(
+        NodeParams{ancList: []int{}, nodeId: 1}, 
+        []TypedParams{
+            {
+                Strings: map[string]string {
+                    "p1": "1",
+                    "p2": "2",
+                },
+            },
+        })
+    succs, err := state.getEligibleSuccessors(1)
+    PrettyPrint(succs[2][0].ancList)
+
+    //err = state.addOutputs(
+    //    NodeParams{ancList: []int{}, nodeId: 1}, 
+    //    []TypedParams{
+    //        {
+    //            Strings: map[string]string {
+    //                "p1": "1",
+    //                "p2": "2",
+    //            },
+    //        },
+    //    })
+    succs, err = state.getEligibleSuccessors(1)
+    PrettyPrint(succs[2][0].ancList)
+
+    err = state.addOutputs(
+        NodeParams{ancList: []int{}, nodeId: 2}, 
+        []TypedParams{
+            {
+                Strings: map[string]string {
+                    "p1": "1",
+                },
+            },
+        })
+    succs, err = state.getEligibleSuccessors(2)
+    PrettyPrint(succs[3][0].params)
+}
+
+// Test that non-async nodes can trigger backlog of async nodes
+// Test propagation of async values to non-immediate descendants of async
+// add barrier support
+// Test -1

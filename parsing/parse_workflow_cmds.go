@@ -172,6 +172,31 @@ func (tp *TypedParams) lookupParam(
 func (tp *TypedParams) addParam(
     propValRaw any, pname string, argType WorkflowArgType,
 ) (error) {
+    if tp.Bools == nil {
+        tp.Bools = make(map[string]bool)
+    }
+    if tp.Ints == nil {
+        tp.Ints = make(map[string]int)
+    }
+    if tp.Doubles == nil {
+        tp.Doubles = make(map[string]float64)
+    }
+    if tp.Strings == nil {
+        tp.Strings = make(map[string]string)
+    }
+    if tp.StrLists == nil {
+        tp.StrLists = make(map[string][]string)
+    }
+    if tp.IntLists == nil {
+        tp.IntLists = make(map[string][]int)
+    }
+    if tp.DoubleLists == nil {
+        tp.DoubleLists = map[string][]float64{}
+    }
+    if tp.PatternQueries == nil {
+        tp.PatternQueries = make(map[string]PatternQuery)
+    }
+
 	castErr := fmt.Errorf("var %s cannot be cast to %s", pname, argType.ArgType)
 	if argType.ArgType == "bool" {
 		pValBool, ok := propValRaw.(bool)

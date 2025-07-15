@@ -4,12 +4,11 @@ import (
 	"fmt"
 )
 
-
 // Data structure to package all the various data structures for
 // looking up database graph structure.
 type WorkflowIndex struct {
-    preds          map[int][]int
-    succs          map[int][]int
+	preds map[int][]int
+	succs map[int][]int
 	// Lookup links based on (dstNode, dstPname)
 	inLinks map[int]map[string]WorkflowLink
 	// Lookup links based on (srcNode, srcPname)
@@ -24,323 +23,353 @@ type WorkflowIndex struct {
 }
 
 func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
-    asyncAnc1, id1Exists := index.asyncAncestors[id1]
-    if ! id1Exists {
-        return 0, fmt.Errorf("node %d not in async ancestor array", id1)
-    }
-    asyncAnc2, id2Exists := index.asyncAncestors[id2]
-    if ! id2Exists {
-        return 0, fmt.Errorf("node %d not in async ancestor array", id2)
-    }
+	asyncAnc1, id1Exists := index.asyncAncestors[id1]
+	if !id1Exists {
+		return 0, fmt.Errorf("node %d not in async ancestor array", id1)
+	}
+	asyncAnc2, id2Exists := index.asyncAncestors[id2]
+	if !id2Exists {
+		return 0, fmt.Errorf("node %d not in async ancestor array", id2)
+	}
 
-    for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
-        if asyncAnc1[len(asyncAnc1)-i] == id2 {
-            return id2, nil
-        }
-        if asyncAnc2[len(asyncAnc1)-i] == id1 {
-            return id1, nil
-        }
-        if asyncAnc1[len(asyncAnc1)-i] == asyncAnc2[len(asyncAnc2)-i] {
-            return asyncAnc1[len(asyncAnc1)-i], nil
-        }
-    }
+	if len(asyncAnc1) > 0 && asyncAnc1[len(asyncAnc1)-1] == id2 {
+		return id2, nil
+	}
+	if len(asyncAnc2) > 0 && asyncAnc2[len(asyncAnc2)-1] == id1 {
+		return id1, nil
+	}
 
-    return -1, nil
+	for i := 1; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
+		if asyncAnc1[len(asyncAnc1)-i] == id2 {
+			return id2, nil
+		}
+		if asyncAnc2[len(asyncAnc2)-i] == id1 {
+			return id1, nil
+		}
+		if asyncAnc1[len(asyncAnc1)-i] == asyncAnc2[len(asyncAnc2)-i] {
+			return asyncAnc1[len(asyncAnc1)-i], nil
+		}
+	}
+
+	return -1, nil
 }
 
 func (index *WorkflowIndex) getAncListValue(
-    ownerOfAncListId int, nodeToLookupId int, ancList []int,
+	ownerOfAncListId int, nodeToLookupId int, ancList []int,
 ) (int, error) {
-    if nodeToLookupId == -1 {
-        return -1, nil
-    }
+	if nodeToLookupId == -1 {
+		return -1, nil
+	}
 
-    asyncAncOfOwner, ownerExists := index.asyncAncestors[ownerOfAncListId]
-    if ! ownerExists {
-        return 0, fmt.Errorf(
-            "node %d not in async ancestor array", 
-            ownerOfAncListId,
-        )
-    }
+	asyncAncOfOwner, ownerExists := index.asyncAncestors[ownerOfAncListId]
+	if !ownerExists {
+		return 0, fmt.Errorf(
+			"node %d not in async ancestor array",
+			ownerOfAncListId,
+		)
+	}
 
-    for i := len(asyncAncOfOwner) - 1; i >= 0; i-- {
-        if asyncAncOfOwner[i] == nodeToLookupId {
-            return ancList[i], nil
-        }
-    }
+	for i := len(asyncAncOfOwner) - 1; i >= 0; i-- {
+		if asyncAncOfOwner[i] == nodeToLookupId {
+			return ancList[i], nil
+		}
+	}
 
-    return 0, fmt.Errorf(
-        "node %d is not an async ancestor of node %d",
-        nodeToLookupId, ownerOfAncListId,
-    )
+	return 0, fmt.Errorf(
+		"node %d is not an async ancestor of node %d",
+		nodeToLookupId, ownerOfAncListId,
+	)
 }
 
 type NodeParams struct {
-    nodeId      int
-    ancList     []int
-    params      TypedParams
+	nodeId  int
+	ancList []int
+	params  TypedParams
 }
 
 type WorkflowExecutionState struct {
-    workflow            Workflow
-    index               WorkflowIndex
-    completed           map[int][]int
-    // node id -> runID of last async ancestor (-1 if none) -> value
-    inputs              map[int]map[int]NodeParams
-    // node id -> run ID -> output list
-    outputs             map[int]map[int]NodeParams
-    currentMaxId        map[int]int
-    unconsumedOutputs   map[int]map[int]struct{}
-    cmds                map[int][]CmdTemplate
+	workflow  Workflow
+	index     WorkflowIndex
+	completed map[int][]int
+	// node id -> runID of last async ancestor (-1 if none) -> value
+	inputs map[int]map[int]NodeParams
+	// node id -> run ID -> output list
+	outputs           map[int]map[int]NodeParams
+	currentMaxId      map[int]int
+	unconsumedOutputs map[int]map[int]struct{}
+	cmds              map[int][]CmdTemplate
 }
 
-
 func (state *WorkflowExecutionState) consumeAncestorLists(
-    nodeId int,
+	nodeId int,
 ) ([][]int, error) {
-    _, nodeExists := state.workflow.Nodes[nodeId]
-    if !nodeExists {
-        return nil, fmt.Errorf(
-            "node %d does not exist",
-            nodeId,
-        )
-    }
+	_, nodeExists := state.workflow.Nodes[nodeId]
+	if !nodeExists {
+		return nil, fmt.Errorf(
+			"node %d does not exist",
+			nodeId,
+		)
+	}
 
-    asyncAncestors := state.index.asyncAncestors[nodeId]
-    if len(asyncAncestors) == 0 {
-        return nil, nil
-    }
-
-    lastAsyncAnc := asyncAncestors[len(asyncAncestors)-1]
-    _, outputsExist := state.outputs[lastAsyncAnc]
-    if !outputsExist {
-        return nil, fmt.Errorf(
-            "node %d does not exist or has no outputs yet",
-            lastAsyncAnc,
-        )
-    }
-
-    unconsumedSet, unconsumedSetExists := state.unconsumedOutputs[lastAsyncAnc]
-    if !unconsumedSetExists || unconsumedSet == nil {
-        return nil, fmt.Errorf(
-            "node %d has no or nil unconsumed set",
-            lastAsyncAnc,
-        )
-    }
-
-    unconsumed := make([][]int, 0)
-    for asyncAncPredRunId := range unconsumedSet {
-        asyncAncOutputs, asyncAncOutputsExist := state.outputs[lastAsyncAnc][asyncAncPredRunId]
-
-        if ! asyncAncOutputsExist {
-            return nil, fmt.Errorf(
-                "node %d has unconsumed array pointing to non-existent outputs",
-                lastAsyncAnc,
-            )
+	asyncAncestors := state.index.asyncAncestors[nodeId]
+	if len(asyncAncestors) == 0 {
+        // A node runs once for every run of its topologically last
+        // async ancestor. If it does not have any async ancestors,
+        // it runs once, so it cannot be run again.
+        if len(state.outputs[nodeId]) > 0 {
+            return [][]int{}, nil
         }
 
-        unconsumed = append(unconsumed, asyncAncOutputs.ancList)
-        delete(state.unconsumedOutputs[lastAsyncAnc], asyncAncPredRunId)
-    }
+        // Return a single empty ancestor list corresponding to the
+        // one run of this not-run node.
+		return [][]int{{}}, nil
+	}
 
-    return unconsumed, nil
+	lastAsyncAnc := asyncAncestors[len(asyncAncestors)-1]
+	_, outputsExist := state.outputs[lastAsyncAnc]
+	if !outputsExist {
+		return nil, fmt.Errorf(
+			"node %d does not exist or has no outputs yet",
+			lastAsyncAnc,
+		)
+	}
+
+	unconsumedSet, unconsumedSetExists := state.unconsumedOutputs[lastAsyncAnc]
+	if !unconsumedSetExists || unconsumedSet == nil {
+		return nil, fmt.Errorf(
+			"node %d has no or nil unconsumed set",
+			lastAsyncAnc,
+		)
+	}
+
+	unconsumed := make([][]int, 0)
+	for asyncAncPredRunId := range unconsumedSet {
+		asyncAncOutputs, asyncAncOutputsExist := state.outputs[lastAsyncAnc][asyncAncPredRunId]
+
+		if !asyncAncOutputsExist {
+			return nil, fmt.Errorf(
+				"node %d has unconsumed array pointing to non-existent outputs",
+				lastAsyncAnc,
+			)
+		}
+
+		unconsumed = append(unconsumed, asyncAncOutputs.ancList)
+		delete(state.unconsumedOutputs[lastAsyncAnc], asyncAncPredRunId)
+	}
+
+	return unconsumed, nil
 }
 
 func (state *WorkflowExecutionState) formInputs(
-    nodeId int, ancList []int,
+	nodeId int, ancList []int,
 ) (NodeParams, error) {
-    ret := NodeParams {
-        nodeId: nodeId,
-        ancList: ancList,
-    }
+	ret := NodeParams{
+		nodeId:  nodeId,
+		ancList: ancList,
+	}
 
-    // If node's pred shares an async ancestor with it, you should use only
-    // the version of this pred's outputs that were descended from this async
-    // ancestor.
-    // Get LCP between predecessor and node's ancList.
-    predRunId := make(map[int]int)
-    for _, pred := range state.index.preds[nodeId] {
-        var err error
-        if err != nil {
-            return NodeParams{}, fmt.Errorf(
-                "could not find value for %d in ancestor list", pred,
-            )
-        }
+	// If node's pred shares an async ancestor with it, you should use only
+	// the version of this pred's outputs that were descended from this async
+	// ancestor.
+	// Get LCP between predecessor and node's ancList.
+	predRunId := make(map[int]int)
+	for _, pred := range state.index.preds[nodeId] {
+		var err error
+		if err != nil {
+			return NodeParams{}, fmt.Errorf(
+				"could not find value for %d in ancestor list", pred,
+			)
+		}
 
-        lastSharedAsyncAncestorId, err := state.index.lastSharedAsyncAncestor(
-            pred, nodeId,
-        )
+		lastSharedAsyncAncestorId, err := state.index.lastSharedAsyncAncestor(
+			pred, nodeId,
+		)
 
-        if err != nil {
-            return NodeParams{}, fmt.Errorf(
-                "could not find last shared async ancestor of %d and %d: %s",
-                pred, nodeId, err,
-            )
-        }
+		if err != nil {
+			return NodeParams{}, fmt.Errorf(
+				"could not find last shared async ancestor of %d and %d: %s",
+				pred, nodeId, err,
+			)
+		}
 
-        predRunId[pred], err = state.index.getAncListValue(
-            nodeId, lastSharedAsyncAncestorId, ancList,
-        )
+		predRunId[pred], err = state.index.getAncListValue(
+			nodeId, lastSharedAsyncAncestorId, ancList,
+		)
 
-        if err != nil {
-            return NodeParams{}, fmt.Errorf(
-                "error looking up val of %d in ancestor list of %d: %s",
-                lastSharedAsyncAncestorId, nodeId, err,
-            )
-        }
-    }
+		if err != nil {
+			return NodeParams{}, fmt.Errorf(
+				"error looking up val of %d in ancestor list of %d: %s",
+				lastSharedAsyncAncestorId, nodeId, err,
+			)
+		}
+	}
 
-    
-    for _, link := range state.index.inLinks[nodeId] {
-        srcNode := link.SourceNodeId
-        srcChan := link.SourceChannel
-        sinkChan := link.SinkChannel
-        srcRunId, srcIsPred := predRunId[srcNode]
-        if ! srcIsPred {
-            return NodeParams{}, fmt.Errorf(
-                "bad index: %d not listed as pred of %d",
-                srcNode, nodeId,
-            )
-        }
+	for _, link := range state.index.inLinks[nodeId] {
+		srcNode := link.SourceNodeId
+		srcChan := link.SourceChannel
+		sinkChan := link.SinkChannel
+		srcRunId, srcIsPred := predRunId[srcNode]
+		if !srcIsPred {
+			return NodeParams{}, fmt.Errorf(
+				"bad index: %d not listed as pred of %d",
+				srcNode, nodeId,
+			)
+		}
 
-        srcArgType, srcArgTypeExists := 
-            state.workflow.Nodes[srcNode].ArgTypes[srcChan]
-        if ! srcArgTypeExists {
-            return NodeParams{}, fmt.Errorf(
-                "bad argtype: node %d has no parameter %s",
-                srcNode, srcChan,
-            )
-        }
+		srcArgType, srcArgTypeExists :=
+			state.workflow.Nodes[srcNode].ArgTypes[srcChan]
+		if !srcArgTypeExists {
+			return NodeParams{}, fmt.Errorf(
+				"bad argtype: node %d has no parameter %s",
+				srcNode, srcChan,
+			)
+		}
 
-        sinkArgType, sinkArgTypeExists := 
-            state.workflow.Nodes[nodeId].ArgTypes[sinkChan]
-        if ! sinkArgTypeExists {
-            return NodeParams{}, fmt.Errorf(
-                "bad argtype: node %d has no parameter %s",
-                nodeId, sinkChan,
-            )
-        }
+		sinkArgType, sinkArgTypeExists :=
+			state.workflow.Nodes[nodeId].ArgTypes[sinkChan]
+		if !sinkArgTypeExists {
+			return NodeParams{}, fmt.Errorf(
+				"bad argtype: node %d has no parameter %s",
+				nodeId, sinkChan,
+			)
+		}
 
-        srcOutputParams := state.outputs[srcNode][srcRunId]
-        srcPval, srcPvalExists := srcOutputParams.params.lookupParam(
-            srcChan, srcArgType,
-        )
+		srcOutputParams := state.outputs[srcNode][srcRunId]
+		srcPval, srcPvalExists := srcOutputParams.params.lookupParam(
+			srcChan, srcArgType,
+		)
 
-        if !srcPvalExists {
-        srcInputParams := state.inputs[srcNode][srcRunId].params
-            srcPval, srcPvalExists = srcInputParams.lookupParam(
-                srcChan, srcArgType,
-            )
+		if !srcPvalExists {
+			srcInputParams := state.inputs[srcNode][srcRunId].params
+			srcPval, srcPvalExists = srcInputParams.lookupParam(
+				srcChan, srcArgType,
+			)
 
-            if !srcPvalExists {
-                return NodeParams{}, fmt.Errorf(
-                    "param %s not found in node %d inputs or outputs",
-                    srcChan, srcNode,
-                )
-            }
-        }
+			if !srcPvalExists {
+				return NodeParams{}, fmt.Errorf(
+					"param %s not found in node %d inputs or outputs",
+					srcChan, srcNode,
+				)
+			}
+		}
 
-        ret.params.addParam(srcPval, sinkChan, sinkArgType)
-    }
-    return ret, nil
+		ret.params.addParam(srcPval, sinkChan, sinkArgType)
+	}
+	return ret, nil
 }
 
 func (state *WorkflowExecutionState) addOutputs(
-    inputs  NodeParams,
-    outputs []TypedParams,
-) (error) {
-    node, nodeExists := state.workflow.Nodes[inputs.nodeId]
-    if !nodeExists {
-        return fmt.Errorf("node %d of inputs does not exist", inputs.nodeId)
-    }
+	inputs NodeParams,
+	outputs []TypedParams,
+) error {
+	node, nodeExists := state.workflow.Nodes[inputs.nodeId]
+	if !nodeExists {
+		return fmt.Errorf("node %d of inputs does not exist", inputs.nodeId)
+	}
 
-    if len(outputs) > 1 && !node.Async {
-        return fmt.Errorf("multiple outputs given for non-async node")
-    }
+	if len(outputs) > 1 && !node.Async {
+		return fmt.Errorf("multiple outputs given for non-async node")
+	}
 
-    inputAncList := inputs.ancList
-    if len(inputAncList) != len(state.index.asyncAncestors) {
-        return fmt.Errorf("inputs have invalid ancestor list")
-    }
+	inputAncList := inputs.ancList
+	if len(inputAncList) != len(state.index.asyncAncestors[inputs.nodeId]) {
+		return fmt.Errorf("inputs have invalid ancestor list")
+	}
 
-    if state.outputs[inputs.nodeId] == nil {
-        state.outputs[inputs.nodeId] = make(map[int]NodeParams)
-    }
+	if state.outputs == nil {
+		state.outputs = make(map[int]map[int]NodeParams)
+	}
 
-    lastAsyncAncestorId := -1
-    if len(inputAncList) > 0 {
-        lastAsyncAncestorId = inputAncList[len(inputAncList)-1]
-    }
+	if state.outputs[inputs.nodeId] == nil {
+		state.outputs[inputs.nodeId] = make(map[int]NodeParams)
+	}
 
-    for _, output := range outputs {
-        var outputParams NodeParams
-        outputParams.nodeId = inputs.nodeId
-        outputParams.params = output
-        copy(outputParams.ancList, inputAncList)
+	if state.unconsumedOutputs == nil {
+		state.unconsumedOutputs = make(map[int]map[int]struct{})
+	}
 
-        if node.Async {
-            outputId := state.currentMaxId[outputParams.nodeId]
-            outputParams.ancList = append(
-                outputParams.ancList, 
-                state.currentMaxId[outputParams.nodeId],
-            )
-            state.currentMaxId[outputParams.nodeId] += 1
-            state.outputs[inputs.nodeId][outputId] = outputParams
-            state.unconsumedOutputs[inputs.nodeId][outputId] = struct{}{}
-        } else {
-            state.outputs[inputs.nodeId][lastAsyncAncestorId] = outputParams
-            state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
-        }
-    }
+	if state.unconsumedOutputs[inputs.nodeId] == nil {
+		state.unconsumedOutputs[inputs.nodeId] = make(map[int]struct{})
+	}
 
-    return nil
+	if state.currentMaxId == nil {
+		state.currentMaxId = make(map[int]int)
+	}
+
+	lastAsyncAncestorId := -1
+	if len(inputAncList) > 0 {
+		lastAsyncAncestorId = inputAncList[len(inputAncList)-1]
+	}
+
+	for _, output := range outputs {
+		var outputParams NodeParams
+		outputParams.nodeId = inputs.nodeId
+		outputParams.params = output
+		copy(outputParams.ancList, inputAncList)
+
+		if node.Async {
+			outputId := state.currentMaxId[outputParams.nodeId]
+			outputParams.ancList = append(
+				outputParams.ancList,
+				state.currentMaxId[outputParams.nodeId],
+			)
+			state.currentMaxId[outputParams.nodeId] += 1
+			state.outputs[inputs.nodeId][outputId] = outputParams
+			state.unconsumedOutputs[inputs.nodeId][outputId] = struct{}{}
+		} else {
+			state.outputs[inputs.nodeId][lastAsyncAncestorId] = outputParams
+			state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 func (state *WorkflowExecutionState) getEligibleSuccessors(
-    nodeId int,
+	nodeId int,
 ) (map[int][]NodeParams, error) {
-    // ID -> ancestor list
-    ret := make(map[int][]NodeParams)
-    for _, succ := range state.index.succs[nodeId] {
-        succCanRun := true
-        for _, predOfSucc := range state.index.preds[succ] {
-            if predOfSucc == nodeId {
-                continue
-            }
+	// ID -> ancestor list
+	ret := make(map[int][]NodeParams)
+	for _, succ := range state.index.succs[nodeId] {
+		succCanRun := true
+		for _, predOfSucc := range state.index.preds[succ] {
+			if predOfSucc == nodeId {
+				continue
+			}
 
-            // Hanlde case where async node has completed some iterations
-            // and trigger node (nodeId) id non-async.
-            _, completed := state.completed[predOfSucc]
-            if ! completed {
-                succCanRun = false
-                break
-            }
-        }
+            // Could we maybe filter this based on runId? I.e. Completion of
+            // node ID with ancestor list will only trigger a successor if
+            // other successors of pred have completed an iteration with same
+            // ID of last async ancestor as nodeId?
+			if len(state.outputs[predOfSucc]) == 0 {
+				succCanRun = false
+				break
+			}
+		}
 
-        if succCanRun {
-            newAncestorLists, err := state.consumeAncestorLists(succ)
-            if err != nil {
-                return nil, fmt.Errorf(
-                    "error generating ancestor lists: %s", err,
-                )
-            }
+		if succCanRun {
+			newAncestorLists, err := state.consumeAncestorLists(succ)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"error generating ancestor lists: %s", err,
+				)
+			}
 
-            for _, ancList := range newAncestorLists {
-                params, err := state.formInputs(succ, ancList)
-                if err != nil {
-                    return nil, fmt.Errorf(
-                        "error forming inputs for node %d with ancestor list %v: %s",
-                        succ, ancList, err,
-                    )
-                }
-                ret[nodeId] = append(ret[nodeId], params)
-            }
-        }
-    }
+			for _, ancList := range newAncestorLists {
+				params, err := state.formInputs(succ, ancList)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"error forming inputs for node %d with ancestor list %v: %s",
+						succ, ancList, err,
+					)
+				}
+				ret[succ] = append(ret[succ], params)
+			}
+		}
+	}
 
-    return nil, nil
+	return ret, nil
 }
-
 
 func getInAndOutLinks(
 	workflow Workflow,
@@ -580,8 +609,8 @@ func parseAsyncAndBarriers(
 	}
 
 	// Node ID -> Async ancestors IDs ordered topologically.
-    // We don't consider barriers yet, because we need this to 
-    // validate barrier structure in the first place.
+	// We don't consider barriers yet, because we need this to
+	// validate barrier structure in the first place.
 	asyncAncestors := make(map[int][]int)
 	for _, layer := range topSort {
 		for _, asyncNodeId := range layer {
@@ -640,37 +669,40 @@ func parseAsyncAndBarriers(
 		}
 	}
 
-    asyncAncestorsBeforeBarrier := make(map[int][]int)
-    for nodeId := range workflow.Nodes {
-        for _, asyncAncestorId := range asyncAncestors[nodeId] {
+	asyncAncestorsBeforeBarrier := make(map[int][]int)
+	for nodeId := range workflow.Nodes {
+		if asyncAncestorsBeforeBarrier[nodeId] == nil {
+			asyncAncestorsBeforeBarrier[nodeId] = make([]int, 0)
+		}
+		for _, asyncAncestorId := range asyncAncestors[nodeId] {
 			if barrier, barrierExists := barrierFor[asyncAncestorId]; barrierExists {
-			    if descendantOf[barrier][nodeId] {
-			        continue
-			    }
+				if descendantOf[barrier][nodeId] {
+					continue
+				}
 			}
-            asyncAncestorsBeforeBarrier[nodeId] = append(
-                asyncAncestorsBeforeBarrier[nodeId], 
-                asyncAncestorId,
-            )
-        }
-    }
+			asyncAncestorsBeforeBarrier[nodeId] = append(
+				asyncAncestorsBeforeBarrier[nodeId],
+				asyncAncestorId,
+			)
+		}
+	}
 
-    for nodeId := range workflow.Nodes {
+	for nodeId := range workflow.Nodes {
 		asyncAncestors, hasAsyncAncestors := asyncAncestorsBeforeBarrier[nodeId]
 		if !hasAsyncAncestors || len(asyncAncestors) == 0 {
 			continue
 		}
 
-        pred := asyncAncestors[0]
-        for i := 1; i < len(asyncAncestors); i++ {
-            if ! descendantOf[pred][asyncAncestors[i]] {
-                return nil, nil, fmt.Errorf(
-                    "node %d has non-nested async ancestors %d and %d",
-                    nodeId, pred, asyncAncestors[i],
-                )
-            }
-        }
-    }
+		pred := asyncAncestors[0]
+		for i := 1; i < len(asyncAncestors); i++ {
+			if !descendantOf[pred][asyncAncestors[i]] {
+				return nil, nil, fmt.Errorf(
+					"node %d has non-nested async ancestors %d and %d",
+					nodeId, pred, asyncAncestors[i],
+				)
+			}
+		}
+	}
 
 	return asyncAncestorsBeforeBarrier, barrierFor, nil
 }
@@ -690,6 +722,20 @@ func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 
 	index.inLinks = inLinks
 	index.outLinks = outLinks
+
+	index.preds = make(map[int][]int)
+	for nodeId, inLinkMap := range index.inLinks {
+		for _, inLink := range inLinkMap {
+			index.preds[nodeId] = append(index.preds[nodeId], inLink.SourceNodeId)
+		}
+	}
+
+	index.succs = make(map[int][]int)
+	for nodeId, outLinkMap := range index.outLinks {
+		for _, outLink := range outLinkMap {
+			index.succs[nodeId] = append(index.succs[nodeId], outLink.SinkNodeId)
+		}
+	}
 
 	topSort, err := layeredTopSort(*workflow)
 	if err != nil {
