@@ -87,7 +87,7 @@ func TestBarrierNestingValidation(t *testing.T) {
     }
 
     _, descendants := getAncestorsAndDescendants(topSort, inLinks, outLinks)
-    _, _, err := parseAsyncAndBarriers(workflow, topSort, descendants)
+    _, _, _, err := parseAsyncAndBarriers(workflow, topSort, descendants)
     if err == nil {
         t.Fatalf("failed to error on non-nested barriers")
     }
@@ -134,7 +134,7 @@ func TestAsyncAncestorValidation(t *testing.T) {
     }
 
     _, descendants := getAncestorsAndDescendants(topSort, inLinks, outLinks)
-    _, _, err := parseAsyncAndBarriers(workflow, topSort, descendants)
+    _, _, _, err := parseAsyncAndBarriers(workflow, topSort, descendants)
     if err == nil {
         t.Fatalf(
             "failed to error on node w/ multiple non-related async ancestors",
@@ -382,7 +382,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
         }
         if p2 != expectedP2Val {
             t.Fatalf(
-                "expected parameter p2 from async node 2 to vary: expected %d, got %d",
+                "expected parameter p2 from async node 2 to vary: expected %s, got %s",
                 expectedP2Val, p2,
             )
         }
@@ -643,6 +643,10 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
         p1 := getKeyOrFail(t, "p1", 1, inputsFor3.params, workflow).(string)
         p3Vals := genArbitraryOutputs(t, "p3", 1, i, 3, workflow)
         p1ToP3[p1] = getKeyOrFail(t, "p3", 3, p3Vals[0], workflow).(string)
+        err := state.addCmdResults(inputsFor3, p3Vals)
+        if err != nil {
+            t.Fatalf("error adding outputs of 3: %s", err)
+        }
     }
 
     succsOf3, err := state.getEligibleSuccessors(3)
@@ -662,7 +666,6 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
             )
         }
         
-        delete(p1ToP3, p1)
         delete(p1ToP2[p1], p2)
         if len(p1ToP2[p1]) == 0 {
             delete(p1ToP2, p1)
@@ -672,26 +675,16 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
     if len(p1ToP2) > 0 {
         t.Fatalf("did not generate all p1, p2 pairs: remaining are %v", p1ToP2)
     }
-    if len(p1ToP3) > 0 {
-        t.Fatalf("did not generate all p1, p3 pairs: remaining are %v", p1ToP3)
-    }
 }
 
-func TestNegativeVal(t *testing.T) {
+// If node 1 is async, node 2 descends from node 1, and node 3 descends from
+// node 2 (i.e. graph is 1 (async) -> 2 -> 3 with no other links), 3 should
+// have one input set for each iteration of its async ancestor 1, even though
+// it does not share a link with it.
+func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
     workflow := Workflow{
         Nodes: map[int]WorkflowNode{
             1: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                    "p2": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            2: {
                 Async: true,
                 ArgTypes: map[string]WorkflowArgType{
                     "p1": {
@@ -699,10 +692,18 @@ func TestNegativeVal(t *testing.T) {
                     },
                 },
             },
+            2: {
+                Async: false,
+                ArgTypes: map[string]WorkflowArgType{
+                    "p2": {
+                        ArgType: "str",
+                    },
+                },
+            },
             3: {
                 Async: false,
                 ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
+                    "p2": {
                         ArgType: "str",
                     },
                 },
@@ -716,444 +717,59 @@ func TestNegativeVal(t *testing.T) {
                 SinkChannel:   "p1",
             },
             {
-                SourceNodeId:  1,
+                SourceNodeId:  2,
                 SinkNodeId:    3,
                 SourceChannel: "p2",
                 SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    3,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
             },
         },
     }
 
     index, err := parseAndValidateWorkflow(&workflow)
     if err != nil {
-        t.Fatalf("could not build index")
+        t.Fatalf("could not build index: %s", err)
     }
 
     state := WorkflowExecutionState{
         workflow: workflow,
         index:    index,
     }
+    
+    p2Set := make(map[string]struct{})
+
+    // Generate 3 values for node 1 param p1
+    numIterationsOf1 := 3
+    p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
     succsOf1, err := state.TriggerSuccessors(
-        NodeParams{ancList: []int{}, nodeId: 1},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                    "p2": "2",
-                },
-            },
-        })
+        NodeParams{ancList: []int{}, nodeId: 1}, p1Vals,
+    )
+    inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
-    node2Params, node2ParamsExist := succsOf1[2]
-    if ! node2ParamsExist {
-        t.Fatalf("")
-    } else if len(node2Params) != 1 {
-        t.Fatalf("")
-    }
-
-    succsOf2, err := state.TriggerSuccessors(
-        NodeParams{ancList: []int{}, nodeId: 2},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                },
-            },
-        })
-    PrettyPrint(succsOf2[3][0].params)
-}
-
-func TestSthOrOther(t *testing.T) {
-    workflow := Workflow{
-        Nodes: map[int]WorkflowNode{
-            1: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                    "p2": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            2: {
-                Async: true,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            3: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                },
-            },
-        },
-        Links: []WorkflowLink{
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    2,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    2,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    3,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    3,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-        },
-    }
-
-    index, err := parseAndValidateWorkflow(&workflow)
-    if err != nil {
-        t.Fatalf("could not build index")
-    }
-
-    state := WorkflowExecutionState{
-        workflow: workflow,
-        index:    index,
-    }
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 1},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                    "p2": "2",
-                },
-            },
-        })
-    succs, err := state.getEligibleSuccessors(1)
-
-    //err = state.addOutputs(
-    //    NodeParams{ancList: []int{}, nodeId: 1},
-    //    []TypedParams{
-    //        {
-    //            Strings: map[string]string {
-    //                "p1": "1",
-    //                "p2": "2",
-    //            },
-    //        },
-    //    })
-    succs, err = state.getEligibleSuccessors(1)
-    if len(succs) > 0 {
-        t.Fatalf("regenerating already generated cmds")
-    }
-
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 2},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                },
-            },
-        })
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 2},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "2",
-                },
-            },
-        })
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 2},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "3",
-                },
-            },
-        })
-    succs, err = state.getEligibleSuccessors(2)
-    for _, succSet := range succs[3] {
-        PrettyPrint(succSet.params)
-    }
-    PrettyPrint(succs[3])
-}
-
-func TestSthOrOther2(t *testing.T) {
-    workflow := Workflow{
-        Nodes: map[int]WorkflowNode{
-            1: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                    "p2": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            2: {
-                Async: true,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                    "p2": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            3: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                },
-            },
-        },
-        Links: []WorkflowLink{
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    2,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    2,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    3,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    3,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-        },
-    }
-
-    index, err := parseAndValidateWorkflow(&workflow)
-    if err != nil {
-        t.Fatalf("could not build index: %s", err)
-    }
-
-    PrettyPrint(index)
-    state := WorkflowExecutionState{
-        workflow: workflow,
-        index:    index,
-    }
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 1},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                    "p2": "2",
-                },
-            },
-        })
-    succs, err := state.getEligibleSuccessors(1)
-    node2input := succs[2][0]
-
-    err = state.addCmdResults(
-        node2input,
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                },
-            },
-        })
-    err = state.addCmdResults(
-        node2input,
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "2",
-                },
-            },
-        })
-    err = state.addCmdResults(
-        node2input,
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "3",
-                },
-            },
-        })
-    succs, err = state.getEligibleSuccessors(2)
-    for _, succSet := range succs[3] {
-        PrettyPrint(succSet.params)
-    }
-    PrettyPrint(succs[3])
-}
-
-func TestMultipleLayersOfAsync(t *testing.T) {
-    workflow := Workflow{
-        Nodes: map[int]WorkflowNode{
-            1: {
-                Async: false,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p1": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            2: {
-                Async: true,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p2": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            3: {
-                Async: true,
-                ArgTypes: map[string]WorkflowArgType{
-                    "p3": {
-                        ArgType: "str",
-                    },
-                },
-            },
-            4: {
-                Async:    true,
-                ArgTypes: map[string]WorkflowArgType{},
-            },
-        },
-        Links: []WorkflowLink{
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    4,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-            {
-                SourceNodeId:  1,
-                SinkNodeId:    2,
-                SourceChannel: "p1",
-                SinkChannel:   "p1",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    3,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  2,
-                SinkNodeId:    4,
-                SourceChannel: "p2",
-                SinkChannel:   "p2",
-            },
-            {
-                SourceNodeId:  3,
-                SinkNodeId:    4,
-                SourceChannel: "p3",
-                SinkChannel:   "p3",
-            },
-        },
-    }
-
-    index, err := parseAndValidateWorkflow(&workflow)
-    if err != nil {
-        t.Fatalf("could not build index: %s", err)
-    }
-
-    state := WorkflowExecutionState{
-        workflow: workflow,
-        index:    index,
-    }
-
-    err = state.addCmdResults(
-        NodeParams{ancList: []int{}, nodeId: 1},
-        []TypedParams{
-            {
-                Strings: map[string]string{
-                    "p1": "1",
-                },
-            },
-        })
-
-    if err != nil { panic(err) }
-
-    succs, err := state.getEligibleSuccessors(1)
-    if err != nil { panic(err) }
-    node2input := succs[2][0]
-    for i := 1; i < 3; i++ {
-        err = state.addCmdResults(
-            node2input,
-            []TypedParams{
-                {
-                    Strings: map[string]string{
-                        "p2": fmt.Sprintf("%d", i),
-                    },
-                },
-            })
-        if err != nil { panic(err) }
-    }
-
-    node2Succs, err := state.getEligibleSuccessors(2)
-    if err != nil { panic(err) }
-
-    for _, node3Inputs := range node2Succs[3] {
-        for i := 1; i < 3; i++ {
-            err = state.addCmdResults(
-                node3Inputs,
-                []TypedParams{
-                    {
-                        Strings: map[string]string{
-                            "p3": fmt.Sprintf("%d", i),
-                        },
-                    },
-                })
-            if err != nil { panic(err) }
+    for i, inputFor2 := range inputsFor2 {
+        p2Set[fmt.Sprintf("%d", i)] = struct{}{}
+        err := state.addCmdResults(
+            inputFor2, 
+            []TypedParams{{
+                Strings: map[string]string {"p2": fmt.Sprintf("%d", i)},
+            }},
+        )
+        if err != nil {
+            t.Fatalf("error adding outputs of 2: %s", err)
         }
     }
 
-    fmt.Printf("%v", state)
-    succs, err = state.getEligibleSuccessors(3)
-    if err != nil { panic(err) }
-    PrettyPrint(succs)
-    for _, succSet := range succs[3] {
-        PrettyPrint(succSet.params)
+    succsOf2, err := state.getEligibleSuccessors(2)
+    inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, numIterationsOf1)
+    for _, inputsFor3 := range inputsFor3 {
+        p2 := getKeyOrFail(t, "p2", 2, inputsFor3.params, workflow).(string)
+        if _, validP2 := p2Set[p2]; ! validP2 {
+            t.Fatalf("got invalid p2 val %s", p2)
+        }
+        delete(p2Set, p2)
+    }
+
+    if len(p2Set) != 0 {
+        t.Fatalf("failed to generate p2 values %v", p2Set)
     }
 }
 
-// Test that non-async nodes can trigger backlog of async nodes
-// Test propagation of async values to non-immediate descendants of async
-// add barrier support
-// Test -1
-
-// Test that non-async nodes can trigger backlog of async nodes
-// Test propagation of async values to non-immediate descendants of async
-// add barrier support
-// Test -1

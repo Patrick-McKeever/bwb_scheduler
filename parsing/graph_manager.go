@@ -12,8 +12,9 @@ type WorkflowIndex struct {
 	// Lookup links based on (dstNode, dstPname)
 	inLinks map[int]map[string]WorkflowLink
 	// Lookup links based on (srcNode, srcPname)
-	outLinks       map[int]map[string]WorkflowLink
-	asyncAncestors map[int][]int
+	outLinks         map[int]map[string]WorkflowLink
+	asyncAncestors   map[int][]int
+	asyncDescendants map[int][]int
 
 	// Layered top sort where each inner array of node IDs is
 	// nodes that can run independently once all nodes in prior
@@ -22,6 +23,10 @@ type WorkflowIndex struct {
 	barrierFor     map[int]int
 }
 
+// These lists are rarely going to exceed 4 or 5 entries, so an element-by-element
+// comparison is almost always going to be quicker than keeping a hash map or some
+// other auxiliary data structure. We can reevaluate if we ever deal with workflows
+// containing thousands of nodes.
 func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
 	asyncAnc1, id1Exists := index.asyncAncestors[id1]
 	if !id1Exists {
@@ -32,21 +37,24 @@ func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
 		return 0, fmt.Errorf("node %d not in async ancestor array", id2)
 	}
 
-	for i := 1; i <= max(len(asyncAnc1), len(asyncAnc2)); i++ {
-        if i >= len(asyncAnc1) {
-		    if asyncAnc2[len(asyncAnc2)-i] == id1 {
-		    	return id1, nil
-		    }
-        } else if i >= len(asyncAnc2) {
-		    if asyncAnc1[len(asyncAnc1)-i] == id2 {
-		    	return id2, nil
-		    }
-        } else if asyncAnc1[len(asyncAnc1)-i] == asyncAnc2[len(asyncAnc2)-i] {
-			return asyncAnc1[len(asyncAnc1)-i], nil
-		}
-	}
+    lastSharedAnc := -1
+    for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
+        if asyncAnc1[i] == asyncAnc2[i] {
+            lastSharedAnc = asyncAnc1[i]
+        }
+    }
 
-	return -1, nil
+    // If the longer list contains id2 (i.e. id1 descends from async node id2),
+    // then it shares all the same async ancestors as id2 (as there is a single
+    // unique topological ordering of async ancestors) plus id2; therefore id2
+    // must necessarily appear at index len(asyncAnc2), if at all. Vice versa.
+    if len(asyncAnc1) > len(asyncAnc2) && asyncAnc1[len(asyncAnc2)] == id2 {
+        return id2, nil
+    }
+    if len(asyncAnc2) > len(asyncAnc1) && asyncAnc2[len(asyncAnc1)] == id1{
+        return id1, nil
+    }
+    return lastSharedAnc, nil
 }
 
 func (index *WorkflowIndex) getAncListValue(
@@ -89,10 +97,10 @@ type WorkflowExecutionState struct {
 	// node id -> runID of last async ancestor (-1 if none) -> value
 	inputs map[int]map[int]NodeParams
 	// node id -> run ID -> output list
-	outputs           map[int]map[int]NodeParams
-	currentMaxId      map[int]int
-	unconsumedOutputs map[int]map[int]struct{}
-	cmds              map[int][]CmdTemplate
+	outputs          map[int]map[int]NodeParams
+	currentMaxId     map[int]int
+	unconsumedInputs map[int]map[int]struct{}
+	cmds             map[int][]CmdTemplate
 }
 
 func (state *WorkflowExecutionState) consumeAncestorLists(
@@ -134,7 +142,7 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 		)
 	}
 
-	unconsumedSet, unconsumedSetExists := state.unconsumedOutputs[lastAsyncAnc]
+	unconsumedSet, unconsumedSetExists := state.unconsumedInputs[nodeId]
 	if !unconsumedSetExists || unconsumedSet == nil {
 		return nil, fmt.Errorf(
 			"node %d has no or nil unconsumed set",
@@ -154,7 +162,7 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 		}
 
 		unconsumed = append(unconsumed, asyncAncOutputs.ancList)
-		delete(state.unconsumedOutputs[lastAsyncAnc], asyncAncPredRunId)
+		delete(state.unconsumedInputs[nodeId], asyncAncPredRunId)
 	}
 
 	if len(unconsumed) > 0 {
@@ -296,12 +304,8 @@ func (state *WorkflowExecutionState) addCmdResults(
 		state.inputs[inputs.nodeId] = make(map[int]NodeParams)
 	}
 
-	if state.unconsumedOutputs == nil {
-		state.unconsumedOutputs = make(map[int]map[int]struct{})
-	}
-
-	if state.unconsumedOutputs[inputs.nodeId] == nil {
-		state.unconsumedOutputs[inputs.nodeId] = make(map[int]struct{})
+	if state.unconsumedInputs == nil {
+		state.unconsumedInputs = make(map[int]map[int]struct{})
 	}
 
 	if state.currentMaxId == nil {
@@ -317,7 +321,7 @@ func (state *WorkflowExecutionState) addCmdResults(
 		var outputParams NodeParams
 		outputParams.nodeId = inputs.nodeId
 		outputParams.params = output
-        outputParams.ancList = make([]int, len(inputAncList))
+		outputParams.ancList = make([]int, len(inputAncList))
 		copy(outputParams.ancList, inputAncList)
 
 		if node.Async {
@@ -329,11 +333,16 @@ func (state *WorkflowExecutionState) addCmdResults(
 			state.currentMaxId[outputParams.nodeId] += 1
 			state.inputs[inputs.nodeId][runId] = inputs
 			state.outputs[inputs.nodeId][runId] = outputParams
-			state.unconsumedOutputs[inputs.nodeId][runId] = struct{}{}
+			for _, desc := range state.index.asyncDescendants[inputs.nodeId] {
+				if state.unconsumedInputs[desc] == nil {
+					state.unconsumedInputs[desc] = make(map[int]struct{})
+				}
+				state.unconsumedInputs[desc][runId] = struct{}{}
+			}
 		} else {
 			state.inputs[inputs.nodeId][lastAsyncAncestorId] = inputs
 			state.outputs[inputs.nodeId][lastAsyncAncestorId] = outputParams
-			state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
+			//state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
 		}
 	}
 
@@ -348,10 +357,6 @@ func (state *WorkflowExecutionState) getEligibleSuccessors(
 	for _, succ := range state.index.succs[nodeId] {
 		succCanRun := true
 		for _, predOfSucc := range state.index.preds[succ] {
-			if predOfSucc == nodeId {
-				continue
-			}
-
 			// Could we maybe filter this based on runId? I.e. Completion of
 			// node ID with ancestor list will only trigger a successor if
 			// other successors of pred have completed an iteration with same
@@ -390,13 +395,12 @@ func (state *WorkflowExecutionState) TriggerSuccessors(
 	inputs NodeParams,
 	outputs []TypedParams,
 ) (map[int][]NodeParams, error) {
-    if err := state.addCmdResults(inputs, outputs); err != nil {
-        return nil, err
-    }
+	if err := state.addCmdResults(inputs, outputs); err != nil {
+		return nil, err
+	}
 
-    return state.getEligibleSuccessors(inputs.nodeId)
+	return state.getEligibleSuccessors(inputs.nodeId)
 }
-
 
 func getInAndOutLinks(
 	workflow Workflow,
@@ -598,34 +602,34 @@ func getAncestorsAndDescendants(
 func parseAsyncAndBarriers(
 	workflow Workflow, topSort [][]int,
 	descendantOf map[int]map[int]bool,
-) (map[int][]int, map[int]int, error) {
+) (map[int][]int, map[int][]int, map[int]int, error) {
 	barrierFor := make(map[int]int)
 	for nodeId, node := range workflow.Nodes {
 		if node.BarrierFor != nil {
 			srcNode, srcNodeExists := workflow.Nodes[*node.BarrierFor]
 			if !srcNodeExists {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"node %d is barrier for non-existent node %d",
 					nodeId, *node.BarrierFor,
 				)
 			}
 
 			if !srcNode.Async {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"node %d is barrier for non-async node %d",
 					nodeId, *node.BarrierFor,
 				)
 			}
 
 			if barrier, barrierExists := barrierFor[*node.BarrierFor]; barrierExists {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"node %d is barrier for (at least) two nodes: %d and %d",
 					nodeId, *node.BarrierFor, barrier,
 				)
 			}
 
 			if !descendantOf[*node.BarrierFor][nodeId] {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"node %d is barrier for node %d but is not its descendant",
 					nodeId, *node.BarrierFor,
 				)
@@ -687,7 +691,7 @@ func parseAsyncAndBarriers(
 
 				ancBarrier, ancHasBarrier := barrierFor[asyncAncestorId]
 				if ancHasBarrier && !descendantOf[barrierNodeId][ancBarrier] {
-					return nil, nil, fmt.Errorf(
+					return nil, nil, nil, fmt.Errorf(
 						"async nodes %d, %d has non-nested barriers %d and %d",
 						asyncAncestorId, asyncNodeId, barrierNodeId, ancBarrier,
 					)
@@ -714,6 +718,19 @@ func parseAsyncAndBarriers(
 		}
 	}
 
+	asyncDescendants := make(map[int][]int)
+	for nodeId, asyncAncList := range asyncAncestorsBeforeBarrier {
+		for _, asyncAnc := range asyncAncList {
+			if asyncDescendants[asyncAnc] == nil {
+				asyncDescendants[asyncAnc] = make([]int, 0)
+			}
+			asyncDescendants[asyncAnc] = append(
+				asyncDescendants[asyncAnc],
+				nodeId,
+			)
+		}
+	}
+
 	for nodeId := range workflow.Nodes {
 		asyncAncestors, hasAsyncAncestors := asyncAncestorsBeforeBarrier[nodeId]
 		if !hasAsyncAncestors || len(asyncAncestors) == 0 {
@@ -723,7 +740,7 @@ func parseAsyncAndBarriers(
 		pred := asyncAncestors[0]
 		for i := 1; i < len(asyncAncestors); i++ {
 			if !descendantOf[pred][asyncAncestors[i]] {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"node %d has non-nested async ancestors %d and %d",
 					nodeId, pred, asyncAncestors[i],
 				)
@@ -731,7 +748,7 @@ func parseAsyncAndBarriers(
 		}
 	}
 
-	return asyncAncestorsBeforeBarrier, barrierFor, nil
+	return asyncAncestorsBeforeBarrier, asyncDescendants, barrierFor, nil
 }
 
 func getPredsAndSuccs(workflow Workflow) (map[int][]int, map[int][]int) {
@@ -793,7 +810,7 @@ func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	}
 
 	_, descendantOf := getAncestorsAndDescendants(topSort, inLinks, outLinks)
-	index.asyncAncestors, index.barrierFor, err = parseAsyncAndBarriers(
+	index.asyncAncestors, index.asyncDescendants, index.barrierFor, err = parseAsyncAndBarriers(
 		*workflow, topSort, descendantOf,
 	)
 	if err != nil {
