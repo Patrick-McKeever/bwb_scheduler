@@ -32,21 +32,16 @@ func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
 		return 0, fmt.Errorf("node %d not in async ancestor array", id2)
 	}
 
-	if len(asyncAnc1) > 0 && asyncAnc1[len(asyncAnc1)-1] == id2 {
-		return id2, nil
-	}
-	if len(asyncAnc2) > 0 && asyncAnc2[len(asyncAnc2)-1] == id1 {
-		return id1, nil
-	}
-
-	for i := 1; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
-		if asyncAnc1[len(asyncAnc1)-i] == id2 {
-			return id2, nil
-		}
-		if asyncAnc2[len(asyncAnc2)-i] == id1 {
-			return id1, nil
-		}
-		if asyncAnc1[len(asyncAnc1)-i] == asyncAnc2[len(asyncAnc2)-i] {
+	for i := 1; i <= max(len(asyncAnc1), len(asyncAnc2)); i++ {
+        if i >= len(asyncAnc1) {
+		    if asyncAnc2[len(asyncAnc2)-i] == id1 {
+		    	return id1, nil
+		    }
+        } else if i >= len(asyncAnc2) {
+		    if asyncAnc1[len(asyncAnc1)-i] == id2 {
+		    	return id2, nil
+		    }
+        } else if asyncAnc1[len(asyncAnc1)-i] == asyncAnc2[len(asyncAnc2)-i] {
 			return asyncAnc1[len(asyncAnc1)-i], nil
 		}
 	}
@@ -88,9 +83,9 @@ type NodeParams struct {
 }
 
 type WorkflowExecutionState struct {
-	workflow  Workflow
-	index     WorkflowIndex
-	completed map[int][]int
+	workflow     Workflow
+	index        WorkflowIndex
+	allocatedCmd map[int]bool
 	// node id -> runID of last async ancestor (-1 if none) -> value
 	inputs map[int]map[int]NodeParams
 	// node id -> run ID -> output list
@@ -111,17 +106,22 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 		)
 	}
 
+	if state.allocatedCmd == nil {
+		state.allocatedCmd = map[int]bool{}
+	}
+
 	asyncAncestors := state.index.asyncAncestors[nodeId]
 	if len(asyncAncestors) == 0 {
-        // A node runs once for every run of its topologically last
-        // async ancestor. If it does not have any async ancestors,
-        // it runs once, so it cannot be run again.
-        if len(state.outputs[nodeId]) > 0 {
-            return [][]int{}, nil
-        }
+		// A node runs once for every run of its topologically last
+		// async ancestor. If it does not have any async ancestors,
+		// it runs once, so it cannot be run again.
+		if state.allocatedCmd[nodeId] {
+			return [][]int{}, nil
+		}
 
-        // Return a single empty ancestor list corresponding to the
-        // one run of this not-run node.
+		// Return a single empty ancestor list corresponding to the
+		// one run of this not-run node.
+		state.allocatedCmd[nodeId] = true
 		return [][]int{{}}, nil
 	}
 
@@ -155,6 +155,10 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 
 		unconsumed = append(unconsumed, asyncAncOutputs.ancList)
 		delete(state.unconsumedOutputs[lastAsyncAnc], asyncAncPredRunId)
+	}
+
+	if len(unconsumed) > 0 {
+		state.allocatedCmd[nodeId] = true
 	}
 
 	return unconsumed, nil
@@ -258,7 +262,7 @@ func (state *WorkflowExecutionState) formInputs(
 	return ret, nil
 }
 
-func (state *WorkflowExecutionState) addOutputs(
+func (state *WorkflowExecutionState) addCmdResults(
 	inputs NodeParams,
 	outputs []TypedParams,
 ) error {
@@ -284,6 +288,14 @@ func (state *WorkflowExecutionState) addOutputs(
 		state.outputs[inputs.nodeId] = make(map[int]NodeParams)
 	}
 
+	if state.inputs == nil {
+		state.inputs = make(map[int]map[int]NodeParams)
+	}
+
+	if state.inputs[inputs.nodeId] == nil {
+		state.inputs[inputs.nodeId] = make(map[int]NodeParams)
+	}
+
 	if state.unconsumedOutputs == nil {
 		state.unconsumedOutputs = make(map[int]map[int]struct{})
 	}
@@ -305,18 +317,21 @@ func (state *WorkflowExecutionState) addOutputs(
 		var outputParams NodeParams
 		outputParams.nodeId = inputs.nodeId
 		outputParams.params = output
+        outputParams.ancList = make([]int, len(inputAncList))
 		copy(outputParams.ancList, inputAncList)
 
 		if node.Async {
-			outputId := state.currentMaxId[outputParams.nodeId]
+			runId := state.currentMaxId[outputParams.nodeId]
 			outputParams.ancList = append(
 				outputParams.ancList,
 				state.currentMaxId[outputParams.nodeId],
 			)
 			state.currentMaxId[outputParams.nodeId] += 1
-			state.outputs[inputs.nodeId][outputId] = outputParams
-			state.unconsumedOutputs[inputs.nodeId][outputId] = struct{}{}
+			state.inputs[inputs.nodeId][runId] = inputs
+			state.outputs[inputs.nodeId][runId] = outputParams
+			state.unconsumedOutputs[inputs.nodeId][runId] = struct{}{}
 		} else {
+			state.inputs[inputs.nodeId][lastAsyncAncestorId] = inputs
 			state.outputs[inputs.nodeId][lastAsyncAncestorId] = outputParams
 			state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
 		}
@@ -337,10 +352,10 @@ func (state *WorkflowExecutionState) getEligibleSuccessors(
 				continue
 			}
 
-            // Could we maybe filter this based on runId? I.e. Completion of
-            // node ID with ancestor list will only trigger a successor if
-            // other successors of pred have completed an iteration with same
-            // ID of last async ancestor as nodeId?
+			// Could we maybe filter this based on runId? I.e. Completion of
+			// node ID with ancestor list will only trigger a successor if
+			// other successors of pred have completed an iteration with same
+			// ID of last async ancestor as nodeId?
 			if len(state.outputs[predOfSucc]) == 0 {
 				succCanRun = false
 				break
@@ -370,6 +385,18 @@ func (state *WorkflowExecutionState) getEligibleSuccessors(
 
 	return ret, nil
 }
+
+func (state *WorkflowExecutionState) TriggerSuccessors(
+	inputs NodeParams,
+	outputs []TypedParams,
+) (map[int][]NodeParams, error) {
+    if err := state.addCmdResults(inputs, outputs); err != nil {
+        return nil, err
+    }
+
+    return state.getEligibleSuccessors(inputs.nodeId)
+}
+
 
 func getInAndOutLinks(
 	workflow Workflow,
@@ -707,6 +734,35 @@ func parseAsyncAndBarriers(
 	return asyncAncestorsBeforeBarrier, barrierFor, nil
 }
 
+func getPredsAndSuccs(workflow Workflow) (map[int][]int, map[int][]int) {
+	preds := make(map[int][]int)
+	succs := make(map[int][]int)
+	addedPred := make(map[int]map[int]bool)
+	addedSucc := make(map[int]map[int]bool)
+
+	for _, link := range workflow.Links {
+		src := link.SourceNodeId
+		dst := link.SinkNodeId
+
+		if addedSucc[src] == nil {
+			addedSucc[src] = make(map[int]bool)
+		}
+		if !addedSucc[src][dst] {
+			succs[src] = append(succs[src], dst)
+			addedSucc[src][dst] = true
+		}
+
+		if addedPred[dst] == nil {
+			addedPred[dst] = make(map[int]bool)
+		}
+		if !addedPred[dst][src] {
+			preds[dst] = append(preds[dst], src)
+			addedPred[dst][src] = true
+		}
+	}
+	return preds, succs
+}
+
 // Inputs:
 //   - workflow: Workflow whose arg types will be edited so as to create
 //     an argtype entry for each incoming link if one does not exist.
@@ -715,6 +771,9 @@ func parseAsyncAndBarriers(
 //   - A workflow index giving data structures to facilitate easy lookup.
 func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	var index WorkflowIndex
+	index.preds, index.succs = getPredsAndSuccs(*workflow)
+	topSort, err := layeredTopSort(*workflow)
+
 	inLinks, outLinks, err := getInAndOutLinks(*workflow)
 	if err != nil {
 		return WorkflowIndex{}, fmt.Errorf("error parsing links: %s", err)
@@ -723,21 +782,6 @@ func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	index.inLinks = inLinks
 	index.outLinks = outLinks
 
-	index.preds = make(map[int][]int)
-	for nodeId, inLinkMap := range index.inLinks {
-		for _, inLink := range inLinkMap {
-			index.preds[nodeId] = append(index.preds[nodeId], inLink.SourceNodeId)
-		}
-	}
-
-	index.succs = make(map[int][]int)
-	for nodeId, outLinkMap := range index.outLinks {
-		for _, outLink := range outLinkMap {
-			index.succs[nodeId] = append(index.succs[nodeId], outLink.SinkNodeId)
-		}
-	}
-
-	topSort, err := layeredTopSort(*workflow)
 	if err != nil {
 		return WorkflowIndex{}, fmt.Errorf("error in top sort: %s", err)
 	}
