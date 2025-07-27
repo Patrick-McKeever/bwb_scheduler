@@ -1,9 +1,7 @@
 package parsing
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -24,15 +22,23 @@ type CmdSub struct {
 }
 
 type CmdTemplate struct {
-	BaseCmd    []string
-	Args       []string
-	ImageName  string
-	Flags      []string
-	Envs       map[string]string
-	InputFiles []string
+	BaseCmd             []string
+	Args                []string
+	ImageName           string
+	Flags               []string
+	Envs                map[string]string
+
 	// For iterable vars, we need to keep track of which version
 	// of the variable was used to generate a particular command.
-	IterVals TypedParams
+	IterVals            TypedParams
+
+    // Keep track of input and output files for this command.
+    // InFiles are fixed paths, but output files must be stored
+    // by paramter names (OutFilePaths), since the filenames of
+    // output files may not be known until after runtime (where
+    // they may be written to /tmp/output).
+	InFiles             []string
+	OutFilePnames       []string
 }
 
 type TypedParams struct {
@@ -82,12 +88,14 @@ func copyCmdTemplate(template CmdTemplate) CmdTemplate {
 	newTemplate.BaseCmd = make([]string, len(template.BaseCmd))
 	newTemplate.Args = make([]string, len(template.Args))
 	newTemplate.Flags = make([]string, len(template.Flags))
-	newTemplate.InputFiles = make([]string, len(template.InputFiles))
+	newTemplate.InFiles = make([]string, len(template.InFiles))
+	newTemplate.OutFilePnames = make([]string, len(template.OutFilePnames))
 
 	copy(newTemplate.BaseCmd, template.BaseCmd)
 	copy(newTemplate.Args, template.Args)
 	copy(newTemplate.Flags, template.Flags)
-	copy(newTemplate.InputFiles, template.InputFiles)
+	copy(newTemplate.InFiles, template.InFiles)
+	copy(newTemplate.OutFilePnames, template.OutFilePnames)
 
 	newTemplate.Envs = copyMapOfScalars(template.Envs)
 	newTemplate.IterVals = copyTypedParams(template.IterVals)
@@ -590,6 +598,48 @@ func evaluateArgs(node WorkflowNode, template *CmdTemplate, tp TypedParams) erro
 	return nil
 }
 
+func evaluateInOutFiles(node WorkflowNode, template *CmdTemplate, tp TypedParams) error {
+    for pname, argType := range node.ArgTypes {
+        if argType.InputFile == nil && argType.OutputFile == nil {
+            continue
+        }
+
+        if !argTypeIsStr(argType.ArgType) {
+            return fmt.Errorf("input / output file pname %s is not str", pname)
+        }
+
+        // Iterble attrs will be processed in evaluteIterables, since
+        // the value of an input file may vary during iteration over
+        // a list.
+		_, isIterable := node.IterAttrs[pname]
+        if argType.InputFile != nil && *argType.InputFile && !isIterable {
+            pVal, pValExists := tp.lookupParam(pname, argType)
+            pValStr, convOk := pVal.(string)
+            if !convOk {
+                return fmt.Errorf(
+                    "unable to convert input/output file param %s to str",
+                    pname,
+                )
+            }
+            if !pValExists {
+                return fmt.Errorf(
+                    "pname %s is listed as input file but is unset",
+                    pname,
+                )
+            }
+            template.InFiles = append(template.InFiles, pValStr)
+        }
+
+        // Unlike input files, we only store pnames (not vals) for output 
+        // files, so there's no need to defer evaluation until processing
+        // iterables.
+        if argType.OutputFile != nil && *argType.OutputFile {
+            template.OutFilePnames = append(template.OutFilePnames, pname)
+        }
+    }
+    return nil
+}
+
 /**
  * Parameters:
  *  - list: Some list to be broken up into chunks of group size.
@@ -779,7 +829,8 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 			}
 
 			if numGroups > 0 {
-				listType := strings.Split(node.ArgTypes[pname].ArgType, " ")[0]
+                argType := node.ArgTypes[pname]
+				listType := strings.Split(argType.ArgType, " ")[0]
 				if argTypeIsStr(listType) {
 					ithIteration.IterVals.StrLists[pname] = strGroups[pname][i%numGroups]
 				} else if node.ArgTypes[pname].ArgType == "int" {
@@ -787,6 +838,15 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 				} else if node.ArgTypes[pname].ArgType == "double" {
 					ithIteration.IterVals.DoubleLists[pname] = doubleGroups[pname][i%numGroups]
 				}
+
+                // Validation ensures that only string types can be
+                // input files.
+                if argType.InputFile != nil && *argType.InputFile {
+                    ithIteration.InFiles = append(
+                        ithIteration.InFiles, 
+                        strGroups[pname][i%numGroups]...
+                    )
+                }
 			}
 		}
 
@@ -890,37 +950,51 @@ func parseNodeCmd(node WorkflowNode) ([]CmdTemplate, error) {
 	}
 	err = evaluateEnvVars(node, &template, tp)
 	if err != nil {
-		panic(fmt.Errorf("error parsing node %d env vars: %s", nodeId, err))
+		return nil, fmt.Errorf("error parsing node %d env vars: %s", nodeId, err)
 	}
 
 	err = evaluateFlags(node, &template, tp)
 	if err != nil {
-		panic(fmt.Errorf("error parsing node %d flags: %s", nodeId, err))
+		return nil, fmt.Errorf("error parsing node %d flags: %s", nodeId, err)
 	}
 
 	err = evaluateArgs(node, &template, tp)
 	if err != nil {
-		panic(fmt.Errorf("error parsing node %d args: %s", nodeId, err))
+		return nil, fmt.Errorf("error parsing node %d args: %s", nodeId, err)
 	}
+
+    err = evaluateInOutFiles(node, &template, tp)
+    if err != nil {
+        return nil, fmt.Errorf(
+            "error parsing node %d input / output files: %s",
+            nodeId, err,
+        )
+    }
 
 	err = performCmdSubs(node, &template, tp, true)
 	if err != nil {
-		panic(fmt.Errorf("error parsing node %d substitutions: %s", nodeId, err))
+		return nil, fmt.Errorf(
+            "error parsing node %d substitutions: %s", 
+            nodeId, err,
+        )
 	}
 
 	var iterations []CmdTemplate
 	iterations, err = evaluateIterables(node, template, tp)
 	if err != nil {
-		panic(fmt.Errorf("error parsing node %d iterables: %s", nodeId, err))
+		return nil, fmt.Errorf(
+            "error parsing node %d iterables: %s", 
+            nodeId, err,
+        )
 	}
 
 	for i := range iterations {
 		err := performCmdSubs(node, &iterations[i], tp, false)
 		if err != nil {
-			panic(fmt.Errorf(
+			return nil, fmt.Errorf(
 				"error parsing node %d, iteration %d substitutions: %s",
 				nodeId, i, err,
-			))
+			)
 		}
 	}
 
@@ -1138,32 +1212,4 @@ func validateWorkflow(workflow Workflow) error {
 	}
 
 	return nil
-}
-
-func main() {
-	workflow, err := ParseWorkflow("tests/OWS/Bulk-RNA-seq/star_salmon_aws")
-	if err != nil {
-		panic(err)
-	}
-
-	validateErr := validateWorkflow(workflow)
-	if validateErr != nil {
-		panic(fmt.Errorf("workflow validation error: %s", validateErr))
-	}
-	fmt.Println("Successfully validated workflow")
-
-	wfSerialized, _ := json.MarshalIndent(workflow, "", "  ")
-	err = os.WriteFile("bulk_rna.json", wfSerialized, 0644)
-
-	for _, node := range workflow.Nodes {
-		templates, err := parseNodeCmd(node)
-		if err != nil {
-			panic(err)
-		}
-		PrettyPrint(templates)
-	}
-
-	if err != nil {
-		panic(err)
-	}
 }

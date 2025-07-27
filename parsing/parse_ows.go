@@ -76,6 +76,8 @@ type WorkflowArgType struct {
 	Env         *string     `json:"env"`
 	Label       *string     `json:"label"`
 	DefaultVal  interface{} `json:"default"`
+	InputFile   *bool       `json:"input_file"`
+	OutputFile  *bool       `json:"output_file"`
 }
 
 type IterateSetting struct {

@@ -187,6 +187,79 @@ func TestScalarCmdSubMissingErr(t *testing.T) {
 	}
 }
 
+func TestScalarInFile(t *testing.T) {
+    var node WorkflowNode
+    lvalForTrue := true
+    node.ArgTypes = map[string]WorkflowArgType{
+        "scalarInParam": {
+            ArgType: "file",
+            InputFile: &lvalForTrue,
+        },
+    }
+    node.Props = map[string]any{
+        "scalarInParam": "/path",
+    }
+
+	tp, err := parseTypedParams(node)
+	if err != nil {
+		t.Fatalf("failed to parse typed params: %s", err)
+	}
+
+    var template CmdTemplate
+    err = evaluateInOutFiles(node, &template, tp)
+    if err != nil {
+        t.Fatalf("error parsing in files: %s", err)
+    }
+
+    if len(template.InFiles) != 1 {
+        t.Fatalf("got %d infiles, expected 1", len(template.InFiles))
+    }
+
+    expVal := node.Props["scalarInParam"].(string)
+    if template.InFiles[0] != expVal {
+        t.Fatalf(
+            "got incorrect value for input file, got %s, expected %s", 
+            template.InFiles[0], expVal,
+        )
+    }
+}
+
+func TestScalarOutFile(t *testing.T) {
+    var node WorkflowNode
+    lvalForTrue := true
+    node.ArgTypes = map[string]WorkflowArgType{
+        "scalarOutParam": {
+            ArgType: "file",
+            OutputFile: &lvalForTrue,
+        },
+    }
+    node.Props = map[string]any{
+        "scalarOutParam": "/path",
+    }
+
+	tp, err := parseTypedParams(node)
+	if err != nil {
+		t.Fatalf("failed to parse typed params: %s", err)
+	}
+
+    var template CmdTemplate
+    err = evaluateInOutFiles(node, &template, tp)
+    if err != nil {
+        t.Fatalf("error parsing in files: %s", err)
+    }
+
+    if len(template.OutFilePnames) != 1 {
+        t.Fatalf("got %d outfile names, expected 1", len(template.OutFilePnames))
+    }
+
+    if template.OutFilePnames[0] != "scalarOutParam" {
+        t.Fatalf(
+            "got incorrect value for input file, got %s, expected %s", 
+            template.OutFilePnames[0], "scalarOutParam",
+        )
+    }
+}
+
 // Helper function to catch certain basic issues with iterated
 // parameter parsing that are common to all subsequent tests.
 // For simplicity's sake, we just assume that the parameter being
@@ -198,7 +271,7 @@ func basicIterValidation(node WorkflowNode, iters []CmdTemplate, param string) e
 		panic(fmt.Sprintf("non-existent param %s", param))
 	}
 
-	actualVals, ok := node.Props["listParam"].([]any)
+	actualVals, ok := node.Props[param].([]any)
 	listParamLen := len(actualVals)
 	if !ok {
 		panic(fmt.Sprintf("failed converting %s to list", param))
@@ -556,6 +629,53 @@ func TestIterSubstitutions(t *testing.T) {
 	}
 }
 
+func TestIterInputFiles(t *testing.T) {
+    lvalForTrue := true
+	node := WorkflowNode{
+		ArgTypes: map[string]WorkflowArgType{
+			"fListParam": {
+				ArgType: "text list",
+                InputFile: &lvalForTrue,
+			},
+		},
+		Props: map[string]any{
+			"fListParam": []any{"/path1", "/path2", "/path3"},
+		},
+		IterAttrs: map[string]int{
+			"fListParam": 1,
+		},
+		Command: []string{""},
+	}
+
+	tp, err := parseTypedParams(node)
+	if err != nil {
+		t.Fatalf("failed to parse typed params: %s", err)
+	}
+
+	var template CmdTemplate
+	iters, err := evaluateIterables(node, template, tp)
+	if err != nil {
+		t.Fatalf("failed to parse iterable: %s", err)
+	}
+
+	// Verify that all values of listParam were assigned to correctly-sized and
+	// correctly ordered groups.
+	if err = basicIterValidation(node, iters, "fListParam"); err != nil {
+		t.Fatalf("iteration grouping error: %s", err)
+	}
+
+    fListParamVals := node.Props["fListParam"].([]any)
+	for i := range iters {
+        expFname := fListParamVals[i].(string)
+        if len(iters[i].InFiles) != 1 && iters[i].InFiles[0] != expFname {
+            t.Fatalf(
+                "error with iterable infile assignment: xpected %s, got %s",
+                iters[i].InFiles[0], expFname,
+            )
+        }
+	}
+}
+
 func TestIterValNonListErr(t *testing.T) {
 	var node WorkflowNode
 	node.ArgTypes = map[string]WorkflowArgType{
@@ -603,5 +723,4 @@ func TestDryRun(t *testing.T) {
 	if cmdStrErr != nil {
 		t.Fatalf("failed to execute dry run: %s", cmdStrErr)
 	}
-	//fmt.Print(strings.Join(cmdStrs, "\n\n"))
 }
