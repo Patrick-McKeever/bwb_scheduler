@@ -37,24 +37,24 @@ func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
 		return 0, fmt.Errorf("node %d not in async ancestor array", id2)
 	}
 
-    lastSharedAnc := -1
-    for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
-        if asyncAnc1[i] == asyncAnc2[i] {
-            lastSharedAnc = asyncAnc1[i]
-        }
-    }
+	lastSharedAnc := -1
+	for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
+		if asyncAnc1[i] == asyncAnc2[i] {
+			lastSharedAnc = asyncAnc1[i]
+		}
+	}
 
-    // If the longer list contains id2 (i.e. id1 descends from async node id2),
-    // then it shares all the same async ancestors as id2 (as there is a single
-    // unique topological ordering of async ancestors) plus id2; therefore id2
-    // must necessarily appear at index len(asyncAnc2), if at all. Vice versa.
-    if len(asyncAnc1) > len(asyncAnc2) && asyncAnc1[len(asyncAnc2)] == id2 {
-        return id2, nil
-    }
-    if len(asyncAnc2) > len(asyncAnc1) && asyncAnc2[len(asyncAnc1)] == id1{
-        return id1, nil
-    }
-    return lastSharedAnc, nil
+	// If the longer list contains id2 (i.e. id1 descends from async node id2),
+	// then it shares all the same async ancestors as id2 (as there is a single
+	// unique topological ordering of async ancestors) plus id2; therefore id2
+	// must necessarily appear at index len(asyncAnc2), if at all. Vice versa.
+	if len(asyncAnc1) > len(asyncAnc2) && asyncAnc1[len(asyncAnc2)] == id2 {
+		return id2, nil
+	}
+	if len(asyncAnc2) > len(asyncAnc1) && asyncAnc2[len(asyncAnc1)] == id1 {
+		return id1, nil
+	}
+	return lastSharedAnc, nil
 }
 
 func (index *WorkflowIndex) getAncListValue(
@@ -95,27 +95,51 @@ type WorkflowExecutionState struct {
 	index        WorkflowIndex
 	allocatedCmd map[int]bool
 	// node id -> runID of last async ancestor (-1 if none) -> value
-	inputs map[int]map[int]NodeParams
+	inputs             map[int]map[int]NodeParams
+	inputToOutputRunId map[int]map[int][]int
+	outputToInputRunId map[int]map[int]int
 	// node id -> run ID -> output list
-	outputs          map[int]map[int]NodeParams
-	currentMaxId     map[int]int
+	outputs      map[int]map[int]NodeParams
+	currentMaxId map[int]int
+
+	// Node ID -> run ID of last async node
 	unconsumedInputs map[int]map[int]struct{}
-	cmds             map[int][]CmdTemplate
+}
+
+func NewWorkflowExecutionState(
+	workflow Workflow, index WorkflowIndex,
+) WorkflowExecutionState {
+	var state WorkflowExecutionState
+	state.workflow = workflow
+	state.index = index
+	state.allocatedCmd = make(map[int]bool)
+	state.inputs = make(map[int]map[int]NodeParams)
+	state.outputs = make(map[int]map[int]NodeParams)
+	state.currentMaxId = make(map[int]int)
+	state.unconsumedInputs = make(map[int]map[int]struct{})
+	state.inputToOutputRunId = make(map[int]map[int][]int)
+	state.outputToInputRunId = make(map[int]map[int]int)
+
+	for nodeId := range workflow.Nodes {
+		state.inputs[nodeId] = make(map[int]NodeParams)
+		state.outputs[nodeId] = make(map[int]NodeParams)
+		state.unconsumedInputs[nodeId] = make(map[int]struct{})
+		state.inputToOutputRunId[nodeId] = make(map[int][]int)
+		state.outputToInputRunId[nodeId] = make(map[int]int)
+	}
+
+	return state
 }
 
 func (state *WorkflowExecutionState) consumeAncestorLists(
 	nodeId int,
 ) ([][]int, error) {
-	_, nodeExists := state.workflow.Nodes[nodeId]
+	node, nodeExists := state.workflow.Nodes[nodeId]
 	if !nodeExists {
 		return nil, fmt.Errorf(
 			"node %d does not exist",
 			nodeId,
 		)
-	}
-
-	if state.allocatedCmd == nil {
-		state.allocatedCmd = map[int]bool{}
 	}
 
 	asyncAncestors := state.index.asyncAncestors[nodeId]
@@ -125,6 +149,13 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 		// it runs once, so it cannot be run again.
 		if state.allocatedCmd[nodeId] {
 			return [][]int{}, nil
+		}
+
+		if node.BarrierFor != nil {
+			blockComplete, _ := state.asyncBlockComplete(*node.BarrierFor, -1)
+			if !blockComplete {
+				return [][]int{}, nil
+			}
 		}
 
 		// Return a single empty ancestor list corresponding to the
@@ -152,8 +183,17 @@ func (state *WorkflowExecutionState) consumeAncestorLists(
 
 	unconsumed := make([][]int, 0)
 	for asyncAncPredRunId := range unconsumedSet {
-		asyncAncOutputs, asyncAncOutputsExist := state.outputs[lastAsyncAnc][asyncAncPredRunId]
+		if node.BarrierFor != nil {
+			blockComplete, _ := state.asyncBlockComplete(
+				*node.BarrierFor,
+				asyncAncPredRunId,
+			)
+			if !blockComplete {
+				continue
+			}
+		}
 
+		asyncAncOutputs, asyncAncOutputsExist := state.outputs[lastAsyncAnc][asyncAncPredRunId]
 		if !asyncAncOutputsExist {
 			return nil, fmt.Errorf(
 				"node %d has unconsumed array pointing to non-existent outputs",
@@ -180,6 +220,11 @@ func (state *WorkflowExecutionState) formInputs(
 		ancList: ancList,
 	}
 
+	node, nodeExists := state.workflow.Nodes[nodeId]
+	if !nodeExists {
+		return NodeParams{}, fmt.Errorf("non-existent node ID %d", nodeId)
+	}
+
 	// If node's pred shares an async ancestor with it, you should use only
 	// the version of this pred's outputs that were descended from this async
 	// ancestor.
@@ -187,12 +232,6 @@ func (state *WorkflowExecutionState) formInputs(
 	predRunId := make(map[int]int)
 	for _, pred := range state.index.preds[nodeId] {
 		var err error
-		if err != nil {
-			return NodeParams{}, fmt.Errorf(
-				"could not find value for %d in ancestor list", pred,
-			)
-		}
-
 		lastSharedAsyncAncestorId, err := state.index.lastSharedAsyncAncestor(
 			pred, nodeId,
 		)
@@ -221,6 +260,11 @@ func (state *WorkflowExecutionState) formInputs(
 		srcChan := link.SourceChannel
 		sinkChan := link.SinkChannel
 		srcRunId, srcIsPred := predRunId[srcNode]
+		inputRunId := state.outputToInputRunId[srcNode][srcRunId]
+		if node.BarrierFor != nil && *node.BarrierFor == srcNode {
+			inputRunId = srcRunId
+		}
+
 		if !srcIsPred {
 			return NodeParams{}, fmt.Errorf(
 				"bad index: %d not listed as pred of %d",
@@ -252,7 +296,13 @@ func (state *WorkflowExecutionState) formInputs(
 		)
 
 		if !srcPvalExists {
-			srcInputParams := state.inputs[srcNode][srcRunId].params
+			//inputRunId := state.outputToInputRunId[srcNode][srcRunId]
+			srcInput, paramsExist := state.inputs[srcNode][inputRunId]
+			if !paramsExist {
+				return NodeParams{}, fmt.Errorf("invalid run ID %d for node %d", inputRunId, srcNode)
+			}
+
+			srcInputParams := srcInput.params
 			srcPval, srcPvalExists = srcInputParams.lookupParam(
 				srcChan, srcArgType,
 			)
@@ -288,35 +338,12 @@ func (state *WorkflowExecutionState) addCmdResults(
 		return fmt.Errorf("inputs have invalid ancestor list")
 	}
 
-	if state.outputs == nil {
-		state.outputs = make(map[int]map[int]NodeParams)
-	}
-
-	if state.outputs[inputs.nodeId] == nil {
-		state.outputs[inputs.nodeId] = make(map[int]NodeParams)
-	}
-
-	if state.inputs == nil {
-		state.inputs = make(map[int]map[int]NodeParams)
-	}
-
-	if state.inputs[inputs.nodeId] == nil {
-		state.inputs[inputs.nodeId] = make(map[int]NodeParams)
-	}
-
-	if state.unconsumedInputs == nil {
-		state.unconsumedInputs = make(map[int]map[int]struct{})
-	}
-
-	if state.currentMaxId == nil {
-		state.currentMaxId = make(map[int]int)
-	}
-
 	lastAsyncAncestorId := -1
 	if len(inputAncList) > 0 {
 		lastAsyncAncestorId = inputAncList[len(inputAncList)-1]
 	}
 
+	outputRunIds := make([]int, 0, len(outputs))
 	for _, output := range outputs {
 		var outputParams NodeParams
 		outputParams.nodeId = inputs.nodeId
@@ -331,7 +358,6 @@ func (state *WorkflowExecutionState) addCmdResults(
 				state.currentMaxId[outputParams.nodeId],
 			)
 			state.currentMaxId[outputParams.nodeId] += 1
-			state.inputs[inputs.nodeId][runId] = inputs
 			state.outputs[inputs.nodeId][runId] = outputParams
 			for _, desc := range state.index.asyncDescendants[inputs.nodeId] {
 				if state.unconsumedInputs[desc] == nil {
@@ -339,14 +365,47 @@ func (state *WorkflowExecutionState) addCmdResults(
 				}
 				state.unconsumedInputs[desc][runId] = struct{}{}
 			}
+			outputRunIds = append(outputRunIds, runId)
 		} else {
-			state.inputs[inputs.nodeId][lastAsyncAncestorId] = inputs
 			state.outputs[inputs.nodeId][lastAsyncAncestorId] = outputParams
 			//state.unconsumedOutputs[inputs.nodeId][lastAsyncAncestorId] = struct{}{}
+			outputRunIds = append(outputRunIds, lastAsyncAncestorId)
+		}
+
+		state.inputs[inputs.nodeId][lastAsyncAncestorId] = inputs
+		state.inputToOutputRunId[inputs.nodeId][lastAsyncAncestorId] = outputRunIds
+		for _, outputRunId := range outputRunIds {
+			state.outputToInputRunId[inputs.nodeId][outputRunId] = lastAsyncAncestorId
 		}
 	}
 
 	return nil
+}
+
+// NodeID is async node. Run ID is the run ID of its input set,
+// i.e. the run ID of the async ancestor of nodeId.
+func (state *WorkflowExecutionState) asyncBlockComplete(
+	nodeId int, runId int,
+) (bool, error) {
+	node, nodeExists := state.workflow.Nodes[nodeId]
+	if !nodeExists {
+		return false, fmt.Errorf("non-existent node %d", nodeId)
+	}
+	if !node.Async {
+		return false, fmt.Errorf("node %d is not async", nodeId)
+	}
+
+	runIdsForInput := state.inputToOutputRunId[nodeId][runId]
+	for _, descId := range state.index.asyncDescendants[nodeId] {
+		for _, asyncOutputId := range runIdsForInput {
+			_, outputExists := state.outputs[descId][asyncOutputId]
+			if !outputExists {
+				return false, nil
+			}
+		}
+	}
+
+	return true, nil
 }
 
 func (state *WorkflowExecutionState) getEligibleSuccessors(
@@ -707,7 +766,7 @@ func parseAsyncAndBarriers(
 		}
 		for _, asyncAncestorId := range asyncAncestors[nodeId] {
 			if barrier, barrierExists := barrierFor[asyncAncestorId]; barrierExists {
-				if descendantOf[barrier][nodeId] {
+				if nodeId == barrier || descendantOf[barrier][nodeId] {
 					continue
 				}
 			}
@@ -720,12 +779,13 @@ func parseAsyncAndBarriers(
 
 	asyncDescendants := make(map[int][]int)
 	for nodeId, asyncAncList := range asyncAncestorsBeforeBarrier {
-		for _, asyncAnc := range asyncAncList {
-			if asyncDescendants[asyncAnc] == nil {
-				asyncDescendants[asyncAnc] = make([]int, 0)
+		if len(asyncAncList) > 0 {
+			lastAsyncAnc := asyncAncList[len(asyncAncList)-1]
+			if asyncDescendants[lastAsyncAnc] == nil {
+				asyncDescendants[lastAsyncAnc] = make([]int, 0)
 			}
-			asyncDescendants[asyncAnc] = append(
-				asyncDescendants[asyncAnc],
+			asyncDescendants[lastAsyncAnc] = append(
+				asyncDescendants[lastAsyncAnc],
 				nodeId,
 			)
 		}

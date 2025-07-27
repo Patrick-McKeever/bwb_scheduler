@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -596,14 +595,13 @@ func TestDryRun(t *testing.T) {
 		t.Fatalf("failed to unmarshal JSON: %v", err)
 	}
 
-	topSort, err := layeredTopSort(workflow)
+	_, err = layeredTopSort(workflow)
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
-	PrettyPrint(topSort)
-	cmdStrs, cmdStrErr := dryRun(workflow)
+	_, cmdStrErr := dryRun(workflow)
 	if cmdStrErr != nil {
 		t.Fatalf("failed to execute dry run: %s", cmdStrErr)
 	}
-	fmt.Print(strings.Join(cmdStrs, "\n\n"))
+	//fmt.Print(strings.Join(cmdStrs, "\n\n"))
 }
