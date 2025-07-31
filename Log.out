@@ -1,0 +1,97 @@
+STAR version=2.7.11a
+STAR compilation time,server,dir=2023-08-15T11:38:34-04:00 :/home/dobin/data/STAR/STARcode/STAR.master/source
+STAR git: On branch master ; commit 826820cee5a48b1bc9cb862d57a843012eef989f ; diff files: 
+##### Command Line:
+/usr/local/bin/2.7.11a/Linux_x86_64_static/STAR --genomeDir /data/processing/genome --runMode genomeGenerate --genomeFastaFiles /data/processing/genome/genome.fa --sjdbGTFfile /data/processing/genome/genome.gtf --runThreadN 16
+##### Initial USER parameters from Command Line:
+###### All USER parameters from Command Line:
+genomeDir                     /data/processing/genome     ~RE-DEFINED
+runMode                       genomeGenerate        ~RE-DEFINED
+genomeFastaFiles              /data/processing/genome/genome.fa        ~RE-DEFINED
+sjdbGTFfile                   /data/processing/genome/genome.gtf     ~RE-DEFINED
+runThreadN                    16     ~RE-DEFINED
+##### Finished reading parameters from all sources
+
+##### Final user re-defined parameters-----------------:
+runMode                           genomeGenerate   
+runThreadN                        16
+genomeDir                         /data/processing/genome
+genomeFastaFiles                  /data/processing/genome/genome.fa   
+sjdbGTFfile                       /data/processing/genome/genome.gtf
+
+-------------------------------
+##### Final effective command line:
+/usr/local/bin/2.7.11a/Linux_x86_64_static/STAR   --runMode genomeGenerate      --runThreadN 16   --genomeDir /data/processing/genome   --genomeFastaFiles /data/processing/genome/genome.fa      --sjdbGTFfile /data/processing/genome/genome.gtf
+----------------------------------------
+
+Number of fastq files for each mate = 1
+ParametersSolo: --soloCellFilterType CellRanger2.2 filtering parameters:  3000 0.99 10
+Finished loading and checking parameters
+--genomeDir directory exists and will be overwritten: /data/processing/genome/
+!!!!! WARNING: Could not move Log.out file from ./Log.out into /data/processing/genome/Log.out. Will keep ./Log.out
+
+Aug 03 00:04:17 ... starting to generate Genome files
+/data/processing/genome/genome.fa : chr # 0  "chr1" chrStart: 0
+/data/processing/genome/genome.fa : chr # 1  "chr2" chrStart: 249036800
+Chromosome sequence lengths: 
+chr1	248956422
+chr2	242193529
+Genome sequence total length = 491149951
+Genome size with padding = 491257856
+Aug 03 00:04:22 ..... processing annotations GTF
+Processing pGe.sjdbGTFfile=/data/processing/genome/genome.gtf, found:
+		37220 transcripts
+		273059 exons (non-collapsed)
+		67170 collapsed junctions
+Total junctions: 67170
+Aug 03 00:04:23 ..... finished GTF processing
+
+!!!!! WARNING: --genomeSAindexNbases 14 is too large for the genome size=491149951, which may cause seg-fault at the mapping step. Re-run genome generation with recommended --genomeSAindexNbases 13
+Estimated genome size with padding and SJs: total=genome+SJ=692257856 = 491257856 + 201000000
+GstrandBit=32
+Number of SA indices: 942058480
+Aug 03 00:04:25 ... starting to sort Suffix Array. This may take a long time...
+Number of chunks: 16;   chunks size limit: 502431184 bytes
+Aug 03 00:04:26 ... sorting Suffix Array chunks and saving them to disk...
+Writing 288197552 bytes into /data/processing/genome//SA_15 ; empty space on disk = 25470877696 bytes ... done
+Writing 477637576 bytes into /data/processing/genome//SA_0 ; empty space on disk = 25182658560 bytes ...Writing 448404576 bytes into /data/processing/genome//SA_14 ; empty space on disk = 24837087232 bytes ... done
+Writing 501969824 bytes into /data/processing/genome//SA_1 ; empty space on disk = 24293343232 bytes ... done
+Writing 464898360 bytes into /data/processing/genome//SA_5 ; empty space on disk = 24138276864 bytes ... done
+ done
+Writing 479295224 bytes into /data/processing/genome//SA_8 ; empty space on disk = 23289368576 bytes ... done
+Writing 496960232 bytes into /data/processing/genome//SA_9 ; empty space on disk = 22810062848 bytes ...Writing 470420016 bytes into /data/processing/genome//SA_7 ; empty space on disk = 22644588544 bytes ... done
+ done
+Writing 488430392 bytes into /data/processing/genome//SA_10 ; empty space on disk = 21842644992 bytes ... done
+Writing 499973016 bytes into /data/processing/genome//SA_3 ; empty space on disk = 21404405760 bytes ...Writing 466382584 bytes into /data/processing/genome//SA_6 ; empty space on disk = 21668458496 bytes ...Writing 479779434 bytes into  bytes into /data/processing/genome//SA_13e on disk = 21668458496 bytes ; empty space on disk = 21345226752480
+nome ge bytes ...ith recommWriting 479779434 bytes into  bytes into /data/processing/genome//SA_13e on disk = 21668458496 bytes ; empty space on disk = 21345226752480
+nome ge bytes ...ith recommWriting 491773072 bytes into /data/processing/genome//SA_11 ; empty space on disk = 21224947712 bytes ...Writing 485972496 bytes into /data/processing/genome//SA_2 ; empty space on disk = 21062008832 bytes ...Writing 497544704 bytes into /data/processing/genome//SA_12 ; empty space on disk = 20870578176 bytes ... done
+ done
+ done
+ done
+ done
+ done
+ done
+Aug 03 00:08:55 ... loading chunks from disk, packing SA...
+Aug 03 00:09:13 ... finished generating suffix array
+Aug 03 00:09:13 ... generating Suffix Array index
+Aug 03 00:10:15 ... completed Suffix Array index
+Aug 03 00:10:15   Finished preparing junctions
+Aug 03 00:10:15 ..... inserting junctions into the genome indices
+Aug 03 00:10:27   Finished SA search: number of new junctions=67169, old junctions=0
+Aug 03 00:10:33   Finished sorting SA indicesL nInd=26867600
+Genome size with junctions=504758825  491257856   13500969
+GstrandBit1=32   GstrandBit=32
+Aug 03 00:10:41   Finished inserting junction indices
+Aug 03 00:10:48   Finished SAi
+Aug 03 00:10:48 ..... finished inserting junctions into genome
+Aug 03 00:10:48 ... writing Genome to disk ...
+Writing 504758825 bytes into /data/processing/genome//Genome ; empty space on disk = 25986473984 bytes ... done
+SA size in bytes: 3996820083
+Aug 03 00:10:51 ... writing Suffix Array to disk ...
+Writing 3996820083 bytes into /data/processing/genome//SA ; empty space on disk = 25481797632 bytes ... done
+Aug 03 00:11:40 ... writing SAindex to disk
+Writing 8 bytes into /data/processing/genome//SAindex ; empty space on disk = 21484802048 bytes ... done
+Writing 120 bytes into /data/processing/genome//SAindex ; empty space on disk = 21484802048 bytes ... done
+Writing 1565873491 bytes into /data/processing/genome//SAindex ; empty space on disk = 21484802048 bytes ... done
+Aug 03 00:12:00 ..... finished successfully
+DONE: Genome generation, EXITING

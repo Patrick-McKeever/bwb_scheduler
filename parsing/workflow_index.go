@@ -1,4 +1,3 @@
-
 package parsing
 
 import (
@@ -8,29 +7,29 @@ import (
 // Data structure to package all the various data structures for
 // looking up database graph structure.
 type WorkflowIndex struct {
-	preds map[int][]int
-	succs map[int][]int
+	Preds map[int][]int
+	Succs map[int][]int
 	// Lookup links based on (dstNode, dstPname)
-	inLinks map[int]map[string]WorkflowLink
+	InLinks map[int]map[string]WorkflowLink
 	// Lookup links based on (srcNode, srcPname)
-	outLinks         map[int]map[string]WorkflowLink
-	asyncAncestors   map[int][]int
-	asyncDescendants map[int][]int
+	OutLinks         map[int]map[string]WorkflowLink
+	AsyncAncestors   map[int][]int
+	AsyncDescendants map[int][]int
 
 	// Layered top sort where each inner array of node IDs is
 	// nodes that can run independently once all nodes in prior
 	// arrays have run.
-	layeredTopSort  [][]int
-	barrierFor      map[int]int
+	LayeredTopSort [][]int
+	BarrierFor     map[int]int
 
-    baseParams      map[int]TypedParams
+	BaseParams map[int]TypedParams
 }
 
-func (index *WorkflowIndex) getStartNodes() ([]int) {
-    if len(index.layeredTopSort) == 0 {
-        return []int{}
-    }
-    return index.layeredTopSort[0]
+func (index *WorkflowIndex) getStartNodes() []int {
+	if len(index.LayeredTopSort) == 0 {
+		return []int{}
+	}
+	return index.LayeredTopSort[0]
 }
 
 // These lists are rarely going to exceed 4 or 5 entries, so an element-by-element
@@ -38,11 +37,11 @@ func (index *WorkflowIndex) getStartNodes() ([]int) {
 // other auxiliary data structure. We can reevaluate if we ever deal with workflows
 // containing thousands of nodes.
 func (index *WorkflowIndex) lastSharedAsyncAncestor(id1, id2 int) (int, error) {
-	asyncAnc1, id1Exists := index.asyncAncestors[id1]
+	asyncAnc1, id1Exists := index.AsyncAncestors[id1]
 	if !id1Exists {
 		return 0, fmt.Errorf("node %d not in async ancestor array", id1)
 	}
-	asyncAnc2, id2Exists := index.asyncAncestors[id2]
+	asyncAnc2, id2Exists := index.AsyncAncestors[id2]
 	if !id2Exists {
 		return 0, fmt.Errorf("node %d not in async ancestor array", id2)
 	}
@@ -74,7 +73,7 @@ func (index *WorkflowIndex) getAncListValue(
 		return -1, nil
 	}
 
-	asyncAncOfOwner, ownerExists := index.asyncAncestors[ownerOfAncListId]
+	asyncAncOfOwner, ownerExists := index.AsyncAncestors[ownerOfAncListId]
 	if !ownerExists {
 		return 0, fmt.Errorf(
 			"node %d not in async ancestor array",
@@ -471,18 +470,20 @@ func getPredsAndSuccs(workflow Workflow) (map[int][]int, map[int][]int) {
 }
 
 func getBaseParams(workflow Workflow) (map[int]TypedParams, error) {
-    ret := make(map[int]TypedParams)
-    for nodeId, node := range workflow.Nodes {
-        nodeTp, err := parseTypedParams(node)
-        if err != nil {
-            return nil, fmt.Errorf(
-                "error parsing params of node %d: %s",
-                nodeId, err,
-            )
-        }
-        ret[nodeId] = nodeTp
-    }
-    return ret, nil
+	ret := make(map[int]TypedParams)
+	for nodeId, node := range workflow.Nodes {
+		baseProps := workflow.NodeBaseProps[nodeId]
+
+		nodeTp, err := parseTypedParams(node, baseProps)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"error parsing params of node %d: %s",
+				nodeId, err,
+			)
+		}
+		ret[nodeId] = nodeTp
+	}
+	return ret, nil
 }
 
 // Inputs:
@@ -491,22 +492,22 @@ func getBaseParams(workflow Workflow) (map[int]TypedParams, error) {
 //
 // Outputs:
 //   - A workflow index giving data structures to facilitate easy lookup.
-func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
+func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	var index WorkflowIndex
-	index.preds, index.succs = getPredsAndSuccs(*workflow)
+	index.Preds, index.Succs = getPredsAndSuccs(*workflow)
 	topSort, err := layeredTopSort(*workflow)
-    if err != nil {
-        return WorkflowIndex{}, fmt.Errorf("error in top sort: %s", err)
-    }
-	index.layeredTopSort = topSort
+	if err != nil {
+		return WorkflowIndex{}, fmt.Errorf("error in top sort: %s", err)
+	}
+	index.LayeredTopSort = topSort
 
 	inLinks, outLinks, err := getInAndOutLinks(*workflow)
 	if err != nil {
 		return WorkflowIndex{}, fmt.Errorf("error parsing links: %s", err)
 	}
 
-	index.inLinks = inLinks
-	index.outLinks = outLinks
+	index.InLinks = inLinks
+	index.OutLinks = outLinks
 
 	err = propagateArgTypes(workflow, topSort, inLinks)
 	if err != nil {
@@ -514,13 +515,17 @@ func parseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	}
 
 	_, descendantOf := getAncestorsAndDescendants(topSort, inLinks, outLinks)
-	index.asyncAncestors, index.asyncDescendants, index.barrierFor, err = parseAsyncAndBarriers(
+	index.AsyncAncestors, index.AsyncDescendants, index.BarrierFor, err = parseAsyncAndBarriers(
 		*workflow, topSort, descendantOf,
 	)
 	if err != nil {
 		return WorkflowIndex{}, err
 	}
-    
-    index.baseParams, err = getBaseParams(*workflow)
+
+	index.BaseParams, err = getBaseParams(*workflow)
+	if err != nil {
+		return WorkflowIndex{}, err
+	}
+
 	return index, nil
 }

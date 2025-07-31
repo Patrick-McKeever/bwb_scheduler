@@ -22,23 +22,27 @@ type CmdSub struct {
 }
 
 type CmdTemplate struct {
-	BaseCmd             []string
-	Args                []string
-	ImageName           string
-	Flags               []string
-	Envs                map[string]string
+	Id        int
+    NodeId    int
+	BaseCmd   []string
+	Args      []string
+	ImageName string
+	Flags     []string
+	Envs      map[string]string
 
 	// For iterable vars, we need to keep track of which version
 	// of the variable was used to generate a particular command.
-	IterVals            TypedParams
+	IterVals TypedParams
 
-    // Keep track of input and output files for this command.
-    // InFiles are fixed paths, but output files must be stored
-    // by paramter names (OutFilePaths), since the filenames of
-    // output files may not be known until after runtime (where
-    // they may be written to /tmp/output).
-	InFiles             []string
-	OutFilePnames       []string
+	// Keep track of input and output files for this command.
+	// InFiles are fixed paths, but output files must be stored
+	// by paramter names (OutFilePaths), since the filenames of
+	// output files may not be known until after runtime (where
+	// they may be written to /tmp/output).
+	InFiles       []string
+	OutFilePnames []string
+
+	ResourceReqs ResourceVector
 }
 
 type TypedParams struct {
@@ -50,6 +54,7 @@ type TypedParams struct {
 	IntLists       map[string][]int
 	DoubleLists    map[string][]float64
 	PatternQueries map[string]PatternQuery
+	NilVals        map[string]struct{}
 }
 
 func copyMapOfScalars[K comparable, V any](srcMap map[K]V) map[K]V {
@@ -84,7 +89,9 @@ func copyTypedParams(tp TypedParams) TypedParams {
 
 func copyCmdTemplate(template CmdTemplate) CmdTemplate {
 	var newTemplate CmdTemplate
+	newTemplate.Id = template.Id
 	newTemplate.ImageName = template.ImageName
+	newTemplate.ResourceReqs = template.ResourceReqs
 	newTemplate.BaseCmd = make([]string, len(template.BaseCmd))
 	newTemplate.Args = make([]string, len(template.Args))
 	newTemplate.Flags = make([]string, len(template.Flags))
@@ -109,6 +116,18 @@ func getRequiredParams(node WorkflowNode) map[string]bool {
 		reqParams[pname] = true
 	}
 	return reqParams
+}
+
+func getIterAttrs(node WorkflowNode) map[string]bool {
+	if !node.Iterate {
+		return map[string]bool{}
+	}
+
+	iterAttrs := make(map[string]bool)
+	for _, pname := range node.IterAttrs {
+		iterAttrs[pname] = true
+	}
+	return iterAttrs
 }
 
 func argTypeIsStr(argType string) bool {
@@ -142,70 +161,160 @@ func parsePatternQuery(pqRaw any) (PatternQuery, error) {
 
 }
 
-func (tp *TypedParams) lookupParam(
-    pname string, argType WorkflowArgType,
-) (any, bool) {
-    if argType.ArgType == "bool" {
-        val, ok := tp.Bools[pname]
-        return any(val), ok
-    } else if argType.ArgType == "int" {
-        val, ok := tp.Ints[pname]
-        return any(val), ok
-    } else if argType.ArgType == "double" {
-        val, ok := tp.Doubles[pname]
-        return any(val), ok
-    } else if argTypeIsStr(argType.ArgType) {
-        val, ok := tp.Strings[pname]
-        return any(val), ok
-    } else if strings.HasSuffix(argType.ArgType, "list") {
-		listType := strings.Split(argType.ArgType, " ")[0]
-        if argTypeIsStr(listType) {
-            val, ok := tp.StrLists[pname]
-            return any(val), ok
-        } else if listType == "int" {
-            val, ok := tp.IntLists[pname]
-            return any(val), ok
-        } else if listType == "double" {
-            val, ok := tp.DoubleLists[pname]
-            return any(val), ok
-        }
-    } else if argType.ArgType == "patternQuery" {
-        val, ok := tp.PatternQueries[pname]
-        return any(val), ok
-    }
-
-    return nil, false
+func (tp *TypedParams) IsNil(pname string) bool {
+	_, entryExists := tp.NilVals[pname]
+	return entryExists
 }
 
-func (tp *TypedParams) addParam(
-    propValRaw any, pname string, argType WorkflowArgType,
-) (error) {
-    if tp.Bools == nil {
-        tp.Bools = make(map[string]bool)
-    }
-    if tp.Ints == nil {
-        tp.Ints = make(map[string]int)
-    }
-    if tp.Doubles == nil {
-        tp.Doubles = make(map[string]float64)
-    }
-    if tp.Strings == nil {
-        tp.Strings = make(map[string]string)
-    }
-    if tp.StrLists == nil {
-        tp.StrLists = make(map[string][]string)
-    }
-    if tp.IntLists == nil {
-        tp.IntLists = make(map[string][]int)
-    }
-    if tp.DoubleLists == nil {
-        tp.DoubleLists = map[string][]float64{}
-    }
-    if tp.PatternQueries == nil {
-        tp.PatternQueries = make(map[string]PatternQuery)
-    }
+func (tp *TypedParams) LookupParam(
+	pname string, argType WorkflowArgType,
+) (any, bool) {
+	if argType.ArgType == "bool" {
+		val, ok := tp.Bools[pname]
+		return any(val), ok
+	} else if argType.ArgType == "int" {
+		val, ok := tp.Ints[pname]
+		return any(val), ok
+	} else if argType.ArgType == "double" {
+		val, ok := tp.Doubles[pname]
+		return any(val), ok
+	} else if argTypeIsStr(argType.ArgType) {
+		val, ok := tp.Strings[pname]
+		return any(val), ok
+	} else if strings.HasSuffix(argType.ArgType, "list") {
+		listType := strings.Split(argType.ArgType, " ")[0]
+		if argTypeIsStr(listType) {
+			val, ok := tp.StrLists[pname]
+			return any(val), ok
+		} else if listType == "int" {
+			val, ok := tp.IntLists[pname]
+			return any(val), ok
+		} else if listType == "double" {
+			val, ok := tp.DoubleLists[pname]
+			return any(val), ok
+		}
+	} else if argType.ArgType == "patternQuery" {
+		val, ok := tp.PatternQueries[pname]
+		return any(val), ok
+	}
 
-	castErr := fmt.Errorf("var %s cannot be cast to %s", pname, argType.ArgType)
+	return nil, false
+}
+
+func parseSerializedNumeric[T int | float64](
+	propValRaw any,
+) (T, error) {
+	var emptyT T
+	pValDouble, ok := propValRaw.(float64)
+	castErr := fmt.Errorf("cannot cast %v to numeric", propValRaw)
+	if !ok {
+		// The default behavior of BWB seems to be storing int / double lists as JSON
+		// lists of strs. This seems counterintuitive, so I want to support both this
+		// and the more natural format of using JSON ints / numbers.
+		pValStr, strOk := propValRaw.(string)
+		if !strOk {
+			return emptyT, castErr
+		}
+
+		var convErr error
+		pValDouble, convErr = strconv.ParseFloat(pValStr, 64)
+		if convErr != nil {
+			return emptyT, convErr
+		}
+	}
+	return T(pValDouble), nil
+}
+
+func parseSerializedNumericList[T int | float64](
+	propValRaw []string,
+) ([]T, error) {
+	ret := make([]T, len(propValRaw))
+	for i, v := range propValRaw {
+		val, err := parseSerializedNumeric[T](v)
+		if err != nil {
+			return nil, err
+		}
+		ret[i] = val
+	}
+
+	return ret, nil
+}
+
+func (tp *TypedParams) AddSerializedParam(
+	propValStr string, pname string, argType WorkflowArgType,
+) error {
+	var propValRaw any
+	var err error
+	if argTypeIsStr(argType.ArgType) {
+		propValRaw = propValStr
+	} else if argType.ArgType == "int" {
+		propValRaw, err = parseSerializedNumeric[int](propValStr)
+	} else if argType.ArgType == "double" {
+		propValRaw, err = parseSerializedNumeric[float64](propValStr)
+	} else if strings.HasSuffix(argType.ArgType, "list") {
+		lines := strings.Split(propValStr, "\n")
+		if len(lines) > 0 && lines[len(lines)-1] == "" {
+			lines = lines[:len(lines)-1]
+		}
+
+		listType := strings.Split(argType.ArgType, " ")[0]
+		if argTypeIsStr(listType) {
+			propValRaw = lines
+		} else if listType == "int" {
+			propValRaw, err = parseSerializedNumericList[int](lines)
+		} else if listType == "double" {
+			propValRaw, err = parseSerializedNumericList[float64](lines)
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if err := tp.AddParam(propValRaw, pname, argType); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tp *TypedParams) AddParam(
+	propValRaw any, pname string, argType WorkflowArgType,
+) error {
+	if tp.Bools == nil {
+		tp.Bools = make(map[string]bool)
+	}
+	if tp.Ints == nil {
+		tp.Ints = make(map[string]int)
+	}
+	if tp.Doubles == nil {
+		tp.Doubles = make(map[string]float64)
+	}
+	if tp.Strings == nil {
+		tp.Strings = make(map[string]string)
+	}
+	if tp.StrLists == nil {
+		tp.StrLists = make(map[string][]string)
+	}
+	if tp.IntLists == nil {
+		tp.IntLists = make(map[string][]int)
+	}
+	if tp.DoubleLists == nil {
+		tp.DoubleLists = map[string][]float64{}
+	}
+	if tp.PatternQueries == nil {
+		tp.PatternQueries = make(map[string]PatternQuery)
+	}
+	if tp.NilVals == nil {
+		tp.NilVals = make(map[string]struct{})
+	}
+
+	if propValRaw == nil {
+		tp.NilVals[pname] = struct{}{}
+		return nil
+	}
+
+	castErr := fmt.Errorf("var %s (%v) cannot be cast to %s", pname, propValRaw, argType.ArgType)
 	if argType.ArgType == "bool" {
 		pValBool, ok := propValRaw.(bool)
 		if !ok {
@@ -231,8 +340,28 @@ func (tp *TypedParams) addParam(
 		}
 		tp.Strings[pname] = pValStr
 	} else if strings.HasSuffix(argType.ArgType, "list") {
-		pValList, ok := propValRaw.([]any)
-		if !ok {
+		var pValList []any
+		// Lazy way of coping with the fact that we need to handle
+		// []any and []string/float/int equally well.
+		switch v := propValRaw.(type) {
+		case []any:
+			pValList = v
+		case []string:
+			pValList = make([]any, len(v))
+			for i, s := range v {
+				pValList[i] = s
+			}
+		case []int:
+			pValList = make([]any, len(v))
+			for i, s := range v {
+				pValList[i] = s
+			}
+		case []float64:
+			pValList = make([]any, len(v))
+			for i, s := range v {
+				pValList[i] = s
+			}
+		default:
 			return castErr
 		}
 		listType := strings.Split(argType.ArgType, " ")[0]
@@ -249,49 +378,19 @@ func (tp *TypedParams) addParam(
 		} else if listType == "int" {
 			tp.IntLists[pname] = make([]int, len(pValList))
 			for i, v := range pValList {
-				// Casting JSON to interface{} makes numbers into floats by default,
-				// so v.(int) would fail.
-				pValDouble, ok := v.(float64)
-				intError := fmt.Errorf("var %s cannot be cast to int", pname)
-				var pValInt int
-				if ok {
-					pValInt = int(pValDouble)
-				} else {
-					// The default behavior of BWB seems to be storing int / double lists as JSON
-					// lists of strs. This seems counterintuitive, so I want to support both this
-					// and the more natural format of using JSON ints / numbers.
-					pValStr, strOk := v.(string)
-					if !strOk {
-						return intError
-					}
-
-					var convErr error
-					pValInt, convErr = strconv.Atoi(pValStr)
-					if convErr != nil {
-						return intError
-					}
+				pValInt, err := parseSerializedNumeric[int](v)
+				if err != nil {
+					return fmt.Errorf("error converting pname %s: %s", pname, err)
 				}
-
 				tp.IntLists[pname][i] = pValInt
 			}
 		} else if listType == "double" {
 			tp.DoubleLists[pname] = make([]float64, len(pValList))
 			for i, v := range pValList {
-				doubleError := fmt.Errorf("var %s cannot be cast to double", pname)
-				pValDouble, ok := v.(float64)
-				if !ok {
-					pValStr, strOk := v.(string)
-					if !strOk {
-						return doubleError
-					}
-
-					var convErr error
-					pValDouble, convErr = strconv.ParseFloat(pValStr, 64)
-					if convErr != nil {
-						return doubleError
-					}
+				pValDouble, err := parseSerializedNumeric[float64](v)
+				if err != nil {
+					return fmt.Errorf("error converting pname %s: %s", pname, err)
 				}
-
 				tp.DoubleLists[pname][i] = pValDouble
 			}
 		}
@@ -305,13 +404,14 @@ func (tp *TypedParams) addParam(
 		}
 		tp.PatternQueries[pname] = pq
 	} else {
-        return fmt.Errorf("invalid arg type %s", argType.ArgType)
-    }
+		return fmt.Errorf("invalid arg type %s", argType.ArgType)
+	}
 
-    return nil 
+	delete(tp.NilVals, pname)
+	return nil
 }
 
-func parseTypedParams(node WorkflowNode) (TypedParams, error) {
+func parseTypedParams(node WorkflowNode, props map[string]any) (TypedParams, error) {
 	var tp TypedParams
 	tp.Bools = make(map[string]bool)
 	tp.Ints = make(map[string]int)
@@ -323,14 +423,14 @@ func parseTypedParams(node WorkflowNode) (TypedParams, error) {
 	tp.PatternQueries = make(map[string]PatternQuery)
 
 	for pname, argType := range node.ArgTypes {
-		propValRaw, ok := node.Props[pname]
-		if !ok || propValRaw == nil {
+		propValRaw, ok := props[pname]
+		if !ok {
 			continue
 		}
 
-        if err := tp.addParam(propValRaw, pname, argType); err != nil {
-            return tp, fmt.Errorf("error parsing node %d: %s", node.Id, err)
-        }
+		if err := tp.AddParam(propValRaw, pname, argType); err != nil {
+			return tp, fmt.Errorf("error parsing node %d: %s", node.Id, err)
+		}
 	}
 
 	return tp, nil
@@ -410,7 +510,10 @@ func getEnvValStr(pname string, argType string, tp TypedParams) (string, error) 
 
 // Evaluate non-iterable, non-pattern query env vars, populate template.Envs with
 // serialized env var values.
-func evaluateEnvVars(node WorkflowNode, template *CmdTemplate, tp TypedParams) error {
+func evaluateEnvVars(
+	node WorkflowNode, template *CmdTemplate,
+	tp TypedParams, reqParams, iterAttrs map[string]bool,
+) error {
 	template.Envs = make(map[string]string)
 	for pname, argType := range node.ArgTypes {
 		if argType.Env == nil {
@@ -418,8 +521,14 @@ func evaluateEnvVars(node WorkflowNode, template *CmdTemplate, tp TypedParams) e
 		}
 		envVar := *argType.Env
 
-		propValRaw, ok := node.Props[pname]
+		propValRaw, ok := tp.LookupParam(pname, argType)
 		if !ok || propValRaw == nil {
+            if reqParams[pname] {
+                return fmt.Errorf(
+                    "required env var %s of type %s is nil", 
+                    pname, argType.ArgType,
+                )
+            }
 			continue
 		}
 
@@ -428,17 +537,26 @@ func evaluateEnvVars(node WorkflowNode, template *CmdTemplate, tp TypedParams) e
 				return fmt.Errorf("could node find node %d var %s", node.Id, pname)
 			}
 
+			propValBool, ok := propValRaw.(bool)
+			if !ok {
+				return fmt.Errorf(
+					"could not convert node %d var %s (val %v) to bool",
+					node.Id, pname, propValRaw,
+				)
+			}
+
 			if valStr, err := getEnvValStr(pname, argType.ArgType, tp); err != nil {
 				return err
-			} else {
+			} else if propValBool {
 				template.Envs[envVar] = valStr
 			}
 		} else {
-			if !node.OptionsChecked[pname] {
+			if !reqParams[pname] && !node.OptionsChecked[pname] {
 				continue
 			}
 
-			if _, isIterable := node.IterAttrs[pname]; isIterable {
+			isIterable := iterAttrs[pname]
+			if isIterable {
 				continue
 			}
 
@@ -547,15 +665,17 @@ func getArgStr(pname string, argType WorkflowArgType, tp TypedParams, isFlag boo
 	return "", fmt.Errorf("cannot gen flag value for pname %s, type %s", pname, argType.ArgType)
 }
 
-func evaluateFlags(node WorkflowNode, template *CmdTemplate, tp TypedParams) error {
-	reqParams := getRequiredParams(node)
-
+func evaluateFlags(
+	node WorkflowNode, template *CmdTemplate,
+	tp TypedParams, reqParams, iterAttrs map[string]bool,
+) error {
 	for pname, argType := range node.ArgTypes {
-		if argType.Flag == nil {
+		if argType.Flag == nil || tp.IsNil(pname) {
 			continue
 		}
 
-		if _, isIterable := node.IterAttrs[pname]; isIterable {
+		isIterable := iterAttrs[pname]
+		if isIterable {
 			continue
 		}
 
@@ -577,14 +697,27 @@ func evaluateFlags(node WorkflowNode, template *CmdTemplate, tp TypedParams) err
 	return nil
 }
 
-func evaluateArgs(node WorkflowNode, template *CmdTemplate, tp TypedParams) error {
+func evaluateArgs(
+	node WorkflowNode, template *CmdTemplate,
+	tp TypedParams, reqParams, iterAttrs map[string]bool,
+) error {
 	for _, pname := range node.ArgOrder {
 		argType := node.ArgTypes[pname]
 		if argType.IsArgument == nil || !*argType.IsArgument {
 			continue
 		}
 
-		if _, isIterable := node.IterAttrs[pname]; isIterable {
+        if tp.IsNil(pname) {
+            if reqParams[pname] {
+                return fmt.Errorf(
+                    "required argument %s of type %s is nil", 
+                    pname, argType.ArgType,
+                )
+            }
+        }
+
+		// Iterable attrs will be processed later
+		if iterAttrs[pname] {
 			continue
 		}
 
@@ -598,46 +731,49 @@ func evaluateArgs(node WorkflowNode, template *CmdTemplate, tp TypedParams) erro
 	return nil
 }
 
-func evaluateInOutFiles(node WorkflowNode, template *CmdTemplate, tp TypedParams) error {
-    for pname, argType := range node.ArgTypes {
-        if argType.InputFile == nil && argType.OutputFile == nil {
-            continue
-        }
+func evaluateInOutFiles(
+	node WorkflowNode, template *CmdTemplate,
+	tp TypedParams, iterAttrs map[string]bool,
+) error {
+	for pname, argType := range node.ArgTypes {
+		if argType.InputFile == nil && argType.OutputFile == nil {
+			continue
+		}
 
-        if !argTypeIsStr(argType.ArgType) {
-            return fmt.Errorf("input / output file pname %s is not str", pname)
-        }
+		if !argTypeIsStr(argType.ArgType) {
+			return fmt.Errorf("input / output file pname %s is not str", pname)
+		}
 
-        // Iterble attrs will be processed in evaluteIterables, since
-        // the value of an input file may vary during iteration over
-        // a list.
-		_, isIterable := node.IterAttrs[pname]
-        if argType.InputFile != nil && *argType.InputFile && !isIterable {
-            pVal, pValExists := tp.lookupParam(pname, argType)
-            pValStr, convOk := pVal.(string)
-            if !convOk {
-                return fmt.Errorf(
-                    "unable to convert input/output file param %s to str",
-                    pname,
-                )
-            }
-            if !pValExists {
-                return fmt.Errorf(
-                    "pname %s is listed as input file but is unset",
-                    pname,
-                )
-            }
-            template.InFiles = append(template.InFiles, pValStr)
-        }
+		// Iterble attrs will be processed in evaluteIterables, since
+		// the value of an input file may vary during iteration over
+		// a list.
+		isIterable := iterAttrs[pname]
+		if argType.InputFile != nil && *argType.InputFile && !isIterable {
+			pVal, pValExists := tp.LookupParam(pname, argType)
+			pValStr, convOk := pVal.(string)
+			if !convOk {
+				return fmt.Errorf(
+					"unable to convert input/output file param %s to str",
+					pname,
+				)
+			}
+			if !pValExists {
+				return fmt.Errorf(
+					"pname %s is listed as input file but is unset",
+					pname,
+				)
+			}
+			template.InFiles = append(template.InFiles, pValStr)
+		}
 
-        // Unlike input files, we only store pnames (not vals) for output 
-        // files, so there's no need to defer evaluation until processing
-        // iterables.
-        if argType.OutputFile != nil && *argType.OutputFile {
-            template.OutFilePnames = append(template.OutFilePnames, pname)
-        }
-    }
-    return nil
+		// Unlike input files, we only store pnames (not vals) for output
+		// files, so there's no need to defer evaluation until processing
+		// iterables.
+		if argType.OutputFile != nil && *argType.OutputFile {
+			template.OutFilePnames = append(template.OutFilePnames, pname)
+		}
+	}
+	return nil
 }
 
 /**
@@ -712,20 +848,25 @@ func processIterableAttr[T any](
 	addFlag := false
 	if argType.IsArgument != nil && *argType.IsArgument {
 		addArg = true
-	} else {
+	} else if argType.Flag != nil {
 		addFlag = addFlag || node.OptionsChecked[pname]
 		addFlag = addFlag || reqParams[pname]
-		if addFlag && argType.Flag == nil {
-			return nil, fmt.Errorf("nil flag for %s", pname)
-		}
+
+		//if addFlag && argType.Flag == nil {
+		//	return nil, fmt.Errorf("nil flag for %s", pname)
+		//}
 	}
 
-	if list, ok := typedProps[pname]; !ok || list == nil {
+	list, ok := typedProps[pname]
+	if !ok {
 		notFoundErr := fmt.Errorf(
-			"iterable key %s of type %s not found or null",
-			pname, argType.ArgType,
+			"iterable key %s of type %s not found", pname, argType.ArgType,
 		)
 		return nil, notFoundErr
+	}
+
+	if list == nil {
+		return [][]T{}, nil
 	}
 
 	groups := getIterableGroups(typedProps[pname], groupSize)
@@ -743,8 +884,11 @@ func processIterableAttr[T any](
 	return groups, nil
 }
 
-func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) ([]CmdTemplate, error) {
-	if len(node.IterAttrs) == 0 {
+func evaluateIterables(
+	node WorkflowNode, template CmdTemplate,
+	tp TypedParams, reqParams, iterAttrs map[string]bool,
+) ([]CmdTemplate, error) {
+	if !node.Iterate || len(node.IterAttrs) == 0 {
 		return []CmdTemplate{template}, nil
 	}
 
@@ -756,21 +900,35 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 	flagStrs := make(map[string][]string)
 	envStrs := make(map[string][]string)
 
-	reqParams := getRequiredParams(node)
-
 	maxSize := 0
 	groupsPerPname := make(map[string]int)
-	for pname, groupSize := range node.IterAttrs {
+	for _, pname := range node.IterAttrs {
+		if tp.IsNil(pname) {
+			if reqParams[pname] {
+				return nil, fmt.Errorf("required param %s is nil", pname)
+			}
+			continue
+		}
+
+		groupSize, groupSizeExists := node.IterGroupSize[pname]
+		if !groupSizeExists {
+			return nil, fmt.Errorf("no group size for iterable attr %s", pname)
+		}
+
 		argType, ok := node.ArgTypes[pname]
 		if !ok {
 			return nil, fmt.Errorf("iterable key %s is not a parameter", pname)
 		}
 
-		if !strings.HasSuffix(argType.ArgType, "list") {
+		var err error
+		if argType.ArgType == "patternQuery" {
+			// TODO: Revise
+			err = nil
+			strGroups[pname] = [][]string{{}}
+		} else if !strings.HasSuffix(argType.ArgType, "list") {
 			return nil, fmt.Errorf("iterable key %s is not a list", pname)
 		}
 
-		var err error
 		listType := strings.Split(argType.ArgType, " ")[0]
 		if argTypeIsStr(listType) {
 			strGroups[pname], err = processIterableAttr(
@@ -790,7 +948,7 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 				pname, groupSize, envStrs, argStrs, flagStrs,
 			)
 			groupsPerPname[pname] = len(doubleGroups[pname])
-		} else {
+		} else if argType.ArgType != "patternQuery" {
 			return nil, fmt.Errorf("unsupported list type %s for param %s", argType.ArgType, pname)
 		}
 
@@ -804,7 +962,7 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 	ret := make([]CmdTemplate, 0, maxSize)
 	for i := 0; i < maxSize; i++ {
 		ithIteration := copyCmdTemplate(template)
-		for pname := range node.IterAttrs {
+		for pname := range node.IterGroupSize {
 			numGroups := groupsPerPname[pname]
 
 			if envStrList, pnameIsEnv := envStrs[pname]; pnameIsEnv {
@@ -829,7 +987,7 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 			}
 
 			if numGroups > 0 {
-                argType := node.ArgTypes[pname]
+				argType := node.ArgTypes[pname]
 				listType := strings.Split(argType.ArgType, " ")[0]
 				if argTypeIsStr(listType) {
 					ithIteration.IterVals.StrLists[pname] = strGroups[pname][i%numGroups]
@@ -839,14 +997,14 @@ func evaluateIterables(node WorkflowNode, template CmdTemplate, tp TypedParams) 
 					ithIteration.IterVals.DoubleLists[pname] = doubleGroups[pname][i%numGroups]
 				}
 
-                // Validation ensures that only string types can be
-                // input files.
-                if argType.InputFile != nil && *argType.InputFile {
-                    ithIteration.InFiles = append(
-                        ithIteration.InFiles, 
-                        strGroups[pname][i%numGroups]...
-                    )
-                }
+				// Validation ensures that only string types can be
+				// input files.
+				if argType.InputFile != nil && *argType.InputFile {
+					ithIteration.InFiles = append(
+						ithIteration.InFiles,
+						strGroups[pname][i%numGroups]...,
+					)
+				}
 			}
 		}
 
@@ -900,7 +1058,7 @@ func performCmdSubs(
 				node.Id, i, startLoc, cmdSubs[startLoc].End,
 			)
 
-			_, pnameIsIterable := node.IterAttrs[pname]
+			_, pnameIsIterable := node.IterGroupSize[pname]
 			if pnameIsIterable && skipIters {
 				continue
 			}
@@ -939,53 +1097,55 @@ func performCmdSubs(
 	return nil
 }
 
-func parseNodeCmd(node WorkflowNode) ([]CmdTemplate, error) {
+func ParseNodeCmd(node WorkflowNode, tp TypedParams) ([]CmdTemplate, error) {
 	nodeId := node.Id
 	var template CmdTemplate
+    template.NodeId = node.Id
 	template.BaseCmd = node.Command
 	template.ImageName = fmt.Sprintf("%s:%s", node.ImageName, node.ImageTag)
-	tp, err := parseTypedParams(node)
-	if err != nil {
-		return []CmdTemplate{}, err
-	}
-	err = evaluateEnvVars(node, &template, tp)
+	template.ResourceReqs = node.ResourceReqs
+
+	reqParams := getRequiredParams(node)
+	iterAttrs := getIterAttrs(node)
+
+	err := evaluateEnvVars(node, &template, tp, reqParams, iterAttrs)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing node %d env vars: %s", nodeId, err)
 	}
 
-	err = evaluateFlags(node, &template, tp)
+	err = evaluateFlags(node, &template, tp, reqParams, iterAttrs)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing node %d flags: %s", nodeId, err)
 	}
 
-	err = evaluateArgs(node, &template, tp)
+	err = evaluateArgs(node, &template, tp, reqParams, iterAttrs)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing node %d args: %s", nodeId, err)
 	}
 
-    err = evaluateInOutFiles(node, &template, tp)
-    if err != nil {
-        return nil, fmt.Errorf(
-            "error parsing node %d input / output files: %s",
-            nodeId, err,
-        )
-    }
+	err = evaluateInOutFiles(node, &template, tp, iterAttrs)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error parsing node %d input / output files: %s",
+			nodeId, err,
+		)
+	}
 
 	err = performCmdSubs(node, &template, tp, true)
 	if err != nil {
 		return nil, fmt.Errorf(
-            "error parsing node %d substitutions: %s", 
-            nodeId, err,
-        )
+			"error parsing node %d substitutions: %s",
+			nodeId, err,
+		)
 	}
 
 	var iterations []CmdTemplate
-	iterations, err = evaluateIterables(node, template, tp)
+	iterations, err = evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		return nil, fmt.Errorf(
-            "error parsing node %d iterables: %s", 
-            nodeId, err,
-        )
+			"error parsing node %d iterables: %s",
+			nodeId, err,
+		)
 	}
 
 	for i := range iterations {
@@ -1001,7 +1161,7 @@ func parseNodeCmd(node WorkflowNode) ([]CmdTemplate, error) {
 	return iterations, nil
 }
 
-func cmdToStr(template CmdTemplate) string {
+func CmdToStr(template CmdTemplate) string {
 	out := ""
 	for envK, envV := range template.Envs {
 		out += fmt.Sprintf("%s=%s ", envK, envV)
@@ -1011,7 +1171,43 @@ func cmdToStr(template CmdTemplate) string {
 	out += strings.Join(template.Flags, " ") + " "
 	out += strings.Join(template.Args, " ") + " "
 
-	return out
+	return strings.ReplaceAll(out, "$", "\\$")
+}
+
+func FormSingularityCmd(
+	template CmdTemplate,
+	volumes map[string]string,
+	sif_path string,
+	useGpu bool,
+) (string, []string) {
+	envStrs := make([]string, 0)
+	for envK, envV := range template.Envs {
+		envStrs = append(
+			envStrs, fmt.Sprintf("SINGULARITYENV_%s=%s", envK, envV),
+		)
+	}
+
+	gpuFlag := ""
+	if useGpu {
+		gpuFlag = "--nv"
+	}
+
+	volumesStr := ""
+	for cntPath, hostPath := range volumes {
+		volumesStr += fmt.Sprintf("-B %s:%s ", hostPath, cntPath)
+	}
+
+	cmdStr := strings.Join(template.BaseCmd, " && ") + " "
+	cmdStr += strings.Join(template.Flags, " ") + " "
+	cmdStr += strings.Join(template.Args, " ")
+	//cmdStr = strings.ReplaceAll(cmdStr, "$", "\\$")
+
+	fullCmd := fmt.Sprintf(
+		"singularity exec %s -p -i --cleanenv %s %s sh -c '%s'",
+		gpuFlag, volumesStr, sif_path, cmdStr,
+	)
+
+	return fullCmd, envStrs
 }
 
 func dryRun(workflow Workflow) ([]string, error) {
@@ -1022,17 +1218,19 @@ func dryRun(workflow Workflow) ([]string, error) {
 
 	var cmdStrs []string
 	topSort, err := topSort(workflow)
-    if err != nil {
-        return nil, fmt.Errorf("failed top sort: %s", err)
-    }
+	if err != nil {
+		return nil, fmt.Errorf("failed top sort: %s", err)
+	}
 
 	for _, nodeId := range topSort {
-        node := workflow.Nodes[nodeId]
+		node := workflow.Nodes[nodeId]
+		baseProps := workflow.NodeBaseProps[nodeId]
 		revisedNode := copyWorkflowNode(node)
+		revisedProps := copyMapOfScalars(baseProps)
 		reqParams := getRequiredParams(node)
 
 		// Verify that all properties have corresponding argTypes.
-		for pname := range node.Props {
+		for pname := range baseProps {
 			if _, pnameHasArgType := node.ArgTypes[pname]; !pnameHasArgType {
 				return nil, fmt.Errorf(
 					"error parsing node %d parameters: attr %s has no arg type entry",
@@ -1040,7 +1238,7 @@ func dryRun(workflow Workflow) ([]string, error) {
 				)
 			}
 
-			_, pnameIsIterable := node.IterAttrs[pname]
+			_, pnameIsIterable := node.IterGroupSize[pname]
 
 			// Replace all incoming links with strings indicating their origin
 			// node and origin channel. These strings will be treated as the values
@@ -1049,11 +1247,11 @@ func dryRun(workflow Workflow) ([]string, error) {
 			inLink, hasIncomingLink := inLinks[nodeId][pname]
 			if hasIncomingLink {
 				if pnameIsIterable {
-					revisedNode.Props[pname] = fmt.Sprintf(
+					revisedProps[pname] = fmt.Sprintf(
 						"ITERABLE{%d.%s}", inLink.SourceNodeId, inLink.SourceChannel,
 					)
 				} else {
-					revisedNode.Props[pname] = fmt.Sprintf(
+					revisedProps[pname] = fmt.Sprintf(
 						"{%d.%s}", inLink.SourceNodeId, inLink.SourceChannel,
 					)
 				}
@@ -1063,7 +1261,7 @@ func dryRun(workflow Workflow) ([]string, error) {
 			}
 
 			if node.ArgTypes[pname].ArgType == "patternQuery" {
-				pq, pqErr := parsePatternQuery(node.Props[pname])
+				pq, pqErr := parsePatternQuery(baseProps[pname])
 				if pqErr != nil {
 					return nil, fmt.Errorf(
 						"node %d, var %s cannot be parsed as pattern query: %s",
@@ -1072,15 +1270,15 @@ func dryRun(workflow Workflow) ([]string, error) {
 				}
 
 				if pq.FindDir && pq.FindFile {
-					revisedNode.Props[pname] = fmt.Sprintf(
+					revisedProps[pname] = fmt.Sprintf(
 						"GLOB_MATCH{%s/%s}", pq.Root, pq.Pattern,
 					)
 				} else if pq.FindDir {
-					revisedNode.Props[pname] = fmt.Sprintf(
+					revisedProps[pname] = fmt.Sprintf(
 						"GLOB_DIRS_MATCH{%s/%s}", pq.Root, pq.Pattern,
 					)
 				} else if pq.FindFile {
-					revisedNode.Props[pname] = fmt.Sprintf(
+					revisedProps[pname] = fmt.Sprintf(
 						"GLOB_FILE_MATCH{%s/%s}", pq.Root, pq.Pattern,
 					)
 				}
@@ -1090,7 +1288,7 @@ func dryRun(workflow Workflow) ([]string, error) {
 				revisedNode.ArgTypes[pname] = argTypeEntry
 			}
 
-			if reqParams[pname] && revisedNode.Props[pname] == nil {
+			if reqParams[pname] && revisedProps[pname] == nil {
 				return nil, fmt.Errorf(
 					"required parameter %s of node %d is nil",
 					pname, nodeId,
@@ -1099,16 +1297,21 @@ func dryRun(workflow Workflow) ([]string, error) {
 
 		}
 
-		cmdTemplates, cmdErrs := parseNodeCmd(revisedNode)
+		tp, err := parseTypedParams(revisedNode, revisedProps)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"unable to parsed typed params of node %d: %s",
+				nodeId, err,
+			)
+		}
+
+		cmdTemplates, cmdErrs := ParseNodeCmd(revisedNode, tp)
 		if cmdErrs != nil {
-			return nil, fmt.Errorf("Error parsing cmds: %s", cmdErrs)
+			return nil, fmt.Errorf("error parsing cmds: %s", cmdErrs)
 		}
 
 		for _, template := range cmdTemplates {
-			//fmt.Println("Node", nodeId)
-			//PrettyPrint(cmdTemplates)
-			//fmt.Println(cmdToStr(template))
-			cmdStrs = append(cmdStrs, cmdToStr(template))
+			cmdStrs = append(cmdStrs, CmdToStr(template))
 		}
 	}
 
@@ -1130,10 +1333,14 @@ func validateWorkflow(workflow Workflow) error {
 	}
 
 	for nodeId, node := range workflow.Nodes {
+		baseProps, basePropsExist := workflow.NodeBaseProps[nodeId]
+		if !basePropsExist {
+			return fmt.Errorf("no base props entry for node %d", nodeId)
+		}
 		reqParams := getRequiredParams(node)
 
 		// Verify that all properties have corresponding argTypes.
-		for pname := range node.Props {
+		for pname := range baseProps {
 			if _, pnameHasArgType := node.ArgTypes[pname]; !pnameHasArgType {
 				return fmt.Errorf(
 					"error parsing node %d parameters: attr %s has no arg type entry",
@@ -1147,7 +1354,7 @@ func validateWorkflow(workflow Workflow) error {
 			// runtime.
 			if reqParams[pname] {
 				_, hasIncomingLink := inLinks[nodeId][pname]
-				if node.Props[pname] == nil && !hasIncomingLink {
+				if baseProps[pname] == nil && !hasIncomingLink {
 					return fmt.Errorf(
 						"required parameter %s of node %d is nil",
 						pname, nodeId,
@@ -1160,8 +1367,8 @@ func validateWorkflow(workflow Workflow) error {
 		// Verify that all node params listed as iterable have iterable type
 		// (list or patternQuery) and that they have corresponding values /
 		// argTypes.
-		for iterKey := range node.IterAttrs {
-			if _, iterKeyHasProp := node.Props[iterKey]; !iterKeyHasProp {
+		for iterKey := range node.IterGroupSize {
+			if _, iterKeyHasProp := baseProps[iterKey]; !iterKeyHasProp {
 				return fmt.Errorf(
 					"iterable key %s of node %d has no corresponding parameter",
 					iterKey, nodeId,
@@ -1185,7 +1392,7 @@ func validateWorkflow(workflow Workflow) error {
 		}
 
 		// Verify that there are no type errors inside the node's parameter values.
-		_, paramTypeErr := parseTypedParams(node)
+		_, paramTypeErr := parseTypedParams(node, baseProps)
 		if paramTypeErr != nil {
 			return fmt.Errorf(
 				"error parsing node %d parameters: %s",
@@ -1199,7 +1406,7 @@ func validateWorkflow(workflow Workflow) error {
 		for cmdInd, cmdClause := range node.Command {
 			cmdSubKeys := getCmdSubs(cmdClause)
 			for _, cmdSub := range cmdSubKeys {
-				if _, validPname := node.Props[cmdSub.Pname]; !validPname {
+				if _, validPname := baseProps[cmdSub.Pname]; !validPname {
 					errFmt := "substitution for non-existent var %s at " +
 						"positions %d-%d of cmd %d of node %d"
 					return fmt.Errorf(

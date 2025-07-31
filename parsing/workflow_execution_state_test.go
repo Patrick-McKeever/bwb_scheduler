@@ -63,7 +63,7 @@ func getKeyOrFail(
 	params TypedParams, workflow Workflow,
 ) any {
 	pnameArgTypes := getArgTypesOrFail(t, pname, nodeId, workflow)
-	val, ok := params.lookupParam(pname, pnameArgTypes)
+	val, ok := params.LookupParam(pname, pnameArgTypes)
 	if !ok {
 		t.Fatalf(
 			"expected key %s in params %v from node %d",
@@ -82,7 +82,7 @@ func genArbitraryOutputs(
 	var outputs []TypedParams
 	for i := 0; i < numVals; i++ {
 		var output TypedParams
-		output.addParam(
+		output.AddParam(
 			fmt.Sprintf("%d", startVal+i),
 			pname,
 			pnameArgTypes,
@@ -160,13 +160,13 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -174,18 +174,18 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 	}
 
 	p1Vals := genArbitraryOutputs(t, "p1", 1, 0, 1, workflow)
-	state.TriggerSuccessors(startNodes[1], p1Vals)
+	state.getSuccParams(startNodes[1][0], p1Vals)
 
 	numIterationsOf2 := 3
 	p2Vals := genArbitraryOutputs(t, "p2", numIterationsOf2, 0, 2, workflow)
-	succsOf2, err := state.TriggerSuccessors(
+	succsOf2, err := state.getSuccParams(
 		NodeParams{ancList: []int{}, nodeId: 2}, p2Vals,
 	)
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, numIterationsOf2)
 
 	p2ValsSet := make(map[string]struct{})
 	for _, valSet := range p2Vals {
-		val, _ := valSet.lookupParam("p2", workflow.Nodes[2].ArgTypes["p2"])
+		val, _ := valSet.LookupParam("p2", workflow.Nodes[2].ArgTypes["p2"])
 		p2ValsSet[val.(string)] = struct{}{}
 	}
 
@@ -264,13 +264,13 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -284,7 +284,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -410,13 +410,13 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -431,7 +431,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -544,13 +544,13 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -562,7 +562,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	for i, inputFor2 := range inputsFor2 {
@@ -642,13 +642,13 @@ func TestSimpleBarrier(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -656,10 +656,10 @@ func TestSimpleBarrier(t *testing.T) {
 	}
 
 	numOutputsOf1 := 3
-	inputsFor1 := startNodes[1]
-	inputsFor1.params.addParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
+	inputsFor1 := startNodes[1][0]
+	inputsFor1.params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)
 	for i, inputSet := range inputsFor2 {
 		p2Vals := genArbitraryOutputs(t, "p2", 1, 0, 2, workflow)
@@ -783,13 +783,13 @@ func TestMultipleBarrier(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[0]; !ok {
@@ -797,10 +797,10 @@ func TestMultipleBarrier(t *testing.T) {
 	}
 
 	numOutputsOf0 := 3
-	inputsFor0 := startNodes[0]
-	inputsFor0.params.addParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"])
+	inputsFor0 := startNodes[0][0]
+	inputsFor0.params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"])
 	p0Vals := genArbitraryOutputs(t, "p0", numOutputsOf0, 0, 1, workflow)
-	succsOf0, err := state.TriggerSuccessors(inputsFor0, p0Vals)
+	succsOf0, err := state.getSuccParams(inputsFor0, p0Vals)
 
 	inputsFor1 := getSuccInputsOrFail(t, succsOf0, err, 0, 1, numOutputsOf0)
 	numOutputsOf1 := 0
@@ -927,13 +927,13 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -943,10 +943,10 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 	assertCompletionVal(t, state, false)
 
 	p1Vals := genArbitraryOutputs(t, "p1", 1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, 1)
 
-	_, err = state.TriggerSuccessors(inputsFor2[0], []TypedParams{{}})
+	_, err = state.getSuccParams(inputsFor2[0], []TypedParams{{}})
 	if err != nil {
 		t.Fatalf("error adding outputs for node 2: %s", err)
 	}
@@ -1007,13 +1007,13 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 		},
 	}
 
-	index, err := parseAndValidateWorkflow(&workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
 
 	state := NewWorkflowExecutionState(workflow, index)
-	startNodes, err := state.GetInitialNodeParams()
+	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
 	} else if _, ok := startNodes[1]; !ok {
@@ -1023,7 +1023,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.TriggerSuccessors(startNodes[1], p1Vals)
+	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -1055,3 +1055,28 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 	}
 	assertCompletionVal(t, state, true)
 }
+
+//func TestBulkRNA(t *testing.T) {
+//	data, err := os.ReadFile("testdata/bulkrna_seq.json")
+//	if err != nil {
+//		t.Fatalf("failed to read JSON file: %v", err)
+//	}
+//
+//	var workflow Workflow
+//	if err := json.Unmarshal(data, &workflow); err != nil {
+//		t.Fatalf("failed to unmarshal JSON: %v", err)
+//	}
+//
+//    index, err := ParseAndValidateWorkflow(&workflow)
+//    if err != nil {
+//        t.Fatalf("failed to build index: %s\n", err)
+//    }
+//
+//    state := NewWorkflowExecutionState(workflow, index)
+//    cmds, err := state.GetInitialCmds()
+//    for _, cmd := range cmds {
+//        cmdStr, envs := FormSingularityCmd(cmd, map[string]string{}, "sif", true)
+//        fmt.Printf("%s %s\n", strings.Join(envs, " "),  cmdStr)
+//        fmt.Printf("\n")
+//    }
+//}

@@ -2,11 +2,11 @@
 	"Nodes": {
 		"0": {
 			"Id": 0,
-			"ImageName": "biodepot/downloadurl",
-			"ImageTag": "alpine-3.15__da0b8b3c__570359bc__4ed7eaa4",
+			"ImageName": "patrickmckeever/downloadurl",
+			"ImageTag": "0.1",
 			"Title": "downloadURL",
 			"Command": [
-				"/root/download.sh"
+				"download.sh"
 			],
 			"ArgTypes": {
 				"URL": {
@@ -15,7 +15,9 @@
 					"flag": null,
 					"env": null,
 					"label": "URL(s)",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"concatenateFile": {
 					"type": "file",
@@ -23,7 +25,9 @@
 					"flag": "--concatenateFile",
 					"env": null,
 					"label": "Download and join into one file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"decompress": {
 					"type": "bool",
@@ -31,7 +35,9 @@
 					"flag": "--decompress",
 					"env": null,
 					"label": "Decompress files",
-					"default": true
+					"default": true,
+					"input_file": null,
+					"output_file": null
 				},
 				"directory": {
 					"type": "directory",
@@ -39,7 +45,9 @@
 					"flag": "--directory",
 					"env": null,
 					"label": "Download directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"noClobberFiles": {
 					"type": "bool",
@@ -47,22 +55,17 @@
 					"flag": null,
 					"env": "clobber",
 					"label": "Overwrite existing files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"URL": null,
-				"concatenateFile": "",
-				"decompress": true,
-				"directory": "",
-				"noClobberFiles": false
 			},
 			"ArgOrder": [
 				"URL"
 			],
 			"OptionsChecked": {
 				"concatenateFile": false,
-				"decompress": false,
+				"decompress": true,
 				"saveLog": false
 			},
 			"RequiredParams": [
@@ -77,18 +80,22 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": true,
+			"IterGroupSize": {
 				"URL": 1
-			}
+			},
+			"IterAttrs": [
+				"URL"
+			]
 		},
 		"1": {
 			"Id": 1,
-			"ImageName": "biodepot/multistar",
-			"ImageTag": "latest",
+			"ImageName": "patrickmckeever/star_async",
+			"ImageTag": "0.4",
 			"Title": "starIndex",
 			"Command": [
 				"[ -n \"$overwrite\" ] || [ !  -f  \"$genomeDir/SAindex\" ] ||  exit 0",
-				"STAR"
+				"/usr/local/bin/$VERSION/Linux_x86_64_static/STAR"
 			],
 			"ArgTypes": {
 				"genomeChrBinNbits": {
@@ -97,7 +104,9 @@
 					"flag": "--genomeChrBinNbits",
 					"env": null,
 					"label": "genomeChrBinNbits",
-					"default": "18"
+					"default": "18",
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeDir": {
 					"type": "directory",
@@ -105,7 +114,9 @@
 					"flag": "--genomeDir",
 					"env": "genomeDir",
 					"label": "genomeDir",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeFastaFile": {
 					"type": "file",
@@ -113,7 +124,9 @@
 					"flag": "--genomeFastaFiles",
 					"env": null,
 					"label": "genomeFastaFiles",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeSAindexNbases": {
 					"type": "int",
@@ -121,7 +134,9 @@
 					"flag": "--genomeSAindexNbases",
 					"env": null,
 					"label": "genomeSAindexNbases",
-					"default": 14
+					"default": 14,
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeSAsparseD": {
 					"type": "int",
@@ -129,7 +144,9 @@
 					"flag": "--genomeSAsparseD",
 					"env": null,
 					"label": "genomeSAsparseD",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeSuffixLengthMax": {
 					"type": "int",
@@ -137,7 +154,9 @@
 					"flag": "--genomeSuffixLengthMax",
 					"env": null,
 					"label": "genomeSuffixLengthMax",
-					"default": -1
+					"default": -1,
+					"input_file": null,
+					"output_file": null
 				},
 				"overwrite": {
 					"type": "bool",
@@ -145,7 +164,9 @@
 					"flag": null,
 					"env": "overwrite",
 					"label": "Overwrite files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"rmode": {
 					"type": "str",
@@ -153,7 +174,9 @@
 					"flag": "--runMode",
 					"env": null,
 					"label": "runMode",
-					"default": "genomeGenerate"
+					"default": "genomeGenerate",
+					"input_file": null,
+					"output_file": null
 				},
 				"runThreadN": {
 					"type": "int",
@@ -161,7 +184,9 @@
 					"flag": "--runThreadN",
 					"env": null,
 					"label": "runThreadN",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbFileChrStartEnd": {
 					"type": "file list",
@@ -169,7 +194,9 @@
 					"flag": "--sjdbFileChrStartEnd",
 					"env": null,
 					"label": "sjdbFileChrStartEnd",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbGTFchrPrefix": {
 					"type": "str",
@@ -177,7 +204,9 @@
 					"flag": "--sjdbGTFchrPrefix ",
 					"env": null,
 					"label": "sjdbGTFchrPrefix ",
-					"default": "chr"
+					"default": "chr",
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbGTFfeatureExon": {
 					"type": "str",
@@ -185,7 +214,9 @@
 					"flag": "--sjdbGTFfeatureExon",
 					"env": null,
 					"label": "sjdbGTFfeatureExon",
-					"default": "exon"
+					"default": "exon",
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbGTFfile": {
 					"type": "file",
@@ -193,7 +224,9 @@
 					"flag": "--sjdbGTFfile",
 					"env": null,
 					"label": "sjdbGTFfile",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbGTFtagExonParentGene": {
 					"type": "str",
@@ -201,7 +234,9 @@
 					"flag": "--sjdbGTFtagExonParentGenet",
 					"env": null,
 					"label": "sjdbGTFtagExonParentGene",
-					"default": "gene_id"
+					"default": "gene_id",
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbGTFtagExonParentTranscript": {
 					"type": "str",
@@ -209,7 +244,9 @@
 					"flag": "--sjdbGTFtagExonParentTranscript",
 					"env": null,
 					"label": "sjdbGTFtagExonParentTranscript",
-					"default": "transcript_id"
+					"default": "transcript_id",
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbInsertSave": {
 					"type": "str",
@@ -217,7 +254,9 @@
 					"flag": "--sjdbInsertSave ",
 					"env": null,
 					"label": "sjdbInsertSave",
-					"default": "Basic"
+					"default": "Basic",
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbOverhang": {
 					"type": "int",
@@ -225,7 +264,9 @@
 					"flag": "--sjdbOverhang",
 					"env": null,
 					"label": "sjdbOverhang",
-					"default": 100
+					"default": 100,
+					"input_file": null,
+					"output_file": null
 				},
 				"sjdbScore": {
 					"type": "int",
@@ -233,7 +274,9 @@
 					"flag": "--sjdbScore",
 					"env": null,
 					"label": "sjdbScore",
-					"default": 2
+					"default": 2,
+					"input_file": null,
+					"output_file": null
 				},
 				"starversion": {
 					"type": "str",
@@ -241,29 +284,10 @@
 					"flag": null,
 					"env": "VERSION",
 					"label": "Star version",
-					"default": "2.7.11a"
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"genomeChrBinNbits": "18",
-				"genomeDir": "",
-				"genomeFastaFile": "",
-				"genomeSAindexNbases": 14,
-				"genomeSAsparseD": 1,
-				"genomeSuffixLengthMax": -1,
-				"overwrite": false,
-				"rmode": "genomeGenerate",
-				"runThreadN": 16,
-				"sjdbFileChrStartEnd": [],
-				"sjdbGTFchrPrefix": "chr",
-				"sjdbGTFfeatureExon": "exon",
-				"sjdbGTFfile": "",
-				"sjdbGTFtagExonParentGene": "gene_id",
-				"sjdbGTFtagExonParentTranscript": "transcript_id",
-				"sjdbInsertSave": "Basic",
-				"sjdbOverhang": 100,
-				"sjdbScore": 2,
-				"starversion": ""
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -298,9 +322,11 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"sjdbFileChrStartEnd": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"10": {
 			"Id": 10,
@@ -318,7 +344,9 @@
 					"flag": null,
 					"env": "fastqfiles",
 					"label": null,
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"inputdir": {
 					"type": "directory",
@@ -326,7 +354,9 @@
 					"flag": null,
 					"env": "inputdir",
 					"label": "Fastq directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"pattern": {
 					"type": "str",
@@ -334,13 +364,10 @@
 					"flag": null,
 					"env": "pattern",
 					"label": "File search pattern",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"fastqfiles": null,
-				"inputdir": "",
-				"pattern": "*.fq.gz"
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -357,9 +384,11 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"fastqfiles": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"11": {
 			"Id": 11,
@@ -377,7 +406,9 @@
 					"flag": null,
 					"env": "fastqfiles",
 					"label": null,
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"inputdir": {
 					"type": "directory",
@@ -385,7 +416,9 @@
 					"flag": null,
 					"env": "inputdir",
 					"label": "Fastq directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"pattern": {
 					"type": "str",
@@ -393,13 +426,10 @@
 					"flag": null,
 					"env": "pattern",
 					"label": "File search pattern",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"fastqfiles": null,
-				"inputdir": "",
-				"pattern": "*.fastq"
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -416,9 +446,11 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"fastqfiles": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"12": {
 			"Id": 12,
@@ -435,7 +467,9 @@
 					"flag": null,
 					"env": null,
 					"label": "S3 bucket",
-					"default": "myBucket"
+					"default": "myBucket",
+					"input_file": null,
+					"output_file": null
 				},
 				"credentials_dir": {
 					"type": "directory",
@@ -443,7 +477,9 @@
 					"flag": null,
 					"env": null,
 					"label": "AWS directory",
-					"default": "/data/.aws"
+					"default": "/data/.aws",
+					"input_file": null,
+					"output_file": null
 				},
 				"key": {
 					"type": "str",
@@ -451,7 +487,9 @@
 					"flag": null,
 					"env": "AWS_ACCESS_KEY_ID",
 					"label": "AWS key",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"nthreads": {
 					"type": "int",
@@ -459,7 +497,9 @@
 					"flag": null,
 					"env": "NTHREADS",
 					"label": "Use multiple threads:",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"profile": {
 					"type": "str",
@@ -467,7 +507,9 @@
 					"flag": "--profile ",
 					"env": "profile",
 					"label": "Profile",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"region": {
 					"type": "str",
@@ -475,7 +517,9 @@
 					"flag": null,
 					"env": "AWS_DEFAULT_REGION",
 					"label": "Region",
-					"default": "us-east-2"
+					"default": "us-east-2",
+					"input_file": null,
+					"output_file": null
 				},
 				"s3Dir": {
 					"type": "str",
@@ -483,7 +527,9 @@
 					"flag": null,
 					"env": null,
 					"label": "S3 destination",
-					"default": "destination"
+					"default": "destination",
+					"input_file": null,
+					"output_file": null
 				},
 				"secret": {
 					"type": "str",
@@ -491,7 +537,9 @@
 					"flag": null,
 					"env": "AWS_SECRET_ACCESS_KEY",
 					"label": "AWS Secret",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"uploadDir": {
 					"type": "directory",
@@ -499,25 +547,16 @@
 					"flag": null,
 					"env": null,
 					"label": "Directory to upload",
-					"default": "/data/source"
+					"default": "/data/source",
+					"input_file": null,
+					"output_file": null
 				}
 			},
-			"Props": {
-				"bucket": "",
-				"credentials_dir": "",
-				"key": "",
-				"nthreads": 0,
-				"profile": "",
-				"region": "us-east-2",
-				"s3Dir": "",
-				"secret": "",
-				"uploadDir": ""
-			},
 			"ArgOrder": [
-				"credentials_dir",
-				"uploadDir",
 				"bucket",
-				"s3Dir"
+				"s3Dir",
+				"credentials_dir",
+				"uploadDir"
 			],
 			"OptionsChecked": {
 				"key": false,
@@ -539,7 +578,9 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {}
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
 		},
 		"13": {
 			"Id": 13,
@@ -556,7 +597,9 @@
 					"flag": null,
 					"env": "alignedDir",
 					"label": "Star aligned directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"nThreads": {
 					"type": "int",
@@ -564,7 +607,9 @@
 					"flag": null,
 					"env": "nThreads",
 					"label": "Number of Threads",
-					"default": 4
+					"default": 4,
+					"input_file": null,
+					"output_file": null
 				},
 				"outputDir": {
 					"type": "directory",
@@ -572,7 +617,9 @@
 					"flag": null,
 					"env": "outputDir",
 					"label": "Output directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"overwritefiles": {
 					"type": "bool",
@@ -580,7 +627,9 @@
 					"flag": null,
 					"env": "overwrite",
 					"label": "Overwite files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"sequenceDir": {
 					"type": "directory",
@@ -588,14 +637,10 @@
 					"flag": null,
 					"env": "sequenceDir",
 					"label": "Sequences directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"aligneddir": "/data/startest/alignedfiles",
-				"outputDir": "/data/filtered",
-				"overwritefiles": true,
-				"sequenceDir": "/data/shortseqs"
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -614,12 +659,14 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {}
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
 		},
 		"2": {
 			"Id": 2,
-			"ImageName": "biodepot/multistar",
-			"ImageTag": "latest",
+			"ImageName": "patrickmckeever/star_async",
+			"ImageTag": "0.4",
 			"Title": "starAlign",
 			"Command": [
 				"runstar.sh"
@@ -634,7 +681,9 @@
 					"default": [
 						"0",
 						"ConcordantPair"
-					]
+					],
+					"input_file": null,
+					"output_file": null
 				},
 				"alignEndsType": {
 					"type": "str",
@@ -642,7 +691,9 @@
 					"flag": "--alignEndsType",
 					"env": null,
 					"label": "alignEndsType",
-					"default": "Local"
+					"default": "Local",
+					"input_file": null,
+					"output_file": null
 				},
 				"alignIntronMax": {
 					"type": "int",
@@ -650,7 +701,9 @@
 					"flag": "--alignIntronMax",
 					"env": null,
 					"label": "alignIntronMax",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignIntronMin": {
 					"type": "int",
@@ -658,7 +711,9 @@
 					"flag": "--alignIntronMin",
 					"env": null,
 					"label": "alignIntronMin",
-					"default": 21
+					"default": 21,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignMatesGapMax": {
 					"type": "int",
@@ -666,7 +721,9 @@
 					"flag": "--alignMatesGapMax",
 					"env": null,
 					"label": "alignMatesGapMax",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSJDBoverhangMin": {
 					"type": "int",
@@ -674,7 +731,9 @@
 					"flag": "--alignSJDBoverhangMin",
 					"env": null,
 					"label": "alignSJDBoverhangMin",
-					"default": 3
+					"default": 3,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSJoverhangMin": {
 					"type": "int",
@@ -682,7 +741,9 @@
 					"flag": "--alignSJoverhangMin",
 					"env": null,
 					"label": "alignSJoverhangMin",
-					"default": 5
+					"default": 5,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSJstitchMismatchNmax": {
 					"type": "int",
@@ -690,7 +751,9 @@
 					"flag": "--alignSJstitchMismatchNmax ",
 					"env": null,
 					"label": "alignSJstitchMismatchNmax ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSoftClipAtReferenceEnds": {
 					"type": "str",
@@ -698,7 +761,9 @@
 					"flag": "--alignSoftClipAtReferenceEnds",
 					"env": null,
 					"label": "alignSoftClipAtReferenceEnds",
-					"default": "Yes"
+					"default": "Yes",
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSplicedMateMapLmin": {
 					"type": "int",
@@ -706,7 +771,9 @@
 					"flag": "--alignSplicedMateMapLmin",
 					"env": null,
 					"label": "alignSplicedMateMapLmin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignSplicedMateMapLminOverLmate": {
 					"type": "double",
@@ -714,7 +781,9 @@
 					"flag": "--alignSplicedMateMapLminOverLmate",
 					"env": null,
 					"label": "alignSplicedMateMapLminOverLmate",
-					"default": 0.66
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignTranscriptsPerReadNmax": {
 					"type": "int",
@@ -722,7 +791,9 @@
 					"flag": "--alignTranscriptsPerReadNmax",
 					"env": null,
 					"label": "alignTranscriptsPerReadNmax",
-					"default": 10000
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignTranscriptsPerWindowNmax": {
 					"type": "int",
@@ -730,7 +801,9 @@
 					"flag": "--alignTranscriptsPerWindowNmax",
 					"env": null,
 					"label": "alignTranscriptsPerWindowNmax",
-					"default": 100
+					"default": 100,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignWindowsPerReadNmax": {
 					"type": "int",
@@ -738,7 +811,9 @@
 					"flag": "--alignWindowsPerReadNmax",
 					"env": null,
 					"label": "alignWindowsPerReadNmax",
-					"default": 10000
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
 				},
 				"apelist": {
 					"type": "bool",
@@ -746,7 +821,9 @@
 					"flag": null,
 					"env": "APELIST",
 					"label": "Alternating paired-end files (a_R1 a_R2 b_R1 b_R2...) ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"bamRemoveDuplicatesMate2basesN": {
 					"type": "int",
@@ -754,7 +831,9 @@
 					"flag": "--bamRemoveDuplicatesMate2basesN",
 					"env": null,
 					"label": "bamRemoveDuplicatesMate2basesN",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"bamRemoveDuplicatesType": {
 					"type": "str",
@@ -762,7 +841,9 @@
 					"flag": "--bamRemoveDuplicatesType",
 					"env": null,
 					"label": "bamRemoveDuplicatesType",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimFilter": {
 					"type": "str",
@@ -770,7 +851,9 @@
 					"flag": "--chimFilter",
 					"env": null,
 					"label": "chimFilter",
-					"default": "banGenomicN"
+					"default": "banGenomicN",
+					"input_file": null,
+					"output_file": null
 				},
 				"chimJunctionOverhangMin": {
 					"type": "int",
@@ -778,7 +861,9 @@
 					"flag": "--chimJunctionOverhangMin",
 					"env": null,
 					"label": "chimJunctionOverhangMin",
-					"default": 20
+					"default": 20,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimOutType": {
 					"type": "str",
@@ -786,7 +871,9 @@
 					"flag": "--chimOutType",
 					"env": null,
 					"label": "chimOutType",
-					"default": "SeparateSAMold"
+					"default": "SeparateSAMold",
+					"input_file": null,
+					"output_file": null
 				},
 				"chimScoreDropMax": {
 					"type": "int",
@@ -794,7 +881,9 @@
 					"flag": "--chimScoreDropMax",
 					"env": null,
 					"label": "chimScoreDropMax",
-					"default": 20
+					"default": 20,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimScoreJunctionNonGTAG": {
 					"type": "int",
@@ -802,7 +891,9 @@
 					"flag": "--chimScoreJunctionNonGTAG",
 					"env": null,
 					"label": "chimScoreJunctionNonGTAG",
-					"default": -1
+					"default": -1,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimScoreMin": {
 					"type": "int",
@@ -810,7 +901,9 @@
 					"flag": "--chimScoreMin",
 					"env": null,
 					"label": "chimScoreMin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimScoreSeparation": {
 					"type": "int",
@@ -818,7 +911,9 @@
 					"flag": "--chimScoreSeparation",
 					"env": null,
 					"label": "chimScoreSeparation",
-					"default": 10
+					"default": 10,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimSegmentMin": {
 					"type": "int",
@@ -826,7 +921,9 @@
 					"flag": "--chimSegmentMin",
 					"env": null,
 					"label": "chimSegmentMin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"chimSegmentReadGapMax": {
 					"type": "int",
@@ -834,7 +931,9 @@
 					"flag": "--chimSegmentReadGapMax",
 					"env": null,
 					"label": "chimSegmentReadGapMax",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"clip3pAdapterMMp": {
 					"type": "double list",
@@ -844,7 +943,9 @@
 					"label": "clip3pAdapterMMp",
 					"default": [
 						"0.1"
-					]
+					],
+					"input_file": null,
+					"output_file": null
 				},
 				"clip3pAdapterSeq": {
 					"type": "text list",
@@ -852,7 +953,9 @@
 					"flag": "--clip3pAdapterSeq",
 					"env": null,
 					"label": "clip3pAdapterSeq",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"clip3pAfterAdapterNbases": {
 					"type": "int list",
@@ -862,7 +965,9 @@
 					"label": "clip3pAfterAdapterNbases",
 					"default": [
 						"0"
-					]
+					],
+					"input_file": null,
+					"output_file": null
 				},
 				"clip3pNbases": {
 					"type": "int list",
@@ -872,7 +977,9 @@
 					"label": "clip3pNbases",
 					"default": [
 						"0"
-					]
+					],
+					"input_file": null,
+					"output_file": null
 				},
 				"clip5pNbases": {
 					"type": "int list",
@@ -882,7 +989,9 @@
 					"label": "clip5pNbases",
 					"default": [
 						"0"
-					]
+					],
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeDir": {
 					"type": "directory",
@@ -890,7 +999,9 @@
 					"flag": "--genomeDir",
 					"env": null,
 					"label": "genomeDir",
-					"default": "/data/GenomeDir"
+					"default": "/data/GenomeDir",
+					"input_file": null,
+					"output_file": null
 				},
 				"genomeLoad": {
 					"type": "str",
@@ -898,7 +1009,9 @@
 					"flag": "--genomeLoad",
 					"env": null,
 					"label": "genomeLoad",
-					"default": "NoSharedMemory"
+					"default": "NoSharedMemory",
+					"input_file": null,
+					"output_file": null
 				},
 				"limitIObufferSize": {
 					"type": "int",
@@ -906,7 +1019,9 @@
 					"flag": "--limitIObufferSize",
 					"env": null,
 					"label": "limitIObufferSize",
-					"default": 150000000
+					"default": 150000000,
+					"input_file": null,
+					"output_file": null
 				},
 				"limitOutSAMoneReadBytes": {
 					"type": "int",
@@ -914,7 +1029,9 @@
 					"flag": "--limitOutSAMoneReadBytes",
 					"env": null,
 					"label": "limitOutSAMoneReadBytes",
-					"default": 100000
+					"default": 100000,
+					"input_file": null,
+					"output_file": null
 				},
 				"multipleSample": {
 					"type": "bool",
@@ -922,7 +1039,9 @@
 					"flag": null,
 					"env": "MULTISAMPLE",
 					"label": "Multiple samples",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outBAMcompression": {
 					"type": "int",
@@ -930,7 +1049,9 @@
 					"flag": "--outBAMcompression",
 					"env": null,
 					"label": "outBAMcompression",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outBAMsortingThreadN": {
 					"type": "int",
@@ -938,7 +1059,9 @@
 					"flag": "--outBAMsortingThreadN",
 					"env": null,
 					"label": "outBAMsortingThreadN",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterIntronMotifs": {
 					"type": "str",
@@ -946,7 +1069,9 @@
 					"flag": "--outFilterIntronMotifs",
 					"env": null,
 					"label": "outFilterIntronMotifs",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMatchNmin": {
 					"type": "int",
@@ -954,7 +1079,9 @@
 					"flag": "--outFilterMatchNmin",
 					"env": null,
 					"label": "outFilterMatchNmin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMatchNminOverLread": {
 					"type": "double",
@@ -962,7 +1089,9 @@
 					"flag": "--outFilterMatchNminOverLread",
 					"env": null,
 					"label": "outFilterMatchNminOverLread",
-					"default": 0.66
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMismatchNmax": {
 					"type": "int",
@@ -970,7 +1099,9 @@
 					"flag": "--outFilterMismatchNmax",
 					"env": null,
 					"label": "outFilterMismatchNmax",
-					"default": 10
+					"default": 10,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMismatchNoverLmax": {
 					"type": "double",
@@ -978,7 +1109,9 @@
 					"flag": "--outFilterMismatchNoverLmax ",
 					"env": null,
 					"label": "outFilterMismatchNoverLmax ",
-					"default": 0.3
+					"default": 0.3,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMismatchNoverReadLmax": {
 					"type": "double",
@@ -986,7 +1119,9 @@
 					"flag": "--outFilterMismatchNoverReadLmax",
 					"env": null,
 					"label": "outFilterMismatchNoverReadLmax",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMultimapNmax": {
 					"type": "int",
@@ -994,7 +1129,9 @@
 					"flag": "--outFilterMultimapNmax",
 					"env": null,
 					"label": "outFilterMultimapNmax",
-					"default": 10
+					"default": 10,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterMultimapScoreRange": {
 					"type": "int",
@@ -1002,7 +1139,9 @@
 					"flag": "--outFilterMultimapScoreRange",
 					"env": null,
 					"label": "outFilterMultimapScoreRange",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterScoreMin": {
 					"type": "int",
@@ -1010,7 +1149,9 @@
 					"flag": "--outFilterScoreMin",
 					"env": null,
 					"label": "outFilterScoreMin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterScoreMinOverLread": {
 					"type": "double",
@@ -1018,7 +1159,9 @@
 					"flag": "--outFilterScoreMinOverLread",
 					"env": null,
 					"label": "outFilterScoreMinOverLread",
-					"default": 0.66
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
 				},
 				"outFilterType": {
 					"type": "str",
@@ -1026,7 +1169,9 @@
 					"flag": "--outFilterType",
 					"env": null,
 					"label": "outFilterType",
-					"default": "Normal"
+					"default": "Normal",
+					"input_file": null,
+					"output_file": null
 				},
 				"outMultimapperOrder": {
 					"type": "str",
@@ -1034,7 +1179,9 @@
 					"flag": "--outMultimapperOrder",
 					"env": null,
 					"label": "outMultimapperOrder",
-					"default": "Old_2.4"
+					"default": "Old_2.4",
+					"input_file": null,
+					"output_file": null
 				},
 				"outReadsUnmapped": {
 					"type": "str",
@@ -1042,7 +1189,9 @@
 					"flag": "--outReadsUnmapped",
 					"env": null,
 					"label": "outReadsUnmapped",
-					"default": ""
+					"default": "",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMattrIHstart": {
 					"type": "int",
@@ -1050,7 +1199,9 @@
 					"flag": "--outSAMattrIHstart",
 					"env": null,
 					"label": "outSAMattrIHstart",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMattrRGline": {
 					"type": "str",
@@ -1058,7 +1209,9 @@
 					"flag": "--outSAMattrRGline",
 					"env": null,
 					"label": "outSAMattrRGline",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMattributes": {
 					"type": "str",
@@ -1066,7 +1219,9 @@
 					"flag": "--outSAMattributes",
 					"env": null,
 					"label": "outSAMattributes",
-					"default": "Standard"
+					"default": "Standard",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMfilter": {
 					"type": "str",
@@ -1074,7 +1229,9 @@
 					"flag": "--outSAMfilter",
 					"env": null,
 					"label": "outSAMfilter",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMflagAND": {
 					"type": "int",
@@ -1082,7 +1239,9 @@
 					"flag": "--outSAMflagAND",
 					"env": null,
 					"label": "outSAMflagAND",
-					"default": 65535
+					"default": 65535,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMflagOR": {
 					"type": "int",
@@ -1090,7 +1249,9 @@
 					"flag": "--outSAMflagOR",
 					"env": null,
 					"label": "outSAMflagOR",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMheaderCommentFile": {
 					"type": "file",
@@ -1098,7 +1259,9 @@
 					"flag": "--outSAMheaderCommentFile",
 					"env": null,
 					"label": "outSAMheaderCommentFile",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMheaderHD": {
 					"type": "str",
@@ -1106,7 +1269,9 @@
 					"flag": "--outSAMheaderHD",
 					"env": null,
 					"label": "outSAMheaderHD",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMheaderPG": {
 					"type": "str",
@@ -1114,7 +1279,9 @@
 					"flag": "--outSAMheaderPG",
 					"env": null,
 					"label": "outSAMheaderPG",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMmapqUnique": {
 					"type": "int",
@@ -1122,7 +1289,9 @@
 					"flag": "--outSAMmapqUnique",
 					"env": null,
 					"label": "outSAMmapqUnique",
-					"default": 255
+					"default": 255,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMmode": {
 					"type": "str",
@@ -1130,7 +1299,9 @@
 					"flag": "--outSAMmode",
 					"env": null,
 					"label": "outSAMmode",
-					"default": "Full"
+					"default": "Full",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMmultNmax": {
 					"type": "int",
@@ -1138,7 +1309,9 @@
 					"flag": "--outSAMmultNmax",
 					"env": null,
 					"label": "outSAMmultNmax",
-					"default": -1
+					"default": -1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMorder": {
 					"type": "str",
@@ -1146,7 +1319,9 @@
 					"flag": "--outSAMorder",
 					"env": null,
 					"label": "outSAMorder",
-					"default": "Paired"
+					"default": "Paired",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMprimaryFlag": {
 					"type": "str",
@@ -1154,7 +1329,9 @@
 					"flag": "--outSAMprimaryFlag",
 					"env": null,
 					"label": "outSAMprimaryFlag",
-					"default": "OneBestScore"
+					"default": "OneBestScore",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMreadID": {
 					"type": "str",
@@ -1162,7 +1339,9 @@
 					"flag": "--outSAMreadID",
 					"env": null,
 					"label": "outSAMreadID",
-					"default": "Standard"
+					"default": "Standard",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMstrandField": {
 					"type": "str",
@@ -1170,7 +1349,9 @@
 					"flag": "--outSAMstrandField",
 					"env": null,
 					"label": "outSAMstrandField",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMtype": {
 					"type": "str",
@@ -1178,7 +1359,9 @@
 					"flag": "--outSAMtype",
 					"env": null,
 					"label": "outSAMtype",
-					"default": "SAM"
+					"default": "SAM",
+					"input_file": null,
+					"output_file": null
 				},
 				"outSAMunmapped": {
 					"type": "str",
@@ -1186,7 +1369,9 @@
 					"flag": "--outSAMunmapped",
 					"env": null,
 					"label": "outSAMunmapped",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outStd": {
 					"type": "str",
@@ -1194,7 +1379,9 @@
 					"flag": "--outStd",
 					"env": null,
 					"label": "outStd",
-					"default": "Log"
+					"default": "Log",
+					"input_file": null,
+					"output_file": null
 				},
 				"outTmpDir": {
 					"type": "directory",
@@ -1202,7 +1389,9 @@
 					"flag": "--outTmpDir",
 					"env": null,
 					"label": "outTmpDir",
-					"default": ""
+					"default": "",
+					"input_file": null,
+					"output_file": null
 				},
 				"outWigNorm": {
 					"type": "str",
@@ -1210,7 +1399,9 @@
 					"flag": "--outWigNorm",
 					"env": null,
 					"label": "outWigNorm",
-					"default": "RPM"
+					"default": "RPM",
+					"input_file": null,
+					"output_file": null
 				},
 				"outWigReferencesPrefix": {
 					"type": "str",
@@ -1218,7 +1409,9 @@
 					"flag": "--outWigReferencesPrefix",
 					"env": null,
 					"label": "outWigReferencesPrefix",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outWigStrand": {
 					"type": "str",
@@ -1226,7 +1419,9 @@
 					"flag": "--outWigStrand",
 					"env": null,
 					"label": "outWigStrand",
-					"default": "Stranded"
+					"default": "Stranded",
+					"input_file": null,
+					"output_file": null
 				},
 				"outWigType": {
 					"type": "str",
@@ -1234,7 +1429,9 @@
 					"flag": "--outWigType",
 					"env": null,
 					"label": "outWigType",
-					"default": ""
+					"default": "",
+					"input_file": null,
+					"output_file": null
 				},
 				"outputDir": {
 					"type": "directory",
@@ -1242,7 +1439,9 @@
 					"flag": null,
 					"env": "outputDirectory",
 					"label": "Output directory",
-					"default": ""
+					"default": "",
+					"input_file": null,
+					"output_file": null
 				},
 				"outputFilePrefix": {
 					"type": "str",
@@ -1250,7 +1449,9 @@
 					"flag": null,
 					"env": "outputPrefix",
 					"label": "outputFilePrefix",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"parametersFiles": {
 					"type": "file",
@@ -1258,7 +1459,9 @@
 					"flag": "--parametersFiles",
 					"env": null,
 					"label": "Parameters file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"quantMode": {
 					"type": "str",
@@ -1266,7 +1469,9 @@
 					"flag": "--quantMode",
 					"env": null,
 					"label": "quantMode",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"quantTranscriptomeBAMcompression": {
 					"type": "int",
@@ -1274,7 +1479,9 @@
 					"flag": "--quantTranscriptomeBAMcompression",
 					"env": null,
 					"label": "quantTranscriptomeBAMcompression",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"quantTranscriptomeBan": {
 					"type": "str",
@@ -1282,7 +1489,9 @@
 					"flag": "--quantTranscriptomeBan",
 					"env": null,
 					"label": "quantTranscriptomeBan",
-					"default": "IndelSoftclipSingleend"
+					"default": "IndelSoftclipSingleend",
+					"input_file": null,
+					"output_file": null
 				},
 				"readFilesCommand": {
 					"type": "str",
@@ -1290,7 +1499,9 @@
 					"flag": "--readFilesCommand",
 					"env": null,
 					"label": "readFilesCommand",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"readFilesIn": {
 					"type": "file list",
@@ -1298,7 +1509,9 @@
 					"flag": "--readFilesIn",
 					"env": null,
 					"label": "readFilesIn",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"readMapNumber": {
 					"type": "int",
@@ -1306,7 +1519,9 @@
 					"flag": "--readMapNumber",
 					"env": null,
 					"label": "readMapNumber",
-					"default": -1
+					"default": -1,
+					"input_file": null,
+					"output_file": null
 				},
 				"readMatesLengthsIn": {
 					"type": "str",
@@ -1314,7 +1529,9 @@
 					"flag": "--readMatesLengthsIn",
 					"env": null,
 					"label": "readMatesLengthsIn",
-					"default": "NotEqual"
+					"default": "NotEqual",
+					"input_file": null,
+					"output_file": null
 				},
 				"readNameSeparator": {
 					"type": "str",
@@ -1322,7 +1539,9 @@
 					"flag": "--readNameSeparator",
 					"env": null,
 					"label": "readNameSeparator",
-					"default": "/"
+					"default": "/",
+					"input_file": null,
+					"output_file": null
 				},
 				"runRNGseed": {
 					"type": "int",
@@ -1330,7 +1549,9 @@
 					"flag": "--runRNGseed",
 					"env": null,
 					"label": "runRNGseed",
-					"default": 777
+					"default": 777,
+					"input_file": null,
+					"output_file": null
 				},
 				"runThreadN": {
 					"type": "int",
@@ -1338,7 +1559,9 @@
 					"flag": "--runThreadN",
 					"env": null,
 					"label": "Number of threads",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreDelBase": {
 					"type": "int",
@@ -1346,7 +1569,9 @@
 					"flag": "--scoreDelBase",
 					"env": null,
 					"label": "scoreDelBase",
-					"default": -2
+					"default": -2,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreDelOpen": {
 					"type": "int",
@@ -1354,7 +1579,9 @@
 					"flag": "--scoreDelOpen",
 					"env": null,
 					"label": "scoreDelOpen",
-					"default": -2
+					"default": -2,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreGap": {
 					"type": "int",
@@ -1362,7 +1589,9 @@
 					"flag": "--scoreGap",
 					"env": null,
 					"label": "scoreGap",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreGapATAC": {
 					"type": "int",
@@ -1370,7 +1599,9 @@
 					"flag": "--scoreGapATAC",
 					"env": null,
 					"label": "scoreGapATAC",
-					"default": -8
+					"default": -8,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreGapGCAG": {
 					"type": "int",
@@ -1378,7 +1609,9 @@
 					"flag": "--scoreGapGCAG",
 					"env": null,
 					"label": "scoreGapGCAG",
-					"default": -4
+					"default": -4,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreGapNoncan": {
 					"type": "int",
@@ -1386,7 +1619,9 @@
 					"flag": "--scoreGapNoncan",
 					"env": null,
 					"label": "scoreGapNoncan",
-					"default": -8
+					"default": -8,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreGenomicLengthLog2scale": {
 					"type": "double",
@@ -1394,7 +1629,9 @@
 					"flag": "--scoreGenomicLengthLog2scale",
 					"env": null,
 					"label": "scoreGenomicLengthLog2scale",
-					"default": -0.25
+					"default": -0.25,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreInsBase": {
 					"type": "int",
@@ -1402,7 +1639,9 @@
 					"flag": "--scoreInsBase",
 					"env": null,
 					"label": "scoreInsBase",
-					"default": -2
+					"default": -2,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreInsOpen": {
 					"type": "int",
@@ -1410,7 +1649,9 @@
 					"flag": "--scoreInsOpen",
 					"env": null,
 					"label": "scoreInsOpen",
-					"default": -2
+					"default": -2,
+					"input_file": null,
+					"output_file": null
 				},
 				"scoreStitchSJshift": {
 					"type": "int",
@@ -1418,7 +1659,9 @@
 					"flag": "--scoreStitchSJshift",
 					"env": null,
 					"label": "scoreStitchSJshift",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedMultimapNmax": {
 					"type": "int",
@@ -1426,7 +1669,9 @@
 					"flag": "--seedMultimapNmax",
 					"env": null,
 					"label": "seedMultimapNmax",
-					"default": 10000
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedNoneLociPerWindow": {
 					"type": "int",
@@ -1434,7 +1679,9 @@
 					"flag": "--seedNoneLociPerWindow",
 					"env": null,
 					"label": "seedNoneLociPerWindow",
-					"default": 10
+					"default": 10,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedPerReadNmax": {
 					"type": "int",
@@ -1442,7 +1689,9 @@
 					"flag": "--seedPerReadNmax",
 					"env": null,
 					"label": "seedPerReadNmax",
-					"default": 1000
+					"default": 1000,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedPerWindowNmax": {
 					"type": "int",
@@ -1450,7 +1699,9 @@
 					"flag": "--seedPerWindowNmax",
 					"env": null,
 					"label": "seedPerWindowNmax",
-					"default": 50
+					"default": 50,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedSearchLmax": {
 					"type": "int",
@@ -1458,7 +1709,9 @@
 					"flag": "--seedSearchLmax",
 					"env": null,
 					"label": "seedSearchLmax",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedSearchStartLmax": {
 					"type": "int",
@@ -1466,7 +1719,9 @@
 					"flag": "--seedSearchStartLmax",
 					"env": null,
 					"label": "seedSearchStartLmax",
-					"default": 50
+					"default": 50,
+					"input_file": null,
+					"output_file": null
 				},
 				"seedSearchStartLmaxOverLread": {
 					"type": "double",
@@ -1474,7 +1729,9 @@
 					"flag": "--seedSearchStartLmaxOverLread",
 					"env": null,
 					"label": "seedSearchStartLmaxOverLread",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"spelist": {
 					"type": "bool",
@@ -1482,7 +1739,9 @@
 					"flag": null,
 					"env": "SPELIST",
 					"label": "Sequential paired-end files (a_R1 b_R1... a_R2 b_R2...)",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"starversion": {
 					"type": "str",
@@ -1490,7 +1749,9 @@
 					"flag": null,
 					"env": "VERSION",
 					"label": "Star version",
-					"default": "2.7.11a"
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
 				},
 				"sysShell": {
 					"type": "str",
@@ -1498,7 +1759,9 @@
 					"flag": "--sysShell",
 					"env": null,
 					"label": "System shell",
-					"default": "/bin/sh"
+					"default": "/bin/sh",
+					"input_file": null,
+					"output_file": null
 				},
 				"twopass1readsN": {
 					"type": "int",
@@ -1506,7 +1769,9 @@
 					"flag": "--twopass1readsN ",
 					"env": null,
 					"label": "twopass1readsN ",
-					"default": -1
+					"default": -1,
+					"input_file": null,
+					"output_file": null
 				},
 				"twopassMode": {
 					"type": "str",
@@ -1514,7 +1779,9 @@
 					"flag": "--twopassMode",
 					"env": null,
 					"label": "twopassMode",
-					"default": ""
+					"default": "",
+					"input_file": null,
+					"output_file": null
 				},
 				"winAnchorDistNbins": {
 					"type": "int",
@@ -1522,7 +1789,9 @@
 					"flag": "--winAnchorDistNbins",
 					"env": null,
 					"label": "winAnchorDistNbins",
-					"default": 9
+					"default": 9,
+					"input_file": null,
+					"output_file": null
 				},
 				"winAnchorMultimapNmax": {
 					"type": "int",
@@ -1530,7 +1799,9 @@
 					"flag": "--winAnchorMultimapNmax",
 					"env": null,
 					"label": "winAnchorMultimapNmax",
-					"default": 50
+					"default": 50,
+					"input_file": null,
+					"output_file": null
 				},
 				"winBinNbits": {
 					"type": "int",
@@ -1538,7 +1809,9 @@
 					"flag": "--winBinNbits",
 					"env": null,
 					"label": "winBinNbits",
-					"default": 16
+					"default": 16,
+					"input_file": null,
+					"output_file": null
 				},
 				"winFlankNbins": {
 					"type": "int",
@@ -1546,7 +1819,9 @@
 					"flag": "--winFlankNbins",
 					"env": null,
 					"label": "winFlankNbins",
-					"default": 4
+					"default": 4,
+					"input_file": null,
+					"output_file": null
 				},
 				"winReadCoverageBasesMin": {
 					"type": "int",
@@ -1554,7 +1829,9 @@
 					"flag": "--winReadCoverageBasesMin",
 					"env": null,
 					"label": "winReadCoverageBasesMin",
-					"default": 0
+					"default": 0,
+					"input_file": null,
+					"output_file": null
 				},
 				"winReadCoverageRelativeMin": {
 					"type": "double",
@@ -1562,137 +1839,10 @@
 					"flag": "--winReadCoverageRelativeMin",
 					"env": null,
 					"label": "winReadCoverageRelativeMin",
-					"default": 0.5
+					"default": 0.5,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"alignEndsProtrude": [
-					"0",
-					"ConcordantPair"
-				],
-				"alignEndsType": "Local",
-				"alignIntronMax": 0,
-				"alignIntronMin": 21,
-				"alignMatesGapMax": 0,
-				"alignSJDBoverhangMin": 1,
-				"alignSJoverhangMin": 5,
-				"alignSJstitchMismatchNmax": 0,
-				"alignSoftClipAtReferenceEnds": "Yes",
-				"alignSplicedMateMapLmin": 0,
-				"alignSplicedMateMapLminOverLmate": 0.66,
-				"alignTranscriptsPerReadNmax": 10000,
-				"alignTranscriptsPerWindowNmax": 100,
-				"alignWindowsPerReadNmax": 10000,
-				"apelist": true,
-				"bamRemoveDuplicatesMate2basesN": 0,
-				"bamRemoveDuplicatesType": "",
-				"chimFilter": "banGenomicN",
-				"chimJunctionOverhangMin": 20,
-				"chimOutType": "SeparateSAMold",
-				"chimScoreDropMax": 20,
-				"chimScoreJunctionNonGTAG": -1,
-				"chimScoreMin": 0,
-				"chimScoreSeparation": 10,
-				"chimSegmentMin": 0,
-				"chimSegmentReadGapMax": 0,
-				"clip3pAdapterMMp": [
-					"0.1"
-				],
-				"clip3pAdapterSeq": [],
-				"clip3pAfterAdapterNbases": [
-					"0"
-				],
-				"clip3pNbases": [
-					"0"
-				],
-				"clip5pNbases": [
-					"0"
-				],
-				"genomeDir": "",
-				"genomeLoad": "NoSharedMemory",
-				"limitIObufferSize": 150000000,
-				"limitOutSAMoneReadBytes": 100000,
-				"multipleSample": true,
-				"outBAMcompression": 1,
-				"outBAMsortingThreadN": 0,
-				"outFilterIntronMotifs": "",
-				"outFilterMatchNmin": 0,
-				"outFilterMatchNminOverLread": 0.66,
-				"outFilterMismatchNmax": 2,
-				"outFilterMismatchNoverLmax": 0.3,
-				"outFilterMismatchNoverReadLmax": 1,
-				"outFilterMultimapNmax": 20,
-				"outFilterMultimapScoreRange": 1,
-				"outFilterScoreMin": 0,
-				"outFilterScoreMinOverLread": 0.66,
-				"outFilterType": "Normal",
-				"outMultimapperOrder": "Old_2.4",
-				"outReadsUnmapped": "",
-				"outSAMattrIHstart": 1,
-				"outSAMattrRGline": "",
-				"outSAMattributes": "NH HI AS NM MD",
-				"outSAMfilter": "",
-				"outSAMflagAND": 65535,
-				"outSAMflagOR": 0,
-				"outSAMheaderCommentFile": "",
-				"outSAMheaderHD": "",
-				"outSAMheaderPG": "",
-				"outSAMmapqUnique": 255,
-				"outSAMmode": "Full",
-				"outSAMmultNmax": -1,
-				"outSAMorder": "Paired",
-				"outSAMprimaryFlag": "OneBestScore",
-				"outSAMreadID": "Standard",
-				"outSAMstrandField": "",
-				"outSAMtype": "BAM Unsorted",
-				"outSAMunmapped": "",
-				"outStd": "Log",
-				"outTmpDir": "",
-				"outWigNorm": "RPM",
-				"outWigReferencesPrefix": "",
-				"outWigStrand": "Stranded",
-				"outWigType": "",
-				"outputDir": "",
-				"outputFilePrefix": "",
-				"parametersFiles": "",
-				"quantMode": "TranscriptomeSAM GeneCounts",
-				"quantTranscriptomeBAMcompression": 1,
-				"quantTranscriptomeBan": "Singleend",
-				"readFilesCommand": "zcat ",
-				"readFilesIn": null,
-				"readMapNumber": -1,
-				"readMatesLengthsIn": "NotEqual",
-				"readNameSeparator": "/",
-				"runRNGseed": 777,
-				"runThreadN": 16,
-				"scoreDelBase": -2,
-				"scoreDelOpen": -2,
-				"scoreGap": 0,
-				"scoreGapATAC": -8,
-				"scoreGapGCAG": -4,
-				"scoreGapNoncan": -8,
-				"scoreGenomicLengthLog2scale": -0.25,
-				"scoreInsBase": -2,
-				"scoreInsOpen": -2,
-				"scoreStitchSJshift": 1,
-				"seedMultimapNmax": 10000,
-				"seedNoneLociPerWindow": 10,
-				"seedPerReadNmax": 1000,
-				"seedPerWindowNmax": 50,
-				"seedSearchLmax": 0,
-				"seedSearchStartLmax": 50,
-				"seedSearchStartLmaxOverLread": 1,
-				"spelist": false,
-				"starversion": "",
-				"sysShell": "/bin/sh",
-				"twopass1readsN": -1,
-				"twopassMode": "Basic",
-				"winAnchorDistNbins": 9,
-				"winAnchorMultimapNmax": 50,
-				"winBinNbits": 16,
-				"winFlankNbins": 4,
-				"winReadCoverageBasesMin": 0,
-				"winReadCoverageRelativeMin": 0.5
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -1823,7 +1973,8 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"alignEndsProtrude": 1,
 				"clip3pAdapterMMp": 1,
 				"clip3pAdapterSeq": 1,
@@ -1831,7 +1982,8 @@
 				"clip3pNbases": 1,
 				"clip5pNbases": 1,
 				"readFilesIn": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"3": {
 			"Id": 3,
@@ -1850,7 +2002,9 @@
 					"flag": null,
 					"env": "genomefile",
 					"label": "Genome file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"gtffile": {
 					"type": "file",
@@ -1858,7 +2012,9 @@
 					"flag": null,
 					"env": null,
 					"label": "GTF file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outputfile": {
 					"type": "file",
@@ -1866,7 +2022,9 @@
 					"flag": "-w ",
 					"env": "outputfile",
 					"label": "Transcriptome file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"overwritefiles": {
 					"type": "bool",
@@ -1874,14 +2032,10 @@
 					"flag": null,
 					"env": "overwrite",
 					"label": "Overwite files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"genomefile": "",
-				"gtffile": "",
-				"outputfile": "",
-				"overwritefiles": false
 			},
 			"ArgOrder": [
 				"gtffile"
@@ -1903,7 +2057,9 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {}
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
 		},
 		"4": {
 			"Id": 4,
@@ -1920,7 +2076,9 @@
 					"flag": null,
 					"env": "aligneddir",
 					"label": "Aligned directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"alignedfiles": {
 					"type": "patternQuery",
@@ -1928,7 +2086,9 @@
 					"flag": null,
 					"env": null,
 					"label": "Aligned files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"annotation_file": {
 					"type": "file",
@@ -1936,7 +2096,9 @@
 					"flag": null,
 					"env": "annotation_file",
 					"label": "Annotation file (gtf)",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"awscredentialsdir": {
 					"type": "directory",
@@ -1944,7 +2106,9 @@
 					"flag": null,
 					"env": null,
 					"label": "AWS credentials directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"bypass_star_index": {
 					"type": "bool",
@@ -1952,7 +2116,9 @@
 					"flag": null,
 					"env": "BYPASSSTARINDEX",
 					"label": "Bypass STAR generate index",
-					"default": true
+					"default": true,
+					"input_file": null,
+					"output_file": null
 				},
 				"download_dir": {
 					"type": "directory",
@@ -1960,7 +2126,9 @@
 					"flag": null,
 					"env": "download_dir",
 					"label": "Download directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"downloadindexlink": {
 					"type": "bool",
@@ -1968,7 +2136,9 @@
 					"flag": null,
 					"env": "DOWNLOADINDEXLINK",
 					"label": "Download index link",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"fastqfiles": {
 					"type": "file list",
@@ -1976,7 +2146,9 @@
 					"flag": null,
 					"env": "fastqfiles",
 					"label": "Fastq files (R1/R2)",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"genome_dir": {
 					"type": "directory",
@@ -1984,7 +2156,9 @@
 					"flag": null,
 					"env": "genome_dir",
 					"label": "Genome directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"genome_file": {
 					"type": "file",
@@ -1992,7 +2166,9 @@
 					"flag": null,
 					"env": "genome_file",
 					"label": "Genome reference file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"genomegtfURLs": {
 					"type": "text list",
@@ -2000,7 +2176,9 @@
 					"flag": null,
 					"env": "genomegtfURLs",
 					"label": "Download URLs for genome and gtf",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"raw_annotation_file": {
 					"type": "file",
@@ -2008,7 +2186,9 @@
 					"flag": null,
 					"env": "raw_annotation_file",
 					"label": "Raw annotation file (gtf)",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"raw_genome_file": {
 					"type": "file",
@@ -2016,7 +2196,9 @@
 					"flag": null,
 					"env": "raw_genome_file",
 					"label": "Raw genome file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"s3bucket": {
 					"type": "str",
@@ -2024,7 +2206,9 @@
 					"flag": null,
 					"env": null,
 					"label": "s3 bucket",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"s3destdirectory": {
 					"type": "str",
@@ -2032,7 +2216,9 @@
 					"flag": null,
 					"env": null,
 					"label": "S3 destination directory ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"s3downloaddir": {
 					"type": "directory",
@@ -2040,7 +2226,9 @@
 					"flag": null,
 					"env": "s3downloaddir",
 					"label": "Directory to store s3 downloads",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"s3sourcedirectory": {
 					"type": "str",
@@ -2048,7 +2236,9 @@
 					"flag": null,
 					"env": null,
 					"label": "S3 source directory ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"starversion": {
 					"type": "str",
@@ -2056,7 +2246,9 @@
 					"flag": null,
 					"env": "starversion",
 					"label": "STAR version",
-					"default": "2.7.11a"
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
 				},
 				"transcriptomefile": {
 					"type": "file",
@@ -2064,7 +2256,9 @@
 					"flag": null,
 					"env": "transcriptomefile",
 					"label": "Transcriptome file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"trimmeddir": {
 					"type": "directory",
@@ -2072,7 +2266,9 @@
 					"flag": null,
 					"env": "trimmeddir",
 					"label": "Trimmed fastq directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"trimmedfastqfiles": {
 					"type": "file list",
@@ -2080,7 +2276,9 @@
 					"flag": null,
 					"env": null,
 					"label": null,
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"work_dir": {
 					"type": "directory",
@@ -2088,50 +2286,10 @@
 					"flag": null,
 					"env": "work_dir",
 					"label": "Work directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"aligneddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/alignedfiles",
-				"alignedfiles": {
-					"findDir": false,
-					"findFile": true,
-					"pattern": "**/*ome.out.bam",
-					"root": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/alignedfiles",
-					"value": null
-				},
-				"annotation_file": "/data/processing/genome/genome.gtf",
-				"awscredentialsdir": "/data/.aws",
-				"bypass_star_index": false,
-				"download_dir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/downloads",
-				"downloadindexlink": false,
-				"fastqfiles": [
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz",
-					"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz"
-				],
-				"genome_dir": "/data/processing/genome",
-				"genome_file": "/data/processing/genome/genome.fa",
-				"genomegtfURLs": [
-					"https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
-					"https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz"
-				],
-				"raw_annotation_file": "/data/processing/downloads/gencode.v44.primary_assembly.annotation.gtf",
-				"raw_genome_file": "/data/processing/downloads/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
-				"s3bucket": "morphic-bio-processing",
-				"s3destdirectory": "processed/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
-				"s3downloaddir": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
-				"s3sourcedirectory": "morphic-jax/JAX_RNAseq_ExtraEmbryonic",
-				"starversion": "2.7.11a",
-				"transcriptomefile": "/data/processing/genome/transcriptome.fa",
-				"trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/trimmed",
-				"trimmedfastqfiles": null,
-				"work_dir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic"
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -2168,12 +2326,14 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"alignedfiles": 1,
 				"fastqfiles": 1,
 				"genomegtfURLs": 1,
 				"trimmedfastqfiles": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"5": {
 			"Id": 5,
@@ -2190,7 +2350,9 @@
 					"flag": null,
 					"env": "INPUTFA",
 					"label": "Input fa file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"inputgtf": {
 					"type": "file",
@@ -2198,7 +2360,9 @@
 					"flag": null,
 					"env": "INPUTGTF",
 					"label": "Input GTF file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outputfa": {
 					"type": "file",
@@ -2206,7 +2370,9 @@
 					"flag": null,
 					"env": "OUTPUTFA",
 					"label": "Output fa file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"outputgtf": {
 					"type": "file",
@@ -2214,7 +2380,9 @@
 					"flag": null,
 					"env": "OUTPUTGTF",
 					"label": "Output GTF file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"overwritefiles": {
 					"type": "bool",
@@ -2222,15 +2390,10 @@
 					"flag": null,
 					"env": "overwrite",
 					"label": "Overwrite existing files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"inputfa": "",
-				"inputgtf": "",
-				"outputfa": "",
-				"outputgtf": "",
-				"overwritefiles": false
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -2250,7 +2413,9 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {}
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
 		},
 		"6": {
 			"Id": 6,
@@ -2267,7 +2432,9 @@
 					"flag": null,
 					"env": "inputfile",
 					"label": "Alignment files ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"gtffile": {
 					"type": "file",
@@ -2275,7 +2442,9 @@
 					"flag": "-g ",
 					"env": null,
 					"label": "gtf file",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"libtype": {
 					"type": "str",
@@ -2283,7 +2452,9 @@
 					"flag": "-l ",
 					"env": null,
 					"label": "Libtype ",
-					"default": "A "
+					"default": "A ",
+					"input_file": null,
+					"output_file": null
 				},
 				"outputdir": {
 					"type": "directory",
@@ -2291,7 +2462,9 @@
 					"flag": null,
 					"env": "prefix",
 					"label": "Output directory",
-					"default": "salmon-quant"
+					"default": "salmon-quant",
+					"input_file": null,
+					"output_file": null
 				},
 				"transcriptome": {
 					"type": "file",
@@ -2299,21 +2472,10 @@
 					"flag": "-t ",
 					"env": null,
 					"label": "Transcriptome",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"alignmentfiles": {
-					"findDir": false,
-					"findFile": true,
-					"pattern": "",
-					"root": "",
-					"value": null
-				},
-				"gtffile": "",
-				"libtype": "A ",
-				"outputdir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/Counts",
-				"transcriptome": ""
 			},
 			"ArgOrder": [],
 			"OptionsChecked": {
@@ -2333,9 +2495,13 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": true,
+			"IterGroupSize": {
 				"alignmentfiles": 1
-			}
+			},
+			"IterAttrs": [
+				"alignmentfiles"
+			]
 		},
 		"7": {
 			"Id": 7,
@@ -2352,7 +2518,9 @@
 					"flag": "--basename",
 					"env": null,
 					"label": "basenames",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"fastqc": {
 					"type": "bool",
@@ -2360,7 +2528,9 @@
 					"flag": "--fastqc ",
 					"env": null,
 					"label": "fastqc ",
-					"default": true
+					"default": true,
+					"input_file": null,
+					"output_file": null
 				},
 				"gzipped": {
 					"type": "bool",
@@ -2368,7 +2538,9 @@
 					"flag": "--gzip ",
 					"env": null,
 					"label": "gzip  ",
-					"default": true
+					"default": true,
+					"input_file": null,
+					"output_file": null
 				},
 				"inputFiles": {
 					"type": "file list",
@@ -2376,7 +2548,9 @@
 					"flag": null,
 					"env": null,
 					"label": "Fastq files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"ncores": {
 					"type": "int",
@@ -2384,7 +2558,9 @@
 					"flag": "--cores ",
 					"env": null,
 					"label": "Cores ",
-					"default": 1
+					"default": 1,
+					"input_file": null,
+					"output_file": null
 				},
 				"outputDir": {
 					"type": "directory",
@@ -2392,7 +2568,9 @@
 					"flag": "-o",
 					"env": null,
 					"label": "Output directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"paired": {
 					"type": "bool",
@@ -2400,17 +2578,10 @@
 					"flag": "--paired ",
 					"env": null,
 					"label": "Paired ",
-					"default": false
+					"default": false,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"basenames": [],
-				"fastqc": true,
-				"gzipped": true,
-				"inputFiles": null,
-				"ncores": 4,
-				"outputDir": "",
-				"paired": true
 			},
 			"ArgOrder": [
 				"inputFiles"
@@ -2434,10 +2605,14 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": true,
+			"IterGroupSize": {
 				"basenames": 1,
 				"inputFiles": 1
-			}
+			},
+			"IterAttrs": [
+				"inputFiles"
+			]
 		},
 		"8": {
 			"Id": 8,
@@ -2454,7 +2629,9 @@
 					"flag": null,
 					"env": null,
 					"label": "AWS directory",
-					"default": "/data/.aws"
+					"default": "/data/.aws",
+					"input_file": null,
+					"output_file": null
 				},
 				"bucket": {
 					"type": "str",
@@ -2462,7 +2639,9 @@
 					"flag": null,
 					"env": null,
 					"label": "S3 bucket",
-					"default": "myBucket"
+					"default": "myBucket",
+					"input_file": null,
+					"output_file": null
 				},
 				"dirs": {
 					"type": "text list",
@@ -2470,7 +2649,9 @@
 					"flag": null,
 					"env": "DIRS",
 					"label": "S3 objects to download",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"downloadDir": {
 					"type": "directory",
@@ -2478,7 +2659,9 @@
 					"flag": null,
 					"env": null,
 					"label": "Directory to download to",
-					"default": "/data"
+					"default": "/data",
+					"input_file": null,
+					"output_file": null
 				},
 				"key": {
 					"type": "str",
@@ -2486,7 +2669,9 @@
 					"flag": null,
 					"env": "AWS_ACCESS_KEY_ID",
 					"label": "AWS Access key",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"nthreads": {
 					"type": "int",
@@ -2494,7 +2679,9 @@
 					"flag": null,
 					"env": "nThreads",
 					"label": "Number of Threads",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"overwrite": {
 					"type": "bool",
@@ -2502,7 +2689,9 @@
 					"flag": null,
 					"env": "overwrite",
 					"label": "Overwrite existing files",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"profile": {
 					"type": "str",
@@ -2510,7 +2699,9 @@
 					"flag": "--profile ",
 					"env": null,
 					"label": "Profile ",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"region": {
 					"type": "str",
@@ -2518,7 +2709,9 @@
 					"flag": null,
 					"env": "AWS_DEFAULT_REGION",
 					"label": "Region",
-					"default": "us-east-2"
+					"default": "us-east-2",
+					"input_file": null,
+					"output_file": null
 				},
 				"secret": {
 					"type": "str",
@@ -2526,25 +2719,15 @@
 					"flag": null,
 					"env": "AWS_SECRET_ACCESS_KEY",
 					"label": "AWS Secret",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
 			},
-			"Props": {
-				"awsdir": "",
-				"bucket": "",
-				"dirs": null,
-				"downloadDir": "",
-				"key": "",
-				"nthreads": 0,
-				"overwrite": false,
-				"profile": "",
-				"region": "us-east-2",
-				"secret": ""
-			},
 			"ArgOrder": [
-				"awsdir",
 				"bucket",
-				"downloadDir"
+				"downloadDir",
+				"awsdir"
 			],
 			"OptionsChecked": {
 				"key": false,
@@ -2567,9 +2750,11 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {
+			"Iterate": false,
+			"IterGroupSize": {
 				"dirs": 1
-			}
+			},
+			"IterAttrs": []
 		},
 		"9": {
 			"Id": 9,
@@ -2586,7 +2771,9 @@
 					"flag": null,
 					"env": null,
 					"label": "Alignments directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"countsDir": {
 					"type": "directory",
@@ -2594,7 +2781,9 @@
 					"flag": null,
 					"env": null,
 					"label": "Counts directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				},
 				"tablesDir": {
 					"type": "directory",
@@ -2602,13 +2791,10 @@
 					"flag": null,
 					"env": "outputDir",
 					"label": "Output directory",
-					"default": null
+					"default": null,
+					"input_file": null,
+					"output_file": null
 				}
-			},
-			"Props": {
-				"alignsDir": "",
-				"countsDir": "",
-				"tablesDir": ""
 			},
 			"ArgOrder": [
 				"countsDir",
@@ -2628,7 +2814,289 @@
 			},
 			"Async": false,
 			"BarrierFor": null,
-			"IterAttrs": {}
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		}
+	},
+	"NodeBaseProps": {
+		"0": {
+			"URL": null,
+			"concatenateFile": "",
+			"decompress": true,
+			"directory": "",
+			"noClobberFiles": false
+		},
+		"1": {
+			"genomeChrBinNbits": "18",
+			"genomeDir": "",
+			"genomeFastaFile": "",
+			"genomeSAindexNbases": 14,
+			"genomeSAsparseD": 1,
+			"genomeSuffixLengthMax": -1,
+			"overwrite": false,
+			"rmode": "genomeGenerate",
+			"runThreadN": 16,
+			"sjdbFileChrStartEnd": [],
+			"sjdbGTFchrPrefix": "chr",
+			"sjdbGTFfeatureExon": "exon",
+			"sjdbGTFfile": "",
+			"sjdbGTFtagExonParentGene": "gene_id",
+			"sjdbGTFtagExonParentTranscript": "transcript_id",
+			"sjdbInsertSave": "Basic",
+			"sjdbOverhang": 100,
+			"sjdbScore": 2,
+			"starversion": ""
+		},
+		"10": {
+			"fastqfiles": null,
+			"inputdir": "",
+			"pattern": "*.fq.gz"
+		},
+		"11": {
+			"fastqfiles": null,
+			"inputdir": "",
+			"pattern": "*.fastq"
+		},
+		"12": {
+			"bucket": "",
+			"credentials_dir": "",
+			"key": "",
+			"nthreads": 0,
+			"profile": "",
+			"region": "us-east-2",
+			"s3Dir": "",
+			"secret": "",
+			"uploadDir": ""
+		},
+		"13": {
+			"aligneddir": "/data/startest/alignedfiles",
+			"outputDir": "/data/filtered",
+			"overwritefiles": true,
+			"sequenceDir": "/data/shortseqs"
+		},
+		"2": {
+			"alignEndsProtrude": [
+				"0",
+				"ConcordantPair"
+			],
+			"alignEndsType": "Local",
+			"alignIntronMax": 0,
+			"alignIntronMin": 21,
+			"alignMatesGapMax": 0,
+			"alignSJDBoverhangMin": 1,
+			"alignSJoverhangMin": 5,
+			"alignSJstitchMismatchNmax": 0,
+			"alignSoftClipAtReferenceEnds": "Yes",
+			"alignSplicedMateMapLmin": 0,
+			"alignSplicedMateMapLminOverLmate": 0.66,
+			"alignTranscriptsPerReadNmax": 10000,
+			"alignTranscriptsPerWindowNmax": 100,
+			"alignWindowsPerReadNmax": 10000,
+			"apelist": true,
+			"bamRemoveDuplicatesMate2basesN": 0,
+			"bamRemoveDuplicatesType": "",
+			"chimFilter": "banGenomicN",
+			"chimJunctionOverhangMin": 20,
+			"chimOutType": "SeparateSAMold",
+			"chimScoreDropMax": 20,
+			"chimScoreJunctionNonGTAG": -1,
+			"chimScoreMin": 0,
+			"chimScoreSeparation": 10,
+			"chimSegmentMin": 0,
+			"chimSegmentReadGapMax": 0,
+			"clip3pAdapterMMp": [
+				"0.1"
+			],
+			"clip3pAdapterSeq": [],
+			"clip3pAfterAdapterNbases": [
+				"0"
+			],
+			"clip3pNbases": [
+				"0"
+			],
+			"clip5pNbases": [
+				"0"
+			],
+			"genomeDir": "",
+			"genomeLoad": "NoSharedMemory",
+			"limitIObufferSize": 150000000,
+			"limitOutSAMoneReadBytes": 100000,
+			"multipleSample": true,
+			"outBAMcompression": 1,
+			"outBAMsortingThreadN": 0,
+			"outFilterIntronMotifs": "",
+			"outFilterMatchNmin": 0,
+			"outFilterMatchNminOverLread": 0.66,
+			"outFilterMismatchNmax": 2,
+			"outFilterMismatchNoverLmax": 0.3,
+			"outFilterMismatchNoverReadLmax": 1,
+			"outFilterMultimapNmax": 20,
+			"outFilterMultimapScoreRange": 1,
+			"outFilterScoreMin": 0,
+			"outFilterScoreMinOverLread": 0.66,
+			"outFilterType": "Normal",
+			"outMultimapperOrder": "Old_2.4",
+			"outReadsUnmapped": "",
+			"outSAMattrIHstart": 1,
+			"outSAMattrRGline": "",
+			"outSAMattributes": "NH HI AS NM MD",
+			"outSAMfilter": "",
+			"outSAMflagAND": 65535,
+			"outSAMflagOR": 0,
+			"outSAMheaderCommentFile": "",
+			"outSAMheaderHD": "",
+			"outSAMheaderPG": "",
+			"outSAMmapqUnique": 255,
+			"outSAMmode": "Full",
+			"outSAMmultNmax": -1,
+			"outSAMorder": "Paired",
+			"outSAMprimaryFlag": "OneBestScore",
+			"outSAMreadID": "Standard",
+			"outSAMstrandField": "",
+			"outSAMtype": "BAM Unsorted",
+			"outSAMunmapped": "",
+			"outStd": "Log",
+			"outTmpDir": "",
+			"outWigNorm": "RPM",
+			"outWigReferencesPrefix": "",
+			"outWigStrand": "Stranded",
+			"outWigType": "",
+			"outputDir": "",
+			"outputFilePrefix": "",
+			"parametersFiles": "",
+			"quantMode": "TranscriptomeSAM GeneCounts",
+			"quantTranscriptomeBAMcompression": 1,
+			"quantTranscriptomeBan": "Singleend",
+			"readFilesCommand": "zcat ",
+			"readFilesIn": null,
+			"readMapNumber": -1,
+			"readMatesLengthsIn": "NotEqual",
+			"readNameSeparator": "/",
+			"runRNGseed": 777,
+			"runThreadN": 16,
+			"scoreDelBase": -2,
+			"scoreDelOpen": -2,
+			"scoreGap": 0,
+			"scoreGapATAC": -8,
+			"scoreGapGCAG": -4,
+			"scoreGapNoncan": -8,
+			"scoreGenomicLengthLog2scale": -0.25,
+			"scoreInsBase": -2,
+			"scoreInsOpen": -2,
+			"scoreStitchSJshift": 1,
+			"seedMultimapNmax": 10000,
+			"seedNoneLociPerWindow": 10,
+			"seedPerReadNmax": 1000,
+			"seedPerWindowNmax": 50,
+			"seedSearchLmax": 0,
+			"seedSearchStartLmax": 50,
+			"seedSearchStartLmaxOverLread": 1,
+			"spelist": false,
+			"starversion": "",
+			"sysShell": "/bin/sh",
+			"twopass1readsN": -1,
+			"twopassMode": "Basic",
+			"winAnchorDistNbins": 9,
+			"winAnchorMultimapNmax": 50,
+			"winBinNbits": 16,
+			"winFlankNbins": 4,
+			"winReadCoverageBasesMin": 0,
+			"winReadCoverageRelativeMin": 0.5
+		},
+		"3": {
+			"genomefile": "",
+			"gtffile": "",
+			"outputfile": "",
+			"overwritefiles": false
+		},
+		"4": {
+			"aligneddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/alignedfiles",
+			"alignedfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*ome.out.bam",
+				"root": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/alignedfiles",
+				"value": null
+			},
+			"annotation_file": "/data/processing/genome/genome.gtf",
+			"awscredentialsdir": "/data/.aws",
+			"bypass_star_index": false,
+			"download_dir": "/data/processing/downloads",
+			"downloadindexlink": false,
+			"fastqfiles": [
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz",
+				"/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz"
+			],
+			"genome_dir": "/data/processing/genome",
+			"genome_file": "/data/processing/genome/genome.fa",
+			"genomegtfURLs": [
+				"https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+				"https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz"
+			],
+			"raw_annotation_file": "/data/processing/downloads/gencode.v44.primary_assembly.annotation.gtf",
+			"raw_genome_file": "/data/processing/downloads/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+			"s3bucket": "morphic-bio-processing",
+			"s3destdirectory": "processed/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
+			"s3downloaddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
+			"s3sourcedirectory": "morphic-jax/JAX_RNAseq_ExtraEmbryonic",
+			"starversion": "2.7.11a",
+			"transcriptomefile": "/data/processing/genome/transcriptome.fa",
+			"trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/trimmed",
+			"trimmedfastqfiles": null,
+			"work_dir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic"
+		},
+		"5": {
+			"inputfa": "",
+			"inputgtf": "",
+			"outputfa": "",
+			"outputgtf": "",
+			"overwritefiles": false
+		},
+		"6": {
+			"alignmentfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "",
+				"root": "",
+				"value": null
+			},
+			"gtffile": "",
+			"libtype": "A ",
+			"outputdir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/Counts",
+			"transcriptome": ""
+		},
+		"7": {
+			"basenames": [],
+			"fastqc": true,
+			"gzipped": true,
+			"inputFiles": null,
+			"ncores": 4,
+			"outputDir": "",
+			"paired": true
+		},
+		"8": {
+			"awsdir": "",
+			"bucket": "",
+			"dirs": null,
+			"downloadDir": "",
+			"key": "",
+			"nthreads": 0,
+			"overwrite": false,
+			"profile": "",
+			"region": "us-east-2",
+			"secret": ""
+		},
+		"9": {
+			"alignsDir": "",
+			"countsDir": "",
+			"tablesDir": ""
 		}
 	},
 	"Links": [

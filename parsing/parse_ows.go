@@ -70,14 +70,14 @@ type WorkflowLink struct {
 }
 
 type WorkflowArgType struct {
-	ArgType     string      `json:"type"`
-    IsArgument  *bool       `json:"argument"`
-	Flag        *string     `json:"flag"`
-	Env         *string     `json:"env"`
-	Label       *string     `json:"label"`
-	DefaultVal  interface{} `json:"default"`
-	InputFile   *bool       `json:"input_file"`
-	OutputFile  *bool       `json:"output_file"`
+	ArgType    string      `json:"type"`
+	IsArgument *bool       `json:"argument"`
+	Flag       *string     `json:"flag"`
+	Env        *string     `json:"env"`
+	Label      *string     `json:"label"`
+	DefaultVal interface{} `json:"default"`
+	InputFile  *bool       `json:"input_file"`
+	OutputFile *bool       `json:"output_file"`
 }
 
 type IterateSetting struct {
@@ -86,21 +86,24 @@ type IterateSetting struct {
 
 type IterateSettings struct {
 	IterableAttrs []string                  `json:"iterableAttrs"`
+	IteratedAttrs []string                  `json:"iteratedAttrs"`
 	Settings      map[string]IterateSetting `json:"data"`
 }
 
 type BwbJsonWorkflowNode struct {
-    Title           string
-	Command         []string
-	ArgTypes        map[string]WorkflowArgType
-    RequiredParams  []string
-	ImageName       string
-	ImageTag        string
+	Title          string
+	Command        []string
+	ArgTypes       map[string]WorkflowArgType
+	RequiredParams []string
+	ImageName      string
+	ImageTag       string
 }
 
 type XmlNodeInfo struct {
 	Props          map[string]interface{}
-	IterAttrs      map[string]int
+	Iterate        bool
+	IterAttrs      []string
+	IterGroupSize  map[string]int
 	OptionsChecked map[string]bool
 }
 
@@ -111,61 +114,64 @@ type ResourceVector struct {
 }
 
 type WorkflowNode struct {
-	Id			   int
-	ImageName      string
-	ImageTag       string
-	Title          string
-	Command        []string
-	ArgTypes       map[string]WorkflowArgType
-	Props          map[string]interface{}
-    ArgOrder       []string
+	Id        int
+	ImageName string
+	ImageTag  string
+	Title     string
+	Command   []string
+	ArgTypes  map[string]WorkflowArgType
+	//BaseProps      map[string]interface{}
+	ArgOrder       []string
 	OptionsChecked map[string]bool
-    RequiredParams []string
+	RequiredParams []string
 	ResourceReqs   ResourceVector
 	Async          bool
 	BarrierFor     *int
 	// Attr name -> group size
-	IterAttrs 		map[string]int
+	Iterate       bool
+	IterGroupSize map[string]int
+	IterAttrs     []string
 }
 
 type Workflow struct {
-	Nodes map[int]WorkflowNode
-	Links []WorkflowLink
+	Nodes         map[int]WorkflowNode
+	NodeBaseProps map[int]map[string]any
+	Links         []WorkflowLink
 }
 
 func copyWorkflowNode(node WorkflowNode) WorkflowNode {
-    nodeCopy := WorkflowNode {
-        Id: node.Id,
-        ImageName: node.ImageName,
-        ImageTag: node.ImageTag,
-        Title: node.Title,
-        ResourceReqs: node.ResourceReqs,
-        Async: node.Async,
-        BarrierFor: node.BarrierFor,
-    }
-    nodeCopy.ArgTypes = copyMapOfScalars(node.ArgTypes)
-    nodeCopy.Props = copyMapOfScalars(node.Props)
-    nodeCopy.OptionsChecked = copyMapOfScalars(node.OptionsChecked)
-    nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
+	nodeCopy := WorkflowNode{
+		Id:           node.Id,
+		ImageName:    node.ImageName,
+		ImageTag:     node.ImageTag,
+		Title:        node.Title,
+		ResourceReqs: node.ResourceReqs,
+		Async:        node.Async,
+		BarrierFor:   node.BarrierFor,
+	}
+	nodeCopy.ArgTypes = copyMapOfScalars(node.ArgTypes)
+	nodeCopy.OptionsChecked = copyMapOfScalars(node.OptionsChecked)
+	nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
 
-    nodeCopy.Command = make([]string, len(node.Command))
-    copy(nodeCopy.Command, node.Command)
-    nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
-    copy(nodeCopy.RequiredParams, node.RequiredParams)
-    nodeCopy.ArgOrder = make([]string, len(node.ArgOrder))
-    copy(nodeCopy.ArgOrder, node.ArgOrder)
+	nodeCopy.Command = make([]string, len(node.Command))
+	copy(nodeCopy.Command, node.Command)
+	nodeCopy.RequiredParams = make([]string, len(node.RequiredParams))
+	copy(nodeCopy.RequiredParams, node.RequiredParams)
+	nodeCopy.ArgOrder = make([]string, len(node.ArgOrder))
+	copy(nodeCopy.ArgOrder, node.ArgOrder)
+	nodeCopy.IterGroupSize = copyMapOfScalars(node.IterGroupSize)
 
-    return nodeCopy
+	return nodeCopy
 }
 
 func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
 	var raw struct {
-        Name            string      `json:"name"`
-		ImageName       string      `json:"docker_image_name"`
-		ImageTag        string      `json:"docker_image_tag"`
-		Command         []string    `json:"command"`
-        RequiredParams  []string    `json:"requiredParameters"`
-		Parameters struct {
+		Name           string   `json:"name"`
+		ImageName      string   `json:"docker_image_name"`
+		ImageTag       string   `json:"docker_image_tag"`
+		Command        []string `json:"command"`
+		RequiredParams []string `json:"requiredParameters"`
+		Parameters     struct {
 			PyReduce []interface{} `json:"py/reduce"`
 		} `json:"parameters"`
 	}
@@ -177,8 +183,8 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
 	node.Command = raw.Command
 	node.ImageName = raw.ImageName
 	node.ImageTag = raw.ImageTag
-    node.RequiredParams = raw.RequiredParams
-    node.Title = raw.Name
+	node.RequiredParams = raw.RequiredParams
+	node.Title = raw.Name
 
 	if len(raw.Parameters.PyReduce) < 5 {
 		return fmt.Errorf("unexpected format: too few elements in py/reduce")
@@ -215,9 +221,9 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
 			return err
 		}
 
-        // Sometimes argType key has a space after it as a consequence
-        // of how BWB UI parses input.
-        trimmedKey := strings.TrimSpace(key)
+		// Sometimes argType key has a space after it as a consequence
+		// of how BWB UI parses input.
+		trimmedKey := strings.TrimSpace(key)
 		node.ArgTypes[trimmedKey] = val
 	}
 
@@ -227,11 +233,11 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
 func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 	var xmlNodeInfo XmlNodeInfo
 
-    _, currentFilename, _, ok := runtime.Caller(0)
-    if ! ok {
-        return xmlNodeInfo, fmt.Errorf("unable to find pickle_to_json.py script")
-    }
-    pythonScriptPath := filepath.Join(filepath.Dir(currentFilename), "pickle_to_json.py")
+	_, currentFilename, _, ok := runtime.Caller(0)
+	if !ok {
+		return xmlNodeInfo, fmt.Errorf("unable to find pickle_to_json.py script")
+	}
+	pythonScriptPath := filepath.Join(filepath.Dir(currentFilename), "pickle_to_json.py")
 
 	cmd := exec.Command("python3", pythonScriptPath, node_props.Format)
 	cmd.Stdin = bytes.NewReader(node_props.RawStr)
@@ -242,7 +248,7 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 
 	var data map[string]interface{}
 	if err := json.Unmarshal(out_json, &data); err != nil {
-		return xmlNodeInfo, fmt.Errorf("Unable to decode JSON %s", out_json)
+		return xmlNodeInfo, fmt.Errorf("unable to decode JSON %s", out_json)
 	}
 
 	// Delete various unnecessary keys. BWB has the annoying habit
@@ -250,7 +256,6 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 	// actual user-input parameters of jobs.
 	delete(data, "__version__")
 	delete(data, "controlAreaVisible")
-	delete(data, "iterate")
 	delete(data, "inputConnectionsStore")
 	delete(data, "useScheduler")
 	delete(data, "runMode")
@@ -259,6 +264,16 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 	delete(data, "nWorkers")
 	delete(data, "triggerReady")
 	delete(data, "runTriggers")
+
+	iterate, ok := data["iterate"].(bool)
+	if !ok {
+		return xmlNodeInfo, fmt.Errorf(
+			"could not convert `iterate` (val %v) to bool: %s",
+			data["iterate"], err,
+		)
+	}
+	xmlNodeInfo.Iterate = iterate
+	delete(data, "iterate")
 
 	iterateSettingsRaw, ok := data["iterateSettings"]
 	if !ok {
@@ -286,11 +301,11 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 		dataMap, _ = dataRaw.(map[string]interface{})
 	}
 
-	xmlNodeInfo.IterAttrs = make(map[string]int)
+	xmlNodeInfo.IterGroupSize = make(map[string]int)
 	for _, attrRaw := range iterableAttrs {
 		attr, ok := attrRaw.(string)
 		if !ok {
-			return xmlNodeInfo, fmt.Errorf("Non-string attribute in `iterableAttrs`")
+			return xmlNodeInfo, fmt.Errorf("non-string attribute in `iterableAttrs`")
 		}
 
 		groupSize := 1
@@ -308,8 +323,26 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 			}
 		}
 
-        trimmedAttr := strings.TrimSpace(attr)
-		xmlNodeInfo.IterAttrs[trimmedAttr] = groupSize
+		trimmedAttr := strings.TrimSpace(attr)
+		xmlNodeInfo.IterGroupSize[trimmedAttr] = groupSize
+	}
+
+    // iterateSettings->iteratedAttrs is optional
+    xmlNodeInfo.IterAttrs = make([]string, 0)
+	iteratedAttrsRaw, iteratedAttrsExist := iterateSettings["iteratedAttrs"]
+	if iteratedAttrsExist {
+	    iteratedAttrs, ok := iteratedAttrsRaw.([]interface{})
+	    if !ok {
+	    	return xmlNodeInfo, fmt.Errorf("`iteratedAttrs` is not a list")
+	    }
+
+        for _, pnameRaw := range iteratedAttrs {
+            pnameStr, ok := pnameRaw.(string)
+            if !ok {
+                return xmlNodeInfo, fmt.Errorf("non-string attribute in `iteratedAttrs`")
+            }
+            xmlNodeInfo.IterAttrs = append(xmlNodeInfo.IterAttrs, pnameStr)
+        }
 	}
 	delete(data, "iterateSettings")
 
@@ -335,7 +368,9 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 	return xmlNodeInfo, nil
 }
 
-func parseWorkflowNode(jsonWorkflowNode BwbJsonWorkflowNode, props OwsRawNodeProps) (WorkflowNode, error) {
+func parseWorkflowNode(
+	jsonWorkflowNode BwbJsonWorkflowNode, props OwsRawNodeProps,
+) (WorkflowNode, map[string]any, error) {
 	nodeId := props.NodeId
 	var workflowNode WorkflowNode
 
@@ -345,44 +380,53 @@ func parseWorkflowNode(jsonWorkflowNode BwbJsonWorkflowNode, props OwsRawNodePro
 	workflowNode.ImageTag = jsonWorkflowNode.ImageTag
 	workflowNode.Command = jsonWorkflowNode.Command
 	workflowNode.ArgTypes = jsonWorkflowNode.ArgTypes
-    workflowNode.RequiredParams = jsonWorkflowNode.RequiredParams
+	workflowNode.RequiredParams = jsonWorkflowNode.RequiredParams
 
-    workflowNode.ArgOrder = make([]string, 0)
-    for arg, argType := range jsonWorkflowNode.ArgTypes {
-        if argType.IsArgument != nil && *argType.IsArgument {
-            workflowNode.ArgOrder = append(workflowNode.ArgOrder, arg)
-        }
-    }
+	workflowNode.ArgOrder = make([]string, 0)
+	for arg, argType := range jsonWorkflowNode.ArgTypes {
+		if argType.IsArgument != nil && *argType.IsArgument {
+			workflowNode.ArgOrder = append(workflowNode.ArgOrder, arg)
+		}
+	}
 
 	parsedXml, err := parseNodeProps(props)
 	if err != nil {
-		return workflowNode, fmt.Errorf("Error parsing node %d XML: %s", nodeId, err)
+		return workflowNode, nil, fmt.Errorf(
+			"error parsing node %d XML: %s", nodeId, err,
+		)
 	}
 
-	workflowNode.Props = parsedXml.Props
-	workflowNode.IterAttrs = parsedXml.IterAttrs
+	baseProps := parsedXml.Props
+	workflowNode.Iterate = parsedXml.Iterate
+    workflowNode.IterAttrs = parsedXml.IterAttrs
+	workflowNode.IterGroupSize = parsedXml.IterGroupSize
 	workflowNode.OptionsChecked = parsedXml.OptionsChecked
 
 	fmt.Printf("WARNING: Adding default resource vals for node %d\n", nodeId)
 
 	var useGpu bool
-	if useGpuRaw, ok := workflowNode.Props["useGpu"]; ok {
+	if useGpuRaw, ok := baseProps["useGpu"]; ok {
 		if bVal, ok := useGpuRaw.(bool); ok {
 			useGpu = bVal
 		} else {
-			return workflowNode, fmt.Errorf("Node %d has non-bool for parameters->useGpu", nodeId)
+			return workflowNode, nil, fmt.Errorf(
+				"node %d has non-bool for parameters->useGpu", nodeId,
+			)
 		}
 	} else {
-		return workflowNode, fmt.Errorf("Node %d has no key parameters->useGpu", nodeId)
+		return workflowNode, nil, fmt.Errorf(
+			"node %d has no key parameters->useGpu", nodeId,
+		)
 	}
-	delete(workflowNode.Props, "useGpu")
+	delete(baseProps, "useGpu")
 
 	workflowNode.ResourceReqs.Cpus = 8
 	workflowNode.ResourceReqs.MemMb = 8000
 	if useGpu {
 		workflowNode.ResourceReqs.Gpus = 1
 	}
-	return workflowNode, nil
+
+	return workflowNode, baseProps, nil
 }
 
 func ParseWorkflow(workflowDir string) (Workflow, error) {
@@ -393,7 +437,7 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
 	owsBasename := fmt.Sprintf("%s.ows", workflowName)
 	owsPath := filepath.Join(workflowDir, owsBasename)
 	if _, err := os.Stat(owsPath); errors.Is(err, os.ErrNotExist) {
-		return workflow, fmt.Errorf("Could not find %s", owsPath)
+		return workflow, fmt.Errorf("could not find %s", owsPath)
 	}
 
 	owsHandle, owsOpenErr := os.Open(owsPath)
@@ -414,6 +458,7 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
 	}
 
 	workflow.Nodes = make(map[int]WorkflowNode)
+	workflow.NodeBaseProps = make(map[int]map[string]any)
 	for _, nodeProps := range ows.NodeProps.NodeProps {
 		nodeId := nodeProps.NodeId
 		nodeName := nodeIdToName[nodeId]
@@ -422,12 +467,12 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
 		nodeJsonPath := path.Join(nodeJsonDir, nodeJsonBasename)
 
 		if _, err := os.Stat(owsPath); errors.Is(err, os.ErrNotExist) {
-			return workflow, fmt.Errorf("Could not find %s", nodeJsonPath)
+			return workflow, fmt.Errorf("could not find %s", nodeJsonPath)
 		}
 
 		jsonFile, err := os.Open(nodeJsonPath)
 		if err != nil {
-			return workflow, fmt.Errorf("Error reading %s: %s", nodeJsonPath, err)
+			return workflow, fmt.Errorf("error reading %s: %s", nodeJsonPath, err)
 		}
 		defer jsonFile.Close()
 
@@ -435,14 +480,15 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
 		jsonDecoder := json.NewDecoder(jsonFile)
 		err = jsonDecoder.Decode(&jsonWorkflowNode)
 		if err != nil {
-			return workflow, fmt.Errorf("Error parsing node %d JSON: %s", nodeProps.NodeId, err)
+			return workflow, fmt.Errorf("error parsing node %d JSON: %s", nodeProps.NodeId, err)
 		}
 
-		parsedNode, err := parseWorkflowNode(jsonWorkflowNode, nodeProps)
+		parsedNode, baseProps, err := parseWorkflowNode(jsonWorkflowNode, nodeProps)
 		if err != nil {
 			panic(err)
 		}
 		workflow.Nodes[nodeId] = parsedNode
+		workflow.NodeBaseProps[nodeId] = baseProps
 	}
 
 	for _, owsLink := range ows.Links.Links {

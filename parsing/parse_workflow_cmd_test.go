@@ -112,12 +112,13 @@ func TestScalarCmdSubBasic(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"scalarParam": "subText",
 	}
+
 	node.Command = []string{"command _bwb{scalarParam}"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
@@ -141,12 +142,12 @@ func TestScalarCmdSubTypeErr(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"scalarParam": nil,
 	}
 	node.Command = []string{"command _bwb{scalarParam}"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
@@ -168,12 +169,12 @@ func TestScalarCmdSubMissingErr(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"scalarParam": nil,
 	}
 	node.Command = []string{"command _bwb{nonExistentParam}"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
@@ -188,96 +189,101 @@ func TestScalarCmdSubMissingErr(t *testing.T) {
 }
 
 func TestScalarInFile(t *testing.T) {
-    var node WorkflowNode
-    lvalForTrue := true
-    node.ArgTypes = map[string]WorkflowArgType{
-        "scalarInParam": {
-            ArgType: "file",
-            InputFile: &lvalForTrue,
-        },
-    }
-    node.Props = map[string]any{
-        "scalarInParam": "/path",
-    }
+	var node WorkflowNode
+	lvalForTrue := true
+	node.ArgTypes = map[string]WorkflowArgType{
+		"scalarInParam": {
+			ArgType:   "file",
+			InputFile: &lvalForTrue,
+		},
+	}
+	baseProps := map[string]any{
+		"scalarInParam": "/path",
+	}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    var template CmdTemplate
-    err = evaluateInOutFiles(node, &template, tp)
-    if err != nil {
-        t.Fatalf("error parsing in files: %s", err)
-    }
+	var template CmdTemplate
+    iterAttrs := getIterAttrs(node)
+	err = evaluateInOutFiles(node, &template, tp, iterAttrs)
+	if err != nil {
+		t.Fatalf("error parsing in files: %s", err)
+	}
 
-    if len(template.InFiles) != 1 {
-        t.Fatalf("got %d infiles, expected 1", len(template.InFiles))
-    }
+	if len(template.InFiles) != 1 {
+		t.Fatalf("got %d infiles, expected 1", len(template.InFiles))
+	}
 
-    expVal := node.Props["scalarInParam"].(string)
-    if template.InFiles[0] != expVal {
-        t.Fatalf(
-            "got incorrect value for input file, got %s, expected %s", 
-            template.InFiles[0], expVal,
-        )
-    }
+	expVal := baseProps["scalarInParam"].(string)
+	if template.InFiles[0] != expVal {
+		t.Fatalf(
+			"got incorrect value for input file, got %s, expected %s",
+			template.InFiles[0], expVal,
+		)
+	}
 }
 
 func TestScalarOutFile(t *testing.T) {
-    var node WorkflowNode
-    lvalForTrue := true
-    node.ArgTypes = map[string]WorkflowArgType{
-        "scalarOutParam": {
-            ArgType: "file",
-            OutputFile: &lvalForTrue,
-        },
-    }
-    node.Props = map[string]any{
-        "scalarOutParam": "/path",
-    }
+	var node WorkflowNode
+	lvalForTrue := true
+	node.ArgTypes = map[string]WorkflowArgType{
+		"scalarOutParam": {
+			ArgType:    "file",
+			OutputFile: &lvalForTrue,
+		},
+	}
+	baseProps := map[string]any{
+		"scalarOutParam": "/path",
+	}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    var template CmdTemplate
-    err = evaluateInOutFiles(node, &template, tp)
-    if err != nil {
-        t.Fatalf("error parsing in files: %s", err)
-    }
+	var template CmdTemplate
+    iterAttrs := getIterAttrs(node)
+	err = evaluateInOutFiles(node, &template, tp, iterAttrs)
+	if err != nil {
+		t.Fatalf("error parsing in files: %s", err)
+	}
 
-    if len(template.OutFilePnames) != 1 {
-        t.Fatalf("got %d outfile names, expected 1", len(template.OutFilePnames))
-    }
+	if len(template.OutFilePnames) != 1 {
+		t.Fatalf("got %d outfile names, expected 1", len(template.OutFilePnames))
+	}
 
-    if template.OutFilePnames[0] != "scalarOutParam" {
-        t.Fatalf(
-            "got incorrect value for input file, got %s, expected %s", 
-            template.OutFilePnames[0], "scalarOutParam",
-        )
-    }
+	if template.OutFilePnames[0] != "scalarOutParam" {
+		t.Fatalf(
+			"got incorrect value for input file, got %s, expected %s",
+			template.OutFilePnames[0], "scalarOutParam",
+		)
+	}
 }
 
 // Helper function to catch certain basic issues with iterated
 // parameter parsing that are common to all subsequent tests.
 // For simplicity's sake, we just assume that the parameter being
 // tested is a string list.
-func basicIterValidation(node WorkflowNode, iters []CmdTemplate, param string) error {
+func basicIterValidation(
+	node WorkflowNode, baseProps map[string]any,
+	iters []CmdTemplate, param string,
+) error {
 	// These are panics rather than errors, since this is an
 	// issue with the testing code rather than the thing being tested.
-	if _, ok := node.Props[param]; !ok {
+	if _, ok := baseProps[param]; !ok {
 		panic(fmt.Sprintf("non-existent param %s", param))
 	}
 
-	actualVals, ok := node.Props[param].([]any)
+	actualVals, ok := baseProps[param].([]any)
 	listParamLen := len(actualVals)
 	if !ok {
 		panic(fmt.Sprintf("failed converting %s to list", param))
 	}
 
-	groupSize, ok := node.IterAttrs[param]
+	groupSize, ok := node.IterGroupSize[param]
 	if !ok {
 		panic(fmt.Sprintf(
 			"trying to test non-iterable param %s in iterable tests",
@@ -334,26 +340,31 @@ func TestIterValBasic(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4"},
 	}
-	node.IterAttrs = map[string]int{
+    node.Iterate = true
+    node.IterAttrs = []string{"listParam"}
+	node.IterGroupSize = map[string]int{
 		"listParam": 1,
 	}
 	node.Command = []string{"command"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp)
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
+
+    var template CmdTemplate
+    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
 
-	err = basicIterValidation(node, iters, "listParam")
+	err = basicIterValidation(node, baseProps, iters, "listParam")
 	if err != nil {
 		t.Fatalf("incorrectly parsed iterable: %s", err)
 	}
@@ -370,28 +381,33 @@ func TestNonOneGroupSize(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4"},
 	}
-	node.IterAttrs = map[string]int{
+    node.Iterate = true
+    node.IterAttrs = []string{"listParam"}
+	node.IterGroupSize = map[string]int{
 		"listParam": 2,
 	}
 	node.Command = []string{"command"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp)
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
+
+    var template CmdTemplate
+    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
 
 	// This actually already tests what we want, and will give a distinct
 	// error if it fails.
-	err = basicIterValidation(node, iters, "listParam")
+	err = basicIterValidation(node, baseProps, iters, "listParam")
 	if err != nil {
 		t.Fatalf("incorrectly parsed iterable: %s", err)
 	}
@@ -409,28 +425,33 @@ func TestIterValPadding(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4", "5"},
 	}
-	node.IterAttrs = map[string]int{
+    node.Iterate = true
+    node.IterAttrs = []string{"listParam"}
+	node.IterGroupSize = map[string]int{
 		"listParam": 2,
 	}
 	node.Command = []string{"command"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp)
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
+
+    var template CmdTemplate
+    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
 
 	// This actually already tests what we want, and will give a distinct
 	// error if it fails.
-	err = basicIterValidation(node, iters, "listParam")
+	err = basicIterValidation(node, baseProps, iters, "listParam")
 	if err != nil {
 		t.Fatalf("incorrectly parsed iterable: %s", err)
 	}
@@ -529,24 +550,30 @@ func TestMultipleIterVals(t *testing.T) {
 						ArgType: "text list",
 					},
 				},
-				Props: map[string]any{
-					"listParam1": tt.listParam1,
-					"listParam2": tt.listParam2,
-				},
-				IterAttrs: map[string]int{
+                Iterate: true,
+                IterAttrs: []string{"listParam1", "listParam2"},
+				IterGroupSize: map[string]int{
 					"listParam1": tt.group1,
 					"listParam2": tt.group2,
 				},
 				Command: []string{"command"},
 			}
 
-			tp, err := parseTypedParams(node)
+			baseProps := map[string]any{
+				"listParam1": tt.listParam1,
+				"listParam2": tt.listParam2,
+			}
+
+			tp, err := parseTypedParams(node, baseProps)
 			if err != nil {
 				t.Fatalf("failed to parse typed params: %s", err)
 			}
 
-			var template CmdTemplate
-			iters, err := evaluateIterables(node, template, tp)
+            iterAttrs := getIterAttrs(node)
+            reqParams := getRequiredParams(node)
+
+	        var template CmdTemplate
+	        iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 			if err != nil {
 				t.Fatalf("failed to parse iterable: %s", err)
 			}
@@ -590,29 +617,34 @@ func TestIterSubstitutions(t *testing.T) {
 				ArgType: "text list",
 			},
 		},
-		Props: map[string]any{
-			"listParam": []any{"1", "2", "3", "4", "5", "6", "7", "8"},
-		},
-		IterAttrs: map[string]int{
+        Iterate: true,
+        IterAttrs: []string{"listParam"},
+		IterGroupSize: map[string]int{
 			"listParam": 1,
 		},
 		Command: []string{"_bwb{listParam}"},
 	}
 
-	tp, err := parseTypedParams(node)
+	baseProps := map[string]any{
+		"listParam": []any{"1", "2", "3", "4", "5", "6", "7", "8"},
+	}
+
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp)
+	iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
 
 	// Verify that all values of listParam were assigned to correctly-sized and
 	// correctly ordered groups.
-	if err = basicIterValidation(node, iters, "listParam"); err != nil {
+	if err = basicIterValidation(node, baseProps, iters, "listParam"); err != nil {
 		t.Fatalf("iteration grouping error: %s", err)
 	}
 
@@ -630,49 +662,56 @@ func TestIterSubstitutions(t *testing.T) {
 }
 
 func TestIterInputFiles(t *testing.T) {
-    lvalForTrue := true
+	lvalForTrue := true
 	node := WorkflowNode{
 		ArgTypes: map[string]WorkflowArgType{
 			"fListParam": {
-				ArgType: "text list",
-                InputFile: &lvalForTrue,
+				ArgType:   "text list",
+				InputFile: &lvalForTrue,
 			},
 		},
-		Props: map[string]any{
-			"fListParam": []any{"/path1", "/path2", "/path3"},
-		},
-		IterAttrs: map[string]int{
+        Iterate: true,
+		IterGroupSize: map[string]int{
 			"fListParam": 1,
 		},
+        IterAttrs: []string{"fListParam"},
 		Command: []string{""},
 	}
 
-	tp, err := parseTypedParams(node)
+	baseProps := map[string]any{
+		"fListParam": []any{"/path1", "/path2", "/path3"},
+	}
+
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
+
 	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp)
+	iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
 
 	// Verify that all values of listParam were assigned to correctly-sized and
 	// correctly ordered groups.
-	if err = basicIterValidation(node, iters, "fListParam"); err != nil {
+	err = basicIterValidation(node, baseProps, iters, "fListParam")
+	if err != nil {
 		t.Fatalf("iteration grouping error: %s", err)
 	}
 
-    fListParamVals := node.Props["fListParam"].([]any)
+	fListParamVals := baseProps["fListParam"].([]any)
 	for i := range iters {
-        expFname := fListParamVals[i].(string)
-        if len(iters[i].InFiles) != 1 && iters[i].InFiles[0] != expFname {
-            t.Fatalf(
-                "error with iterable infile assignment: xpected %s, got %s",
-                iters[i].InFiles[0], expFname,
-            )
-        }
+		expFname := fListParamVals[i].(string)
+		if len(iters[i].InFiles) != 1 && iters[i].InFiles[0] != expFname {
+			t.Fatalf(
+				"error with iterable infile assignment: xpected %s, got %s",
+				iters[i].InFiles[0], expFname,
+			)
+		}
 	}
 }
 
@@ -684,21 +723,26 @@ func TestIterValNonListErr(t *testing.T) {
 		},
 	}
 
-	node.Props = map[string]any{
+	baseProps := map[string]any{
 		"listParam": "1",
 	}
-	node.IterAttrs = map[string]int{
+	node.IterGroupSize = map[string]int{
 		"listParam": 1,
 	}
+    node.Iterate = true
+    node.IterAttrs = []string{"listParam"}
 	node.Command = []string{"command"}
 
-	tp, err := parseTypedParams(node)
+	tp, err := parseTypedParams(node, baseProps)
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
+    iterAttrs := getIterAttrs(node)
+    reqParams := getRequiredParams(node)
+
 	var template CmdTemplate
-	_, err = evaluateIterables(node, template, tp)
+	_, err = evaluateIterables(node, template, tp, reqParams, iterAttrs)
 	if err == nil {
 		t.Fatalf("should give error on non-list iterable")
 	}

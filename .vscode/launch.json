@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Debug main.go",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "env": {
+              "BWB_SCHED_DIR": "/home/patrick/SCHED_STORAGE",
+              "TEMPORAL_DEBUG": "true"
+            }
+        },  
+        {
           "name": "Test parsing",
           "type": "go",
           "request": "launch",
