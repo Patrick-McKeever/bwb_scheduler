@@ -355,11 +355,10 @@ func TestIterValBasic(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
 
     var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+    iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -396,11 +395,9 @@ func TestNonOneGroupSize(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
-
     var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+    iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -440,11 +437,10 @@ func TestIterValPadding(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
 
     var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+    iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -569,11 +565,10 @@ func TestMultipleIterVals(t *testing.T) {
 				t.Fatalf("failed to parse typed params: %s", err)
 			}
 
-            iterAttrs := getIterAttrs(node)
             reqParams := getRequiredParams(node)
 
 	        var template CmdTemplate
-	        iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+	        iters, err := evaluateIterables(node, template, tp, reqParams)
 			if err != nil {
 				t.Fatalf("failed to parse iterable: %s", err)
 			}
@@ -633,11 +628,10 @@ func TestIterSubstitutions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+	iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -687,11 +681,10 @@ func TestIterInputFiles(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
-	iters, err := evaluateIterables(node, template, tp, reqParams, iterAttrs)
+	iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -738,11 +731,10 @@ func TestIterValNonListErr(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    iterAttrs := getIterAttrs(node)
     reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
-	_, err = evaluateIterables(node, template, tp, reqParams, iterAttrs)
+	_, err = evaluateIterables(node, template, tp, reqParams)
 	if err == nil {
 		t.Fatalf("should give error on non-list iterable")
 	}

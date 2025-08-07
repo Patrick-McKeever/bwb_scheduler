@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 	"time"
+
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -66,11 +67,12 @@ func registerHeartbeatActivity(
 	state *SchedWorkflowState, queueId string,
 ) func() {
     logger := workflow.GetLogger(ctx)
+    logger.Info(fmt.Sprintf("Starting heartbeat on worker %s", queueId))
 	ao := workflow.ActivityOptions{
 		TaskQueue:              queueId,
 		HeartbeatTimeout:       time.Minute,
 		StartToCloseTimeout:    time.Hour * 24,
-		ScheduleToStartTimeout: SCHEDULE_TO_START_TIMEOUT_SECONDS,
+		ScheduleToStartTimeout: time.Second * SCHEDULE_TO_START_TIMEOUT_SECONDS,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},
@@ -153,13 +155,20 @@ func retryHeartbeats(
 
 func processRequests(ctx workflow.Context, state *SchedWorkflowState) {
 	logger := workflow.GetLogger(ctx)
-    //logger.Debug(fmt.Sprintf("Processing reqs w/ workers %#v, reqs %#v", state.Workers, state.PendingRequests))
 
 	sort.Slice(state.PendingRequests, func(i, j int) bool {
-		if state.PendingRequests[i].Rank != state.PendingRequests[j].Rank {
-			return state.PendingRequests[i].Rank < state.PendingRequests[j].Rank
+        reqI := state.PendingRequests[i]
+        reqJ := state.PendingRequests[j]
+		if reqI.Rank != reqJ.Rank {
+			return reqI.Rank < reqJ.Rank
 		}
-		return state.PendingRequests[i].Requirements.Cpus > state.PendingRequests[j].Requirements.Cpus
+        if reqI.Requirements.Gpus != reqJ.Requirements.Gpus {
+            return reqI.Requirements.Gpus > reqJ.Requirements.Gpus
+        }
+        if reqI.Requirements.Cpus != reqJ.Requirements.Cpus {
+            return reqI.Requirements.Cpus > reqJ.Requirements.Cpus
+        }
+        return reqI.Requirements.MemMb > reqJ.Requirements.MemMb
 	})
 
 	for i := 0; i < len(state.PendingRequests); {
@@ -229,6 +238,7 @@ func freeResourceGrant(state *SchedWorkflowState, grant ResourceGrant) {
 
 func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) error {
 	logger := workflow.GetLogger(ctx)
+    logger.Info("Starting sched workflow")
 	if state.PendingRequests == nil {
 		state.PendingRequests = make([]ResourceRequest, 0)
 	}
@@ -263,6 +273,7 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
 	selector.AddReceive(workflow.GetSignalChannel(ctx, "new-request"), func(c workflow.ReceiveChannel, _ bool) {
 		var req ResourceRequest
 		c.Receive(ctx, &req)
+        fmt.Printf("Got request for ID %d\n", req.Id)
 		state.PendingRequests = append(state.PendingRequests, req)
 		logger.Info(fmt.Sprintf("Received new resource request %#v\n", req))
 	})
@@ -288,19 +299,27 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
 		}
 	})
 
+    durationSecs := 1
+    durationSecsAsTime := time.Second * 1
 	var timerCallback func(workflow.Future)
 	timerCallback = func(f workflow.Future) {
 		processRequests(ctx, &state)
-		retryHeartbeats(ctx, selector, &state, 5)
-		timer := workflow.NewTimer(ctx, 5*time.Second)
+		retryHeartbeats(ctx, selector, &state, durationSecs)
+		timer := workflow.NewTimer(ctx, durationSecsAsTime)
 		selector.AddFuture(timer, timerCallback)
 	}
 
-	timer := workflow.NewTimer(ctx, 5*time.Second)
+	timer := workflow.NewTimer(ctx, durationSecsAsTime)
 	selector.AddFuture(timer, timerCallback)
 
+    cancelled := false
 	for {
 		selector.Select(ctx)
+        if ctx.Err() != nil{
+            cancelled = true
+            break
+        }
+
 		if workflow.GetInfo(ctx).GetCurrentHistoryLength() > 9000 {
 			logger.Info("History approaching limit, continuing as new")
 			break
@@ -310,6 +329,10 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
 	for _, cancelFunc := range heartbeatCancelFuncs {
 		cancelFunc()
 	}
+
+    if cancelled {
+        return nil
+    }
 
 	return workflow.NewContinueAsNewError(ctx, ResourceSchedulerWorkflow, state)
 }

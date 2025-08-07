@@ -1,0 +1,4 @@
+.*swp
+*/*.swp
+.vscode
+.vscode/*

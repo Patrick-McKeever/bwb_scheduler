@@ -511,3 +511,11 @@ func PrettyPrint(v interface{}) {
 	}
 	fmt.Println(string(b))
 }
+
+func PrettyStr(v interface{}) string {
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Sprintf("PrettyPrint error: %v\n", err)
+	}
+	return string(b)
+}

@@ -1,7 +1,9 @@
 package parsing
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -179,7 +181,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 	numIterationsOf2 := 3
 	p2Vals := genArbitraryOutputs(t, "p2", numIterationsOf2, 0, 2, workflow)
 	succsOf2, err := state.getSuccParams(
-		NodeParams{ancList: []int{}, nodeId: 2}, p2Vals,
+		NodeParams{AncList: []int{}, NodeId: 2}, p2Vals,
 	)
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, numIterationsOf2)
 
@@ -190,8 +192,8 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 	}
 
 	for _, inputSet := range inputsFor3 {
-		p1 := getKeyOrFail(t, "p1", 3, inputSet.params, workflow)
-		p2 := getKeyOrFail(t, "p2", 3, inputSet.params, workflow)
+		p1 := getKeyOrFail(t, "p1", 3, inputSet.Params, workflow)
+		p2 := getKeyOrFail(t, "p2", 3, inputSet.Params, workflow)
 		expectedP1Val := getKeyOrFail(t, "p1", 1, p1Vals[0], workflow)
 		if p1 != expectedP1Val {
 			t.Fatalf(
@@ -294,7 +296,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 	expNumSuccsOf2 := 0
 	for i, inputFor2 := range inputsFor2 {
 		expNumSuccsOf2 += (i + 1)
-		p1 := getKeyOrFail(t, "p1", 2, inputFor2.params, workflow).(string)
+		p1 := getKeyOrFail(t, "p1", 2, inputFor2.Params, workflow).(string)
 		p2Vals := genArbitraryOutputs(t, "p2", (i + 1), (i+1)*len(inputsFor2), 2, workflow)
 		if _, innerSetExists := p1ToP2[p1]; !innerSetExists {
 			p1ToP2[p1] = make(map[string]struct{})
@@ -314,8 +316,8 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, expNumSuccsOf2)
 
 	for _, inputSet := range inputsFor3 {
-		p1 := getKeyOrFail(t, "p1", 3, inputSet.params, workflow).(string)
-		p2 := getKeyOrFail(t, "p2", 3, inputSet.params, workflow).(string)
+		p1 := getKeyOrFail(t, "p1", 3, inputSet.Params, workflow).(string)
+		p2 := getKeyOrFail(t, "p2", 3, inputSet.Params, workflow).(string)
 		if _, validPair := p1ToP2[p1][p2]; !validPair {
 			t.Fatalf("got invalid p1, p2 pair %s, %s", p1, p2)
 		}
@@ -441,7 +443,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 	expNumSuccsOf2 := 0
 	for i, inputFor2 := range inputsFor2 {
 		expNumSuccsOf2 += (i + 1)
-		p1 := getKeyOrFail(t, "p1", 1, inputFor2.params, workflow).(string)
+		p1 := getKeyOrFail(t, "p1", 1, inputFor2.Params, workflow).(string)
 		p2Vals := genArbitraryOutputs(t, "p2", (i + 1), (i+1)*len(inputsFor2), 2, workflow)
 		if _, innerSetExists := p1ToP2[p1]; !innerSetExists {
 			p1ToP2[p1] = make(map[string]struct{})
@@ -459,7 +461,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 
 	inputsFor3 := getSuccInputsOrFail(t, succsOf1, err, 1, 3, numIterationsOf1)
 	for i, inputsFor3 := range inputsFor3 {
-		p1 := getKeyOrFail(t, "p1", 1, inputsFor3.params, workflow).(string)
+		p1 := getKeyOrFail(t, "p1", 1, inputsFor3.Params, workflow).(string)
 		p3Vals := genArbitraryOutputs(t, "p3", 1, i, 3, workflow)
 		p1ToP3[p1] = getKeyOrFail(t, "p3", 3, p3Vals[0], workflow).(string)
 		err := state.addCmdResults(inputsFor3, p3Vals)
@@ -472,9 +474,9 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 	inputsFor4 := getSuccInputsOrFail(t, succsOf3, err, 3, 4, expNumSuccsOf2)
 
 	for _, inputSet := range inputsFor4 {
-		p1 := getKeyOrFail(t, "p1", 4, inputSet.params, workflow).(string)
-		p2 := getKeyOrFail(t, "p2", 4, inputSet.params, workflow).(string)
-		p3 := getKeyOrFail(t, "p3", 4, inputSet.params, workflow).(string)
+		p1 := getKeyOrFail(t, "p1", 4, inputSet.Params, workflow).(string)
+		p2 := getKeyOrFail(t, "p2", 4, inputSet.Params, workflow).(string)
+		p3 := getKeyOrFail(t, "p3", 4, inputSet.Params, workflow).(string)
 		if _, validPair := p1ToP2[p1][p2]; !validPair {
 			t.Fatalf("got invalid p1, p2 pair %s, %s", p1, p2)
 		}
@@ -581,7 +583,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 	succsOf2, err := state.getEligibleSuccessors(2)
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, numIterationsOf1)
 	for _, inputsFor3 := range inputsFor3 {
-		p2 := getKeyOrFail(t, "p2", 2, inputsFor3.params, workflow).(string)
+		p2 := getKeyOrFail(t, "p2", 2, inputsFor3.Params, workflow).(string)
 		if _, validP2 := p2Set[p2]; !validP2 {
 			t.Fatalf("got invalid p2 val %s", p2)
 		}
@@ -657,7 +659,7 @@ func TestSimpleBarrier(t *testing.T) {
 
 	numOutputsOf1 := 3
 	inputsFor1 := startNodes[1][0]
-	inputsFor1.params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
+	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
 	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)
@@ -798,7 +800,7 @@ func TestMultipleBarrier(t *testing.T) {
 
 	numOutputsOf0 := 3
 	inputsFor0 := startNodes[0][0]
-	inputsFor0.params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"])
+	inputsFor0.Params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"])
 	p0Vals := genArbitraryOutputs(t, "p0", numOutputsOf0, 0, 1, workflow)
 	succsOf0, err := state.getSuccParams(inputsFor0, p0Vals)
 
@@ -820,8 +822,8 @@ func TestMultipleBarrier(t *testing.T) {
 	inputsFor3 := make([]NodeParams, 0)
 	runIdGroups := make(map[int]map[int]struct{})
 	for _, inputSet := range inputsFor2 {
-		zeroRunId := inputSet.ancList[0]
-		oneRunId := inputSet.ancList[1]
+		zeroRunId := inputSet.AncList[0]
+		oneRunId := inputSet.AncList[1]
 
 		if runIdGroups[zeroRunId] == nil {
 			runIdGroups[zeroRunId] = make(map[int]struct{})
@@ -836,8 +838,8 @@ func TestMultipleBarrier(t *testing.T) {
 			t.Fatalf("error adding outputs of 2: %s", err)
 		}
 
-		zeroRunId := inputSet.ancList[0]
-		oneRunId := inputSet.ancList[1]
+		zeroRunId := inputSet.AncList[0]
+		oneRunId := inputSet.AncList[1]
 		delete(runIdGroups[zeroRunId], oneRunId)
 
 		succsOf1, err = state.getEligibleSuccessors(1)
@@ -853,7 +855,7 @@ func TestMultipleBarrier(t *testing.T) {
 				zeroRunId, len(succsOf1[3]),
 			)
 		} else if len(succsOf1[3]) == 1 {
-			succZeroRunId := succsOf1[3][0].ancList[0]
+			succZeroRunId := succsOf1[3][0].AncList[0]
 			if zeroRunId != succZeroRunId {
 				t.Fatalf(
 					"generated barrier for 0 run ID %d, expected one for %d",
@@ -1054,6 +1056,44 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 		}
 	}
 	assertCompletionVal(t, state, true)
+}
+
+func TestRemoveThisLater(t *testing.T) {
+	data, err := os.ReadFile("/home/patrick/state/state_2025-08-08__01:11:18.json")
+	if err != nil {
+		t.Fatalf("failed to read JSON file: %v", err)
+	}
+
+	var state WorkflowExecutionState
+	if err := json.Unmarshal(data, &state); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	data, err = os.ReadFile("/home/patrick/state/output_2025-08-08__01:11:18.json")
+	if err != nil {
+		t.Fatalf("failed to read JSON file: %v", err)
+	}
+
+	var output TypedParams
+	if err := json.Unmarshal(data, &output); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	data, err = os.ReadFile("/home/patrick/state/input_2025-08-08__01:11:18.json")
+	if err != nil {
+		t.Fatalf("failed to read JSON file: %v", err)
+	}
+
+	var input NodeParams
+	if err := json.Unmarshal(data, &input); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	succs, err := state.getSuccParams(input, []TypedParams{output})
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	PrettyPrint(succs)
 }
 
 //func TestBulkRNA(t *testing.T) {
