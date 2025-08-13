@@ -57,15 +57,18 @@ func startWorker(queueName string, scheduler bool) {
 }
 
 func main() {
-    data, err := os.ReadFile("parsing/testdata/bulkrna.json")
+    data, err := os.ReadFile("test_workflows/bulkrna_async.json")
     if err != nil {
         log.Fatalf("failed to read JSON file: %v\n", err)
     }
 
-
     var bwbWorkflow parsing.Workflow
     if err := json.Unmarshal(data, &bwbWorkflow); err != nil {
         log.Fatalf("failed to unmarshal JSON: %v\n", err)
+    }
+
+    if _, err := parsing.DryRun(bwbWorkflow); err != nil {
+        log.Fatalln(err)
     }
 
     index, err := parsing.ParseAndValidateWorkflow(&bwbWorkflow)

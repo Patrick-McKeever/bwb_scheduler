@@ -2,7 +2,6 @@ package fs
 
 import (
 	"path/filepath"
-	"strings"
 )
 
 type AbstractFileSystem interface {
@@ -15,10 +14,6 @@ type DummyFS struct{}
 
 func (_ DummyFS) GetVolumes() map[string]string { return nil }
 func (_ DummyFS) Glob(string, _ string, _, _ bool) ([]string, error)  { return nil, nil }
-
-func splitPath(path string) []string {
-	return strings.Split(path, "/")
-}
 
 // Returns: In-container path of volume to which the longest
 // matching host path is mounted, plus the portion of path which
@@ -48,7 +43,7 @@ func getMntPtPrefix(
             longestSharedPrefix = pathToCompare
 
             if isCntPath {
-                longestCorrespondingPath = filepath.Clean(volumes[pathToCompare])
+                longestCorrespondingPath = filepath.Clean(volumes[volCntPath])
             } else {
                 longestCorrespondingPath = filepath.Clean(volCntPath)
             }

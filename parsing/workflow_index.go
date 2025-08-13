@@ -14,7 +14,7 @@ type WorkflowIndex struct {
 	// Lookup links based on (srcNode, srcPname)
 	OutLinks         map[int]map[string]WorkflowLink
 	AsyncAncestors   map[int][]int
-	AsyncDescendants map[int][]int
+	AsyncDescendants map[int]map[int]struct{}
 
 	// Layered top sort where each inner array of node IDs is
 	// nodes that can run independently once all nodes in prior
@@ -30,6 +30,32 @@ func (index *WorkflowIndex) getStartNodes() []int {
 		return []int{}
 	}
 	return index.LayeredTopSort[0]
+}
+
+func (index *WorkflowIndex) getSharedAsyncAncs(id1 int, id2 int) ([]int, error) {
+	asyncAnc1, id1Exists := index.AsyncAncestors[id1]
+	if !id1Exists {
+		return nil, fmt.Errorf("node %d not in async ancestor array", id1)
+	}
+	asyncAnc2, id2Exists := index.AsyncAncestors[id2]
+	if !id2Exists {
+		return nil, fmt.Errorf("node %d not in async ancestor array", id2)
+	}
+    shared := make([]int, 0)
+	for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
+		if asyncAnc1[i] == asyncAnc2[i] {
+            shared = append(shared, asyncAnc1[i])
+		}
+	}
+
+	//if len(asyncAnc1) > len(asyncAnc2) && asyncAnc1[len(asyncAnc2)] == id2 {
+	//	shared = append(shared, id2)
+	//}
+	//if len(asyncAnc2) > len(asyncAnc1) && asyncAnc2[len(asyncAnc1)] == id1 {
+	//	shared = append(shared, id1)
+	//}
+
+    return shared, nil
 }
 
 // These lists are rarely going to exceed 4 or 5 entries, so an element-by-element
@@ -227,6 +253,10 @@ func propagateArgTypes(
 					return fmt.Errorf("src node %d does not exist", inLink.SourceNodeId)
 				}
 
+                if _, sinkHasArgType := nodeCopy.ArgTypes[pname]; sinkHasArgType {
+                    continue
+                }
+
 				if _, pnameHasArgtype := nodeCopy.ArgTypes[pname]; !pnameHasArgtype {
 					srcArgType, srcArgTypeExists := srcNode.ArgTypes[inLink.SourceChannel]
 					if !srcArgTypeExists {
@@ -291,7 +321,7 @@ func getAncestorsAndDescendants(
 func parseAsyncAndBarriers(
 	workflow Workflow, topSort [][]int,
 	descendantOf map[int]map[int]bool,
-) (map[int][]int, map[int][]int, map[int]int, error) {
+) (map[int][]int, map[int]map[int]struct{}, map[int]int, error) {
 	barrierFor := make(map[int]int)
 	for nodeId, node := range workflow.Nodes {
 		if node.BarrierFor != nil {
@@ -331,6 +361,10 @@ func parseAsyncAndBarriers(
 	// We don't consider barriers yet, because we need this to
 	// validate barrier structure in the first place.
 	asyncAncestors := make(map[int][]int)
+    for nodeId := range workflow.Nodes {
+        asyncAncestors[nodeId] = []int{-1}
+    }
+
 	for _, layer := range topSort {
 		for _, asyncNodeId := range layer {
 			if !workflow.Nodes[asyncNodeId].Async {
@@ -345,9 +379,6 @@ func parseAsyncAndBarriers(
 			// Consider nodes descended from async node but not from its
 			// barrier as the node's async descendants.
 			for descendant := range descendantsSet {
-				if asyncAncestors[descendant] == nil {
-					asyncAncestors[descendant] = make([]int, 0)
-				}
 				asyncAncestors[descendant] = append(
 					asyncAncestors[descendant], asyncNodeId,
 				)
@@ -405,18 +436,18 @@ func parseAsyncAndBarriers(
 			)
 		}
 	}
+    asyncAncestorsBeforeBarrier[-1] = []int{}
 
-	asyncDescendants := make(map[int][]int)
+	asyncDescendants := make(map[int]map[int]struct{})
+    asyncDescendants[-1] = map[int]struct{}{}
 	for nodeId, asyncAncList := range asyncAncestorsBeforeBarrier {
+        asyncDescendants[-1][nodeId] = struct{}{}
 		if len(asyncAncList) > 0 {
 			lastAsyncAnc := asyncAncList[len(asyncAncList)-1]
 			if asyncDescendants[lastAsyncAnc] == nil {
-				asyncDescendants[lastAsyncAnc] = make([]int, 0)
+				asyncDescendants[lastAsyncAnc] = make(map[int]struct{})
 			}
-			asyncDescendants[lastAsyncAnc] = append(
-				asyncDescendants[lastAsyncAnc],
-				nodeId,
-			)
+			asyncDescendants[lastAsyncAnc][nodeId] = struct{}{}
 		}
 	}
 
@@ -428,12 +459,13 @@ func parseAsyncAndBarriers(
 
 		pred := asyncAncestors[0]
 		for i := 1; i < len(asyncAncestors); i++ {
-			if !descendantOf[pred][asyncAncestors[i]] {
+			if !descendantOf[pred][asyncAncestors[i]] && pred != -1 {
 				return nil, nil, nil, fmt.Errorf(
 					"node %d has non-nested async ancestors %d and %d",
 					nodeId, pred, asyncAncestors[i],
 				)
 			}
+            pred = asyncAncestors[i]
 		}
 	}
 

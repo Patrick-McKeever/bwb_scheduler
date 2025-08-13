@@ -132,8 +132,14 @@ func getCmdOutputs(
 
     outFiles := make([]string, 0)
     for _, expOutFilePname := range expOutFilePnames {
-        if outFile, outFileExists := outKvs[expOutFilePname]; outFileExists {
-            outFiles = append(outFiles, outFile)
+        if outFilesRaw, outFileExists := outKvs[expOutFilePname]; outFileExists {
+            outFileVals := strings.Split(outFilesRaw, "\n")
+            if len(outFileVals) > 0 {
+                if outFileVals[len(outFileVals)-1] == "" {
+                    outFileVals = outFileVals[:len(outFileVals)-1]
+                }
+                outFiles = append(outFiles, outFileVals...)
+            }
         }
     }
     
@@ -202,6 +208,7 @@ func RunCmd(
     cmd.Stderr = &stderr
 
     cmdWithEnvStr := fmt.Sprintf("%s %s", strings.Join(envs, " "), cmdStr)
+    fmt.Println(cmdWithEnvStr)
 
     if err = cmd.Run(); err != nil {
 		return CmdOutput{}, fmt.Errorf(
@@ -284,8 +291,9 @@ func runCmdWithGrant(
 }
 
 func globWorkerFS(
-    state BwbWorkflowState,
-    pq parsing.PatternQuery,
+    state BwbWorkflowState, 
+    root, pattern string, 
+    findFile, findDir bool,
 ) ([]string, error) {
     ao := workflow.ActivityOptions{
         TaskQueue: "bwb_worker",
@@ -298,7 +306,7 @@ func globWorkerFS(
     var out []string
     err := workflow.ExecuteActivity(
         cmdCtx, fs.GlobActivity[fs.LocalFS], state.masterFS, 
-        pq.Root,  pq.Pattern, pq.FindFile, pq.FindDir,
+        root,  pattern, findFile, findDir,
     ).Get(state.ctx, &out)
     return out, err
 }
@@ -319,8 +327,8 @@ func handleCompletedCmd(
 
     succCmds, err := state.cmdMan.GetSuccCmds(
         completedCmd, result.RawOutputs, 
-        func(pq parsing.PatternQuery) ([]string, error) {
-            return globWorkerFS(state, pq)
+        func(root, pattern string, findFile, findDir bool) ([]string, error) {
+            return globWorkerFS(state, root, pattern, findFile, findDir)
         },
     )
 
@@ -476,8 +484,8 @@ func RunBwbWorkflow(
     })
 
     initialCmds, err := cmdMan.GetInitialCmds(
-        func(pq parsing.PatternQuery) ([]string, error) {
-            return globWorkerFS(wfState, pq)
+        func(root, pattern string, findFile, findDir bool) ([]string, error) {
+            return globWorkerFS(wfState, root, pattern, findFile, findDir)
         },
     )
     if err != nil {

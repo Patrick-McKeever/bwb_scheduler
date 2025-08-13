@@ -11,7 +11,7 @@ type CmdManager struct {
 	state           *WorkflowExecutionState
 	currentMaxCmdId int
 	cmdIdToParams   map[int]NodeParams
-	remainingIters  map[int]map[int]map[int]struct{}
+	remainingIters  map[int]map[string]map[int]struct{}
 }
 
 func NewCmdManager(
@@ -19,9 +19,9 @@ func NewCmdManager(
 ) CmdManager {
 	var cmdMan CmdManager
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
-	cmdMan.remainingIters = make(map[int]map[int]map[int]struct{})
+	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
 	for nodeId := range workflow.Nodes {
-		cmdMan.remainingIters[nodeId] = make(map[int]map[int]struct{})
+		cmdMan.remainingIters[nodeId] = make(map[string]map[int]struct{})
 	}
     wes := NewWorkflowExecutionState(workflow, index)
 	cmdMan.state = &wes
@@ -30,7 +30,7 @@ func NewCmdManager(
 
 func (cmdMan *CmdManager) GetImageNames() []string {
 	imageNames := make([]string, 0)
-	for _, node := range cmdMan.state.Workflow.Nodes {
+	for _, node := range cmdMan.state.workflow.Nodes {
 		imageName := fmt.Sprintf("%s:%s", node.ImageName, node.ImageTag)
 		imageNames = append(imageNames, imageName)
 	}
@@ -47,11 +47,11 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	}
 
 	nodeId := inputParams.NodeId
-	node := cmdMan.state.Workflow.Nodes[nodeId]
-	nodeRunId := getInputRunId(inputParams.AncList)
+	node := cmdMan.state.workflow.Nodes[nodeId]
+	nodeRunId := fmt.Sprintf("%#v", inputParams.AncList)
 	delete(cmdMan.remainingIters[nodeId][nodeRunId], completedCmd.Id)
 
-    fmt.Printf("Completed node %d, nodeRunId %d, cmd ID %d\n", nodeId, nodeRunId, completedCmd.Id)
+    fmt.Printf("Completed node %d, nodeRunId %s, cmd ID %d\n", nodeId, nodeRunId, completedCmd.Id)
 
 	var outputTp TypedParams
 	for k, v := range rawOutputs {
@@ -125,14 +125,14 @@ func (cmdMan *CmdManager) getCmdsFromParams(
 ) ([]CmdTemplate, error) {
 	ret := make([]CmdTemplate, 0)
 	for nodeId, paramSets := range nodeParams {
-		node := cmdMan.state.Workflow.Nodes[nodeId]
+		node := cmdMan.state.workflow.Nodes[nodeId]
 		for _, paramSet := range paramSets {
 			nodeCmds, err := ParseNodeCmd(node, paramSet.Params, glob)
 			if err != nil {
 				return nil, err
 			}
 
-			nodeRunId := getInputRunId(paramSet.AncList)
+			nodeRunId := fmt.Sprintf("%#v", paramSet.AncList)
 			if cmdMan.remainingIters[nodeId][nodeRunId] == nil {
 				cmdMan.remainingIters[nodeId][nodeRunId] = make(map[int]struct{})
 			}

@@ -70,7 +70,7 @@ func TestEnvListSerialization(t *testing.T) {
 					"strList": {"test_string1", "test_string2"},
 				},
 			},
-			expected: "[\\\"test_string1\\\",\\\"test_string2\\\"]",
+			expected: "[\"test_string1\",\"test_string2\"]",
 		}, {
 			ptype: "int list",
 			pname: "intList",
@@ -79,7 +79,7 @@ func TestEnvListSerialization(t *testing.T) {
 					"intList": {1, 2},
 				},
 			},
-			expected: "[\\\"1\\\",\\\"2\\\"]",
+			expected: "[\"1\",\"2\"]",
 		}, {
 			ptype: "double list",
 			pname: "doubleList",
@@ -88,7 +88,7 @@ func TestEnvListSerialization(t *testing.T) {
 					"doubleList": {2.718281828459, 3.1415927},
 				},
 			},
-			expected: "[\\\"2.718281828459\\\",\\\"3.1415927\\\"]",
+			expected: "[\"2.718281828459\",\"3.1415927\"]",
 		},
 	}
 
@@ -207,7 +207,7 @@ func TestScalarInFile(t *testing.T) {
 	}
 
 	var template CmdTemplate
-    iterAttrs := getIterAttrs(node)
+	iterAttrs := getIterAttrs(node)
 	err = evaluateInOutFiles(node, &template, tp, iterAttrs)
 	if err != nil {
 		t.Fatalf("error parsing in files: %s", err)
@@ -230,13 +230,17 @@ func TestScalarOutFile(t *testing.T) {
 	var node WorkflowNode
 	lvalForTrue := true
 	node.ArgTypes = map[string]WorkflowArgType{
-		"scalarOutParam": {
+		"scalarOutParamAbsent": {
+			ArgType:    "file",
+			OutputFile: &lvalForTrue,
+		},
+		"scalarOutParamPresent": {
 			ArgType:    "file",
 			OutputFile: &lvalForTrue,
 		},
 	}
 	baseProps := map[string]any{
-		"scalarOutParam": "/path",
+		"scalarOutParamPresent": "/path",
 	}
 
 	tp, err := parseTypedParams(node, baseProps)
@@ -245,22 +249,33 @@ func TestScalarOutFile(t *testing.T) {
 	}
 
 	var template CmdTemplate
-    iterAttrs := getIterAttrs(node)
+	iterAttrs := getIterAttrs(node)
 	err = evaluateInOutFiles(node, &template, tp, iterAttrs)
 	if err != nil {
 		t.Fatalf("error parsing in files: %s", err)
 	}
 
 	if len(template.OutFilePnames) != 1 {
-		t.Fatalf("got %d outfile names, expected 1", len(template.OutFilePnames))
+		t.Fatalf("got %d outfile pnames, expected 1", len(template.OutFilePnames))
 	}
 
-	if template.OutFilePnames[0] != "scalarOutParam" {
+	if template.OutFilePnames[0] != "scalarOutParamAbsent" {
 		t.Fatalf(
-			"got incorrect value for input file, got %s, expected %s",
-			template.OutFilePnames[0], "scalarOutParam",
+			"got incorrect value for output file, got %s, expected %s",
+			template.OutFilePnames[0], "scalarOutParamAbsent",
 		)
 	}
+
+    if len(template.OutFiles) != 1 {
+        t.Fatalf("got %d outfile paths, expected 1", len(template.OutFiles))
+    }
+
+    if template.OutFiles[0] != "/path" {
+        t.Fatalf(
+            "got incorrect value for output file, got %s, expected %s",
+            template.OutFiles[0], "/path",
+        )
+    }
 }
 
 // Helper function to catch certain basic issues with iterated
@@ -343,8 +358,8 @@ func TestIterValBasic(t *testing.T) {
 	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4"},
 	}
-    node.Iterate = true
-    node.IterAttrs = []string{"listParam"}
+	node.Iterate = true
+	node.IterAttrs = []string{"listParam"}
 	node.IterGroupSize = map[string]int{
 		"listParam": 1,
 	}
@@ -355,10 +370,10 @@ func TestIterValBasic(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    reqParams := getRequiredParams(node)
+	reqParams := getRequiredParams(node)
 
-    var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams)
+	var template CmdTemplate
+	iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -383,8 +398,8 @@ func TestNonOneGroupSize(t *testing.T) {
 	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4"},
 	}
-    node.Iterate = true
-    node.IterAttrs = []string{"listParam"}
+	node.Iterate = true
+	node.IterAttrs = []string{"listParam"}
 	node.IterGroupSize = map[string]int{
 		"listParam": 2,
 	}
@@ -395,9 +410,9 @@ func TestNonOneGroupSize(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    reqParams := getRequiredParams(node)
-    var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams)
+	reqParams := getRequiredParams(node)
+	var template CmdTemplate
+	iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -425,8 +440,8 @@ func TestIterValPadding(t *testing.T) {
 	baseProps := map[string]any{
 		"listParam": []any{"1", "2", "3", "4", "5"},
 	}
-    node.Iterate = true
-    node.IterAttrs = []string{"listParam"}
+	node.Iterate = true
+	node.IterAttrs = []string{"listParam"}
 	node.IterGroupSize = map[string]int{
 		"listParam": 2,
 	}
@@ -437,10 +452,10 @@ func TestIterValPadding(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    reqParams := getRequiredParams(node)
+	reqParams := getRequiredParams(node)
 
-    var template CmdTemplate
-    iters, err := evaluateIterables(node, template, tp, reqParams)
+	var template CmdTemplate
+	iters, err := evaluateIterables(node, template, tp, reqParams)
 	if err != nil {
 		t.Fatalf("failed to parse iterable: %s", err)
 	}
@@ -546,8 +561,8 @@ func TestMultipleIterVals(t *testing.T) {
 						ArgType: "text list",
 					},
 				},
-                Iterate: true,
-                IterAttrs: []string{"listParam1", "listParam2"},
+				Iterate:   true,
+				IterAttrs: []string{"listParam1", "listParam2"},
 				IterGroupSize: map[string]int{
 					"listParam1": tt.group1,
 					"listParam2": tt.group2,
@@ -565,10 +580,10 @@ func TestMultipleIterVals(t *testing.T) {
 				t.Fatalf("failed to parse typed params: %s", err)
 			}
 
-            reqParams := getRequiredParams(node)
+			reqParams := getRequiredParams(node)
 
-	        var template CmdTemplate
-	        iters, err := evaluateIterables(node, template, tp, reqParams)
+			var template CmdTemplate
+			iters, err := evaluateIterables(node, template, tp, reqParams)
 			if err != nil {
 				t.Fatalf("failed to parse iterable: %s", err)
 			}
@@ -612,8 +627,8 @@ func TestIterSubstitutions(t *testing.T) {
 				ArgType: "text list",
 			},
 		},
-        Iterate: true,
-        IterAttrs: []string{"listParam"},
+		Iterate:   true,
+		IterAttrs: []string{"listParam"},
 		IterGroupSize: map[string]int{
 			"listParam": 1,
 		},
@@ -628,7 +643,7 @@ func TestIterSubstitutions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
-    reqParams := getRequiredParams(node)
+	reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
 	iters, err := evaluateIterables(node, template, tp, reqParams)
@@ -664,12 +679,12 @@ func TestIterInputFiles(t *testing.T) {
 				InputFile: &lvalForTrue,
 			},
 		},
-        Iterate: true,
+		Iterate: true,
 		IterGroupSize: map[string]int{
 			"fListParam": 1,
 		},
-        IterAttrs: []string{"fListParam"},
-		Command: []string{""},
+		IterAttrs: []string{"fListParam"},
+		Command:   []string{""},
 	}
 
 	baseProps := map[string]any{
@@ -681,7 +696,7 @@ func TestIterInputFiles(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    reqParams := getRequiredParams(node)
+	reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
 	iters, err := evaluateIterables(node, template, tp, reqParams)
@@ -722,8 +737,8 @@ func TestIterValNonListErr(t *testing.T) {
 	node.IterGroupSize = map[string]int{
 		"listParam": 1,
 	}
-    node.Iterate = true
-    node.IterAttrs = []string{"listParam"}
+	node.Iterate = true
+	node.IterAttrs = []string{"listParam"}
 	node.Command = []string{"command"}
 
 	tp, err := parseTypedParams(node, baseProps)
@@ -731,7 +746,7 @@ func TestIterValNonListErr(t *testing.T) {
 		t.Fatalf("failed to parse typed params: %s", err)
 	}
 
-    reqParams := getRequiredParams(node)
+	reqParams := getRequiredParams(node)
 
 	var template CmdTemplate
 	_, err = evaluateIterables(node, template, tp, reqParams)
@@ -755,7 +770,7 @@ func TestDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error: %s", err)
 	}
-	_, cmdStrErr := dryRun(workflow)
+	_, cmdStrErr := DryRun(workflow)
 	if cmdStrErr != nil {
 		t.Fatalf("failed to execute dry run: %s", cmdStrErr)
 	}

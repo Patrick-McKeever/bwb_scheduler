@@ -402,7 +402,7 @@ func parseWorkflowNode(
 	workflowNode.IterGroupSize = parsedXml.IterGroupSize
 	workflowNode.OptionsChecked = parsedXml.OptionsChecked
 
-	fmt.Printf("WARNING: Adding default resource vals for node %d\n", nodeId)
+	//fmt.Printf("WARNING: Adding default resource vals for node %d\n", nodeId)
 
 	var useGpu bool
 	if useGpuRaw, ok := baseProps["useGpu"]; ok {

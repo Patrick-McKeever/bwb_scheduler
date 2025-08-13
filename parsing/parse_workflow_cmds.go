@@ -1,11 +1,12 @@
 package parsing
 
 import (
-    "fmt"
-    "regexp"
-    "sort"
-    "strconv"
-    "strings"
+	"fmt"
+	"regexp"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 type PatternQuery struct {
@@ -13,9 +14,10 @@ type PatternQuery struct {
     Pattern  string
     FindFile bool
     FindDir  bool
+    Sorted   bool
 }
 
-type GlobFunc func(PatternQuery) ([]string, error)
+type GlobFunc func(string, string, bool, bool) ([]string, error)
 
 type CmdSub struct {
     Start int
@@ -38,10 +40,12 @@ type CmdTemplate struct {
 
     // Keep track of input and output files for this command.
     // InFiles are fixed paths, but output files must be stored
-    // by paramter names (OutFilePaths), since the filenames of
-    // output files may not be known until after runtime (where
-    // they may be written to /tmp/output).
+    // both as fixed paths (OutFiles) and by paramter names 
+    // (OutFilePnames), since the filenames of output files may 
+    // not be known until after runtime (where they may be written 
+    // to /tmp/output).
     InFiles       []string
+    OutFiles      []string
     OutFilePnames []string
 
     ResourceReqs ResourceVector
@@ -57,6 +61,36 @@ type TypedParams struct {
     DoubleLists    map[string][]float64
     PatternQueries map[string]PatternQuery
     NilVals        map[string]struct{}
+}
+
+func concatMapsOfScalars[V any](dst map[string][]V, src map[string]V) {
+    for k, v := range src {
+        dst[k] = append(dst[k], v)
+    }
+}
+
+func concatMapsOfLists[V any](dst, src map[string][]V) {
+    for k, v := range src {
+        dst[k] = append(dst[k], v...)
+    }
+}
+
+func concatScalarParams(tps []TypedParams) (TypedParams) {
+    newTp := TypedParams{
+        StrLists: make(map[string][]string),
+        IntLists: make(map[string][]int),
+        DoubleLists: make(map[string][]float64),
+    }
+
+    for _, tp := range tps {
+        concatMapsOfScalars(newTp.StrLists, tp.Strings)
+        concatMapsOfScalars(newTp.IntLists, tp.Ints)
+        concatMapsOfScalars(newTp.DoubleLists, tp.Doubles)
+        concatMapsOfLists(newTp.StrLists, tp.StrLists)
+        concatMapsOfLists(newTp.IntLists, tp.IntLists)
+        concatMapsOfLists(newTp.DoubleLists, tp.DoubleLists)
+    }
+    return newTp
 }
 
 func copyMapOfScalars[K comparable, V any](srcMap map[K]V) map[K]V {
@@ -98,12 +132,14 @@ func copyCmdTemplate(template CmdTemplate) CmdTemplate {
     newTemplate.Args = make([]string, len(template.Args))
     newTemplate.Flags = make([]string, len(template.Flags))
     newTemplate.InFiles = make([]string, len(template.InFiles))
+    newTemplate.OutFiles = make([]string, len(template.OutFiles))
     newTemplate.OutFilePnames = make([]string, len(template.OutFilePnames))
 
     copy(newTemplate.BaseCmd, template.BaseCmd)
     copy(newTemplate.Args, template.Args)
     copy(newTemplate.Flags, template.Flags)
     copy(newTemplate.InFiles, template.InFiles)
+    copy(newTemplate.OutFiles, template.OutFiles)
     copy(newTemplate.OutFilePnames, template.OutFilePnames)
 
     newTemplate.Envs = copyMapOfScalars(template.Envs)
@@ -157,11 +193,17 @@ func parsePatternQuery(pqRaw any) (PatternQuery, error) {
         )
     }
 
+    sorted, sortedOk := pValMap["sorted"].(bool)
+    if !sortedOk {
+        sorted = false
+    }
+
     return PatternQuery{
         Root:     root,
         Pattern:  pattern,
         FindFile: findFile,
         FindDir:  findDir,
+        Sorted: sorted,
     }, nil
 
 }
@@ -430,8 +472,42 @@ func (tp *TypedParams) AddParam(
     return nil
 }
 
+func performPqSubs(pq *PatternQuery, node WorkflowNode, tp TypedParams) error {
+    for _, strPtr := range []*string{&pq.Root, &pq.Pattern} {
+        subs := getCmdSubs(*strPtr)
+        var startLocs []int
+        for startLoc := range subs {
+            startLocs = append(startLocs, startLoc)
+        }
+        sort.Ints(startLocs)
+
+        previousEnd := 0
+        newVal := ""
+        for _, startLoc := range startLocs {
+            sub := subs[startLoc]
+
+            argType, argTypeExists := node.ArgTypes[sub.Pname]
+            if !argTypeExists {
+                return fmt.Errorf("pname %s has no argtype", sub.Pname)
+            }
+
+            val, ok := tp.LookupParam(sub.Pname, argType)
+            if !ok {
+                return fmt.Errorf("pname %s has no value", sub.Pname)
+            }
+
+            newVal += pq.Root[previousEnd:startLoc] + fmt.Sprintf("%v", val)
+            previousEnd = sub.End
+        }
+
+        *strPtr = newVal
+    }
+
+    return nil
+}
+
 func (tp *TypedParams) ResolvePq(
-    pname string, glob GlobFunc,
+    pname string, node WorkflowNode, glob GlobFunc,
 ) error {
     if _, alreadyResolved := tp.StrLists[pname]; alreadyResolved {
         return nil
@@ -441,11 +517,17 @@ func (tp *TypedParams) ResolvePq(
     if !ok {
         return fmt.Errorf("pattern query %s does not exist", pname)
     }
+    performPqSubs(&pq, node, *tp)
 
-    matches, err := glob(pq)
+    matches, err := glob(pq.Root, pq.Pattern, pq.FindFile, pq.FindDir)
     if err != nil {
         return err
     }
+    
+    if pq.Sorted {
+        slices.Sort(matches)
+    }
+
     tp.StrLists[pname] = matches
     return nil
 }
@@ -494,7 +576,7 @@ func getEnvValStrFromList[T any](list []T) string {
 
     out := "["
     for i, elRaw := range list {
-        out += fmt.Sprintf("\\\"%v\\\"", elRaw)
+        out += fmt.Sprintf("\"%v\"", elRaw)
 
         if i < len(list)-1 {
             out += ","
@@ -798,40 +880,72 @@ func evaluateInOutFiles(
             continue
         }
 
-        if !argTypeIsStr(argType.ArgType) {
-            return fmt.Errorf("input / output file pname %s is not str", pname)
+        argIsList := strings.HasSuffix(argType.ArgType, "list")
+        baseType := argType.ArgType
+        if argIsList {
+            baseType = strings.Split(argType.ArgType, " ")[0]
+        }
+        
+        if !argTypeIsStr(baseType) && argType.ArgType != "patternQuery" {
+            return fmt.Errorf(
+                "input / output file pname %s is not str or  PQ", pname,
+            )
         }
 
         // Iterble attrs will be processed in evaluteIterables, since
         // the value of an input file may vary during iteration over
         // a list.
         isIterable := iterAttrs[pname]
-        if argType.InputFile != nil && *argType.InputFile && !isIterable {
+        isInFile := argType.InputFile != nil && *argType.InputFile && !isIterable 
+        isOutFile := argType.OutputFile != nil && *argType.OutputFile && !isIterable 
+        if isInFile || isOutFile {
             var pVal any
             var pValExists bool
             pVal, pValExists = tp.LookupParamParsed(pname, argType)
-            pValStr, convOk := pVal.(string)
+            if !pValExists {
+                if isInFile {
+                    baseErr := "pname %s is listed as input file but is unset"
+                    if argType.ArgType == "patternQuery" {
+                        baseErr += "; probably unresolved pattern query"
+                    }
+                    return fmt.Errorf(baseErr, pname)
+                }
+
+                // Unlike input files, we only store pnames (not vals) for output
+                // files, so there's no need to defer evaluation until processing
+                // iterables.
+                template.OutFilePnames = append(template.OutFilePnames, pname)
+                continue
+            }
+
+            var convOk bool
+            if argIsList || argType.ArgType == "patternQuery" {
+                var pValList []string
+                pValList, convOk = pVal.([]string)
+                if isInFile {
+                    template.InFiles = append(template.InFiles, pValList...)
+                }
+
+                if isOutFile {
+                    template.OutFiles = append(template.OutFiles, pValList...)
+                }
+            } else {
+                var pValStr string
+                pValStr, convOk = pVal.(string)
+                if isInFile {
+                    template.InFiles = append(template.InFiles, pValStr)
+                }
+
+                if isOutFile {
+                    template.OutFiles = append(template.OutFiles, pValStr)
+                }
+            }
             if !convOk {
                 return fmt.Errorf(
-                    "unable to convert input/output file param %s to str",
-                    pname,
+                    "unable to convert input/output file param %s to str " +
+                    "or str list", pname,
                 )
             }
-            if !pValExists {
-                baseErr := "pname %s is listed as input file but is unset"
-                if argType.ArgType == "patternQuery" {
-                    baseErr += "; probably unresolved pattern query"
-                }
-                return fmt.Errorf(baseErr, pname)
-            }
-            template.InFiles = append(template.InFiles, pValStr)
-        }
-
-        // Unlike input files, we only store pnames (not vals) for output
-        // files, so there's no need to defer evaluation until processing
-        // iterables.
-        if argType.OutputFile != nil && *argType.OutputFile {
-            template.OutFilePnames = append(template.OutFilePnames, pname)
         }
     }
     return nil
@@ -1062,6 +1176,13 @@ func evaluateIterables(
                         strGroups[pname][i%numGroups]...,
                     )
                 }
+
+                if argType.OutputFile != nil && *argType.OutputFile {
+                    ithIteration.OutFiles = append(
+                        ithIteration.OutFiles,
+                        strGroups[pname][i%numGroups]...,
+                    )
+                }
             }
         }
 
@@ -1092,7 +1213,6 @@ func getCmdSubs(cmd string) map[int]CmdSub {
 
     return ret
 }
-
 func performCmdSubs(
     node WorkflowNode, template *CmdTemplate, nonIterVals TypedParams, skipIters bool,
 ) error {
@@ -1160,7 +1280,7 @@ func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
             shouldEval := (argType.Flag != nil || argType.Env != nil || 
                 (argType.IsArgument != nil && *argType.IsArgument))
             if shouldEval {
-                err := tp.ResolvePq(pname, glob)
+                err := tp.ResolvePq(pname, node, glob)
                 if err != nil {
                     return err
                 }
@@ -1283,14 +1403,14 @@ func FormSingularityCmd(
     //cmdStr = strings.ReplaceAll(cmdStr, "$", "\\$")
 
     fullCmd := fmt.Sprintf(
-        "singularity exec %s -p -i --cleanenv %s %s sh -c '%s'",
+        "singularity exec %s -p -i --containall --cleanenv %s %s sh -c '%s'",
         gpuFlag, volumesStr, sif_path, cmdStr,
     )
 
     return fullCmd, envStrs
 }
 
-func dryRun(workflow Workflow) ([]string, error) {
+func DryRun(workflow Workflow) ([]string, error) {
     inLinks, _, err := getInAndOutLinks(workflow)
     if err != nil {
         return nil, err
@@ -1389,7 +1509,7 @@ func dryRun(workflow Workflow) ([]string, error) {
         // to str lists), so we can safely pass a DummyFS which returns nothing
         // when queried.
         cmdTemplates, cmdErrs := ParseNodeCmd(
-            revisedNode, tp, func(pq PatternQuery) ([]string, error) {
+            revisedNode, tp, func(_, _ string, _, _ bool) ([]string, error) {
                 return nil, nil
             },
         )
