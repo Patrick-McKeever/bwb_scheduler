@@ -775,3 +775,20 @@ func TestDryRun(t *testing.T) {
 		t.Fatalf("failed to execute dry run: %s", cmdStrErr)
 	}
 }
+
+func TestAbcd(t *testing.T) {
+	file, err := os.Open("/home/patrick/abcd.json")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	var cfg NodeParams
+	if err := json.NewDecoder(file).Decode(&cfg); err != nil {
+		panic(err)
+	}
+
+    a, err := ParseNodeCmd(cfg.NodeDef, cfg.Params, func(s1, s2 string, b1, b2 bool) ([]string, error) { return nil, nil})
+    PrettyPrint(a)
+
+}

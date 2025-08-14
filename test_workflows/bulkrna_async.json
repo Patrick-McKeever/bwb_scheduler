@@ -412,7 +412,7 @@
 		"2": {
 			"Id": 2,
 			"ImageName": "patrickmckeever/star_async",
-			"ImageTag": "0.4",
+			"ImageTag": "0.6",
 			"Title": "starAlign",
 			"Command": [
 				"runstar.sh"
@@ -550,6 +550,16 @@
 					"default": 100,
 					"input_file": null,
 					"output_file": null
+				},
+				"outAlignDir": {
+					"type": "file list",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "The directory containing alignments logs",
+					"default": null,
+					"input_file": null,
+					"output_file": true
 				},
 				"alignWindowsPerReadNmax": {
 					"type": "int",
@@ -1846,6 +1856,22 @@
 					"input_file": null,
 					"output_file": null
 				},
+				"countsDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"label": "Directory for counts",
+					"input_file": null,
+					"output_file": null
+				},
+				"tablesDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"label": "Directory for tables of gather cnts",
+					"input_file": null,
+					"output_file": null
+				},
 				"aligneddir": {
 					"type": "directory",
 					"argument": null,
@@ -2214,7 +2240,7 @@
 					"output_file": true
 				},
 				"alignmentfiles": {
-					"type": "file",
+					"type": "file list",
 					"argument": null,
 					"flag": null,
 					"env": "inputfile",
@@ -2433,28 +2459,28 @@
 		},
 		"9": {
 			"Id": 9,
-			"ImageName": "biodepot/gathercounts",
-			"ImageTag": "cbbd690a__21b9851b__e5512470",
+			"ImageName": "patrickmckeever/gather_cnts",
+			"ImageTag": "0.1",
 			"Title": "gatherCounts",
 			"Command": [
 				"makeCountsMatrix.sh "
 			],
 			"ArgTypes": {
-				"alignsDir": {
-					"type": "directory",
-					"argument": true,
+				"alignedDirs": {
+					"type": "directory list",
+					"argument": false,
 					"flag": null,
-					"env": null,
-					"label": "Alignments directory",
+					"env": "alignedDirs",
+					"label": "Alignments directories",
 					"default": null,
 					"input_file": true,
 					"output_file": null
 				},
-				"countsDir": {
-					"type": "directory",
-					"argument": true,
+				"countsDirs": {
+					"type": "directory list",
+					"argument": false,
 					"flag": null,
-					"env": null,
+					"env": "countsDirs",
 					"label": "Counts directory",
 					"default": null,
 					"input_file": true,
@@ -2471,16 +2497,14 @@
 					"output_file": false
 				}
 			},
-			"ArgOrder": [
-				"countsDir",
-				"alignsDir"
-			],
+			"ArgOrder": [],
 			"OptionsChecked": {
 				"tablesDir": false
 			},
 			"RequiredParams": [
-				"countsDir",
-				"alignsDir"
+				"countsDirs",
+				"alignedDirs",
+                "tablesDir"
 			],
 			"ResourceReqs": {
 				"MemMb": 8000,
@@ -2677,6 +2701,7 @@
 			"annotation_file": "/data/processing/genome/genome.gtf",
 			"awscredentialsdir": "/data/.aws",
 			"bypass_star_index": false,
+			"countsDir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/Counts",
 			"download_dir": "/data/processing/downloads",
 			"downloadindexlink": false,
 			"fastqfiles": [
@@ -2703,6 +2728,7 @@
 			"fastqDir": "/data/JAX_sixfile",
 			"s3sourcedirectory": "morphic-jax/JAX_RNAseq_ExtraEmbryonic",
 			"starversion": "2.7.11a",
+			"tablesDir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/Tables",
 			"transcriptomefile": "/data/processing/genome/transcriptome.fa",
 			"trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/trimmed",
 			"trimmedfastqfiles": null,
@@ -2751,8 +2777,8 @@
 			"secret": ""
 		},
 		"9": {
-			"alignsDir": "",
-			"countsDir": "",
+			"alignedDirs": [],
+			"countsDirs": [],
 			"tablesDir": ""
 		}
 	},
@@ -2920,6 +2946,12 @@
 			"SinkChannel": "outputDir"
 		},
 		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 6,
+			"SourceChannel": "countsDir",
+			"SinkChannel": "outputdir"
+		},
+		{
 			"SourceNodeId": 5,
 			"SinkNodeId": 6,
 			"SourceChannel": "outputgtf",
@@ -2938,16 +2970,22 @@
 			"SinkChannel": "transcriptome"
 		},
 		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 9,
+			"SourceChannel": "tablesDir",
+			"SinkChannel": "tablesDir"
+		},
+		{
 			"SourceNodeId": 2,
 			"SinkNodeId": 9,
-			"SourceChannel": "outputDir",
-			"SinkChannel": "alignsDir"
+			"SourceChannel": "outAlignDir",
+			"SinkChannel": "alignedDirs"
 		},
 		{
 			"SourceNodeId": 6,
 			"SinkNodeId": 9,
-			"SourceChannel": "outputdir",
-			"SinkChannel": "countsDir"
+			"SourceChannel": "sample_counts_dir",
+			"SinkChannel": "countsDirs"
 		},
 		{
 			"SourceNodeId": 7,
