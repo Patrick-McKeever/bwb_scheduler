@@ -345,11 +345,8 @@ func handleCompletedCmd(
 
     awaitResourceGrants(state, succCmds)
 
-    complete, err := state.cmdMan.IsComplete()
-    if err != nil {
-        *state.finished = true
-        *state.finalErr = err
-    } else if complete {
+    complete := state.cmdMan.IsComplete()
+    if complete {
         *state.finished = true
         state.finalErr = nil
     }

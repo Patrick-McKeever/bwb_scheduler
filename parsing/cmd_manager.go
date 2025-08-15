@@ -73,7 +73,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	}
 
 	succParams, err := cmdMan.state.getSuccParams(
-		inputParams, []TypedParams{outputTp},
+		inputParams, []TypedParams{outputTp}, true,
 	)
 
 	jsonStr, _ := json.MarshalIndent(inputParams, "", "\t")
@@ -107,7 +107,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
     return cmds, err
 }
 
-func (cmdMan *CmdManager) IsComplete() (bool, error) {
+func (cmdMan *CmdManager) IsComplete() bool {
 	return cmdMan.state.IsComplete()
 }
 
