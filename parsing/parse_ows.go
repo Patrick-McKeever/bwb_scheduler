@@ -127,7 +127,6 @@ type WorkflowNode struct {
 	ResourceReqs   ResourceVector
 	Async          bool
 	BarrierFor     *int
-	// Attr name -> group size
 	Iterate       bool
 	IterGroupSize map[string]int
 	IterAttrs     []string

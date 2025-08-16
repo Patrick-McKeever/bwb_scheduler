@@ -38,6 +38,7 @@ type BwbWorkflowState struct {
     grantsById  map[int]ResourceGrant
     finalErr    *error
     finished    *bool
+    softFail    bool
 }
 
 func getSifName(dockerImage string) string {
@@ -319,17 +320,20 @@ func handleCompletedCmd(
 ) {
     fmt.Printf("Completed cmd for node %d\n", completedCmd.NodeId)
     var result CmdOutput
-    if err := f.Get(state.ctx, &result); err != nil {
-        *state.finished = true
+    err := f.Get(state.ctx, &result)
+    if err != nil {
         *state.finalErr = err
-        return
+        if !state.softFail {
+            *state.finished = true
+            return
+        }
     }
 
     succCmds, err := state.cmdMan.GetSuccCmds(
         completedCmd, result.RawOutputs, 
         func(root, pattern string, findFile, findDir bool) ([]string, error) {
             return globWorkerFS(state, root, pattern, findFile, findDir)
-        },
+        }, err != nil,
     )
 
     if err != nil {
@@ -345,7 +349,11 @@ func handleCompletedCmd(
 
     awaitResourceGrants(state, succCmds)
 
+    failed := state.cmdMan.HasFailed()
     complete := state.cmdMan.IsComplete()
+    if failed && !state.softFail {
+
+    }
     if complete {
         *state.finished = true
         state.finalErr = nil
@@ -432,6 +440,7 @@ func RunBwbWorkflow(
     index parsing.WorkflowIndex,
     workers map[string]WorkerInfo,
     masterFS fs.LocalFS,
+    softFail bool,
 ) (error) {
     logger := workflow.GetLogger(ctx)
     logger.Info("Beginning workflow")

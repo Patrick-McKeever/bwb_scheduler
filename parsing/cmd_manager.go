@@ -40,6 +40,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	completedCmd CmdTemplate,
 	rawOutputs map[string]string,
 	glob GlobFunc,
+    success bool,
 ) ([]CmdTemplate, error) {
 	inputParams, inputParamsExist := cmdMan.cmdIdToParams[completedCmd.Id]
 	if !inputParamsExist {
@@ -73,7 +74,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	}
 
 	succParams, err := cmdMan.state.getSuccParams(
-		inputParams, []TypedParams{outputTp}, true,
+		inputParams, []TypedParams{outputTp}, success,
 	)
 
 	jsonStr, _ := json.MarshalIndent(inputParams, "", "\t")
@@ -109,6 +110,10 @@ func (cmdMan *CmdManager) GetSuccCmds(
 
 func (cmdMan *CmdManager) IsComplete() bool {
 	return cmdMan.state.IsComplete()
+}
+
+func (cmdMan *CmdManager) HasFailed() bool {
+	return cmdMan.state.HasFailed()
 }
 
 func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) ([]CmdTemplate, error) {

@@ -25,7 +25,16 @@ type WorkflowIndex struct {
 	LayeredTopSort [][]int
 	BarrierFor     map[int]int
 
-	BaseParams map[int]TypedParams
+    // Parsed params for each node by ID.
+	BaseParams     map[int]TypedParams
+
+    // Node title to ID
+    TitleToId      map[string]int
+}
+
+func (index *WorkflowIndex) GetIdFromTitle(title string) (int, bool) {
+    id, ok := index.TitleToId[title]
+    return id, ok
 }
 
 func (index *WorkflowIndex) getStartNodes() []int {
@@ -51,14 +60,18 @@ func (index *WorkflowIndex) getSharedAsyncAncs(id1 int, id2 int) ([]int, error) 
 		}
 	}
 
-	//if len(asyncAnc1) > len(asyncAnc2) && asyncAnc1[len(asyncAnc2)] == id2 {
-	//	shared = append(shared, id2)
-	//}
-	//if len(asyncAnc2) > len(asyncAnc1) && asyncAnc2[len(asyncAnc1)] == id1 {
-	//	shared = append(shared, id1)
-	//}
-
     return shared, nil
+}
+
+func (index *WorkflowIndex) AddParam(
+    nodeId int, pname string, argType WorkflowArgType, val any,
+) error {
+    baseParams, baseParamsExist := index.BaseParams[nodeId]
+    if !baseParamsExist {
+        return fmt.Errorf("node %d does not exist", nodeId)
+    }
+
+    return baseParams.AddParam(val, pname, argType)
 }
 
 func getInAndOutLinks(
@@ -505,6 +518,11 @@ func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	if err != nil {
 		return WorkflowIndex{}, err
 	}
+
+    index.TitleToId = make(map[string]int)
+    for nodeId, node := range workflow.Nodes {
+        index.TitleToId[node.Title] = nodeId
+    }
 
 	return index, nil
 }

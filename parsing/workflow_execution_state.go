@@ -45,6 +45,7 @@ func NewWorkflowExecutionState(
         finished:          true,
         succs:             map[int]map[int]*NodeExec{},
         remainingSuccRuns: map[int]map[int]struct{}{},
+        success: true,
     }
     state.runsByAncList = make(map[int]map[string]*NodeExec)
     for nodeId := range workflow.Nodes {
@@ -81,14 +82,7 @@ func (tree *WorkflowExecutionState) getInitialNodeParams() (map[int][]NodeParams
             )
         }
 
-        baseProps := tree.workflow.NodeBaseProps[startNodeId]
-        tp, err := parseTypedParams(startNode, baseProps)
-        if err != nil {
-            return nil, fmt.Errorf(
-                "error parsing node %d params: %s", startNodeId, err,
-            )
-        }
-
+        tp := tree.index.BaseParams[startNodeId]
         nodeParams := NodeParams{
             NodeId:  startNodeId,
             AncList: []int{0},
@@ -325,30 +319,10 @@ func markNodeComplete(node *NodeExec, ancList []int, subtreeFailed bool) error {
         }
     }
     return nil
-    //node.finished = true
-    //node.subtreeFailed = subtreeFailed
-
-    //if node.pred == nil || len(ancList) == 0 {
-    //    return nil
-    //}
-
-    //if _, ok := node.pred.remainingSuccRuns[node.nodeId]; !ok {
-    //    return fmt.Errorf(
-    //        "pred of node %d has no entry in remaining succ list for it",
-    //        node.nodeId,
-    //    )
-    //}
-
-    //if asyncBlockComplete(*node) {
-    //    lastAsyncRunId := ancList[len(ancList)-1]
-    //    delete(node.pred.remainingSuccRuns[node.nodeId], lastAsyncRunId)
-    //    return markNodeComplete(node.pred, ancList[:len(ancList)-1], subtreeFailed)
-    //}
-    //return nil
 }
 
 func (tree *WorkflowExecutionState) addCmdResults(
-    inputs NodeParams, outputs []TypedParams, sucess bool,
+    inputs NodeParams, outputs []TypedParams,
 ) error {
     node, nodeExists := tree.workflow.Nodes[inputs.NodeId]
     if !nodeExists {
@@ -369,7 +343,6 @@ func (tree *WorkflowExecutionState) addCmdResults(
 
     outputIndices := make([]int, 0)
     execNodePtr.finished = true
-    execNodePtr.success = sucess
     for _, outputSet := range outputs {
         execNodePtr.outputs = append(execNodePtr.outputs, outputSet)
         outputIndices = append(outputIndices, len(execNodePtr.outputs)-1)
@@ -397,7 +370,7 @@ func (tree *WorkflowExecutionState) addCmdResults(
         }
     }
 
-    return markNodeComplete(execNodePtr, inputs.AncList, !sucess)
+    return markNodeComplete(execNodePtr, inputs.AncList, false)
 }
 
 func (tree *WorkflowExecutionState) getCandidateAncLists(
@@ -549,7 +522,7 @@ func (tree *WorkflowExecutionState) triggerSuccs(
                 // appear in its ancestor list or the assumption that there is a strict topological
                 // ordering of async ancestors.
                 requiredPredRun := tree.lookupNode(predOfSucc, predAncListPrefix)
-                if requiredPredRun == nil || !requiredPredRun.finished {
+                if requiredPredRun == nil || !requiredPredRun.finished || !requiredPredRun.success {
                     isEligible = false
                     break
                 }
@@ -764,6 +737,7 @@ func (tree *WorkflowExecutionState) markRecursiveFailure(
     inputs NodeParams,
 ) error {
     node := tree.lookupNode(inputs.NodeId, inputs.AncList)
+    node.success = false
     if err := markNodeComplete(node, inputs.AncList, true); err != nil {
         return fmt.Errorf(
             "error marking node %d, anc list %v complete: %s",
@@ -796,7 +770,7 @@ func (tree *WorkflowExecutionState) markRecursiveFailure(
             descNode, err := tree.createInputNode(NodeParams{
                 NodeId: descId,
                 AncList: descAncList,
-            }, descAncList, true)
+            }, descAncList, false)
 
             if err != nil {
                 return fmt.Errorf(
@@ -826,7 +800,7 @@ func (tree *WorkflowExecutionState) getSuccParams(
         return map[int][]NodeParams{}, nil
     }
 
-    if err := tree.addCmdResults(inputs, outputs, true); err != nil {
+    if err := tree.addCmdResults(inputs, outputs); err != nil {
         return nil, fmt.Errorf("error adding results: %s", err)
     }
 

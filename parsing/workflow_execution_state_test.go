@@ -1183,7 +1183,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 
     inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, expNumSuccsOf2)
     for i, inputFor3 := range inputsFor3 {
-        err := state.addCmdResults(inputFor3, []TypedParams{{}}, true)
+        err := state.addCmdResults(inputFor3, []TypedParams{{}})
         if err != nil {
             t.Fatalf("error adding outputs of 2: %s", err)
         }
@@ -1300,7 +1300,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 
     inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, expNumSuccsOf2)
     for i, inputFor3 := range inputsFor3 {
-        err := state.addCmdResults(inputFor3, []TypedParams{{}}, true)
+        err := state.addCmdResults(inputFor3, []TypedParams{{}})
         if err != nil {
             t.Fatalf("error adding outputs of 2: %s", err)
         }

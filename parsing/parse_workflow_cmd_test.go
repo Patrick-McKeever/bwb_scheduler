@@ -286,24 +286,22 @@ func basicIterValidation(
 	node WorkflowNode, baseProps map[string]any,
 	iters []CmdTemplate, param string,
 ) error {
-	// These are panics rather than errors, since this is an
-	// issue with the testing code rather than the thing being tested.
 	if _, ok := baseProps[param]; !ok {
-		panic(fmt.Sprintf("non-existent param %s", param))
+		return fmt.Errorf("non-existent param %s", param)
 	}
 
 	actualVals, ok := baseProps[param].([]any)
 	listParamLen := len(actualVals)
 	if !ok {
-		panic(fmt.Sprintf("failed converting %s to list", param))
+		return fmt.Errorf("failed converting %s to list", param)
 	}
 
 	groupSize, ok := node.IterGroupSize[param]
 	if !ok {
-		panic(fmt.Sprintf(
+		return fmt.Errorf(
 			"trying to test non-iterable param %s in iterable tests",
 			param,
-		))
+		)
 	}
 
 	expectedSize := math.Ceil(float64(listParamLen) / float64(groupSize))
