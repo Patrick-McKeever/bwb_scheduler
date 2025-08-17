@@ -85,13 +85,9 @@ func (b *ByteSize) Set(s string) error {
 }
 
 
-func startWorker(queueName string, scheduler bool) {
+func startWorker(slogger *slog.Logger, queueName string, scheduler bool) {
     // Create Temporal client
-    logger := temporalLog.NewStructuredLogger(slog.New(slog.NewTextHandler(os.Stdout, 
-        &slog.HandlerOptions{
-            Level: slog.LevelWarn,
-        },
-    )))
+    logger := temporalLog.NewStructuredLogger(slogger)
     c, err := client.NewLazyClient(client.Options{
         Logger: logger,
     })
@@ -103,7 +99,7 @@ func startWorker(queueName string, scheduler bool) {
     w := worker.New(c, queueName, worker.Options{})
 
     if scheduler {
-        w.RegisterWorkflow(workflow.RunBwbWorkflow)
+        w.RegisterWorkflow(workflow.RunBwbWorkflowTemporal)
         w.RegisterWorkflow(workflow.ResourceSchedulerWorkflow)
         w.RegisterActivity(workflow.BuildSingularitySIF)
         w.RegisterActivity(fs.GlobActivity[fs.LocalFS])
@@ -273,10 +269,6 @@ func runWorkflow(
     noTemporal, softFail bool, checkptPath string, workerRam ByteSize, 
     workerCpus, workerGpus int,
 ) error {
-    if noTemporal {
-        return fmt.Errorf("noTemporal not yet implemented")
-    }
-
     data, err := os.ReadFile(wfPath)
     if err != nil {
         return fmt.Errorf("failed to read workflow file %s: %v", wfPath, err)
@@ -304,8 +296,43 @@ func runWorkflow(
     if queueName == "" {
         queueName = randomString(16)
     }
-    go startWorker("bwb_worker", true)
-    go startWorker(queueName, false)
+
+    localWorker := workflow.WorkerInfo{
+        QueueId: queueName,
+        TotalResources: parsing.ResourceVector{
+            MemMb: workerRam.AsUnit("MB"),
+            Cpus: workerCpus,
+            Gpus: workerGpus,
+        },
+    }
+
+    sched_dir := os.Getenv("BWB_SCHED_DIR")
+    revisedStorageID := "storageID"
+    if storageId != "" {
+        revisedStorageID = filepath.Join(sched_dir, storageId)
+    }
+
+    masterFS := fs.LocalFS{
+        Volumes: map[string]string{
+            "/data": filepath.Join(sched_dir, revisedStorageID),
+        },
+    }
+
+    logger := slog.New(slog.NewTextHandler(os.Stdout, 
+        &slog.HandlerOptions{
+            Level: slog.LevelWarn,
+        },
+    ))
+
+    if noTemporal {
+        return workflow.RunBwbWorkflowNoTemporal(
+            storageId, bwbWorkflow, index, localWorker,
+            masterFS, softFail, *logger,
+        )
+    }
+
+    go startWorker(logger, "bwb_worker", true)
+    go startWorker(logger, queueName, false)
 
     c, err := client.NewLazyClient(client.Options{})
 
@@ -323,27 +350,7 @@ func runWorkflow(
         TaskQueue: "bwb_worker",
     }
 
-    workers := map[string]workflow.WorkerInfo{
-        queueName: {
-            QueueId: queueName,
-            TotalResources: parsing.ResourceVector{
-                MemMb: workerRam.AsUnit("MB"),
-                Cpus: workerCpus,
-                Gpus: workerGpus,
-            },
-        },
-    }
-
-    sched_dir := os.Getenv("BWB_SCHED_DIR")
-    revisedStorageID := "storageID"
-    if storageId != "" {
-        revisedStorageID = filepath.Join(sched_dir, storageId)
-    }
-    masterFS := fs.LocalFS{
-        Volumes: map[string]string{
-            "/data": filepath.Join(sched_dir, revisedStorageID),
-        },
-    }
+    workers := map[string]workflow.WorkerInfo{ queueName: localWorker }
 
     we, err := c.ExecuteWorkflow(
         context.Background(), workflowOptions, 

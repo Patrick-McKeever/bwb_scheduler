@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+    "errors"
+    "log/slog"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -20,25 +22,418 @@ const (
 )
 
 type CmdOutput struct {
+    Id          int
     StdOut      string
     StdErr      string
     RawOutputs  map[string]string
     OutputFiles []string
 }
 
-type BwbWorkflowState struct {
+type WorkflowState interface {
+    Setup() error
+    Select()
+    Shutdown()
+    IsFinished() bool
+    AddError(error)
+    GetErrors() []error
+    SetFinished()
+    RequestResourceGrant([]parsing.CmdTemplate)
+    ReleaseResourceGrant(ResourceGrant) error
+    BuildImages([]string) error
+    SetupWorkerFSs() error
+    RunCmdWithGrant(parsing.CmdTemplate, ResourceGrant)
+    Glob(string, string, bool, bool) ([]string, error)
+}
+
+type TemporalBwbWorkflowState struct {
     ctx         workflow.Context
-    selector    workflow.Selector
-    schedulerWE workflow.Execution
     cmdMan      *parsing.CmdManager
     masterFS    fs.LocalFS
-    workerFSs   map[string]fs.LocalFS
+    workers     map[string]WorkerInfo
+    softFail    bool
     storageId   string
+    selector    workflow.Selector
+    schedulerWE workflow.Execution
+    cancelChild func()
+    workerFSs   map[string]fs.LocalFS
     cmdsById    map[int]parsing.CmdTemplate
     grantsById  map[int]ResourceGrant
-    finalErr    *error
+    errors      []error
     finished    *bool
-    softFail    bool
+}
+
+func NewTemporalBwbWorkflowState(
+    ctx workflow.Context, cmdMan *parsing.CmdManager, 
+    masterFS fs.LocalFS, workers map[string]WorkerInfo, 
+    storageId string, softFail bool,
+) TemporalBwbWorkflowState {
+    var state TemporalBwbWorkflowState
+    lValForFalse := false
+    state.finished = &lValForFalse
+    state.ctx = ctx
+    state.cmdMan = cmdMan
+    state.masterFS = masterFS
+    state.workers = workers
+    state.storageId = storageId
+    state.softFail = softFail
+    state.workerFSs = make(map[string]fs.LocalFS)
+    state.cmdsById = make(map[int]parsing.CmdTemplate)
+    state.grantsById = make(map[int]ResourceGrant)
+    state.errors = make([]error, 0)
+    return state
+}
+
+func (state *TemporalBwbWorkflowState) Setup() error {
+    childCtx, cancelChild := workflow.WithCancel(state.ctx)
+    schedChildWfOptions := workflow.ChildWorkflowOptions{
+        WorkflowID: "sched-workflow",
+        TaskQueue: SCHEDULER_QUEUE,
+    }
+    childCtx = workflow.WithChildOptions(childCtx, schedChildWfOptions)
+    schedChildWfFuture := workflow.ExecuteChildWorkflow(
+        childCtx, ResourceSchedulerWorkflow, SchedWorkflowState{
+            Workers: state.workers,
+        },
+    )
+    var schedChildWE workflow.Execution
+    err := schedChildWfFuture.GetChildWorkflowExecution().Get(state.ctx, &schedChildWE)
+    if err != nil {
+        outErr := fmt.Errorf("failed getting child WF execution: %s", err)
+        return outErr
+    }
+    state.cancelChild = cancelChild
+
+    state.selector = workflow.NewSelector(state.ctx)
+    rGrantChan := workflow.GetSignalChannel(state.ctx, "allocation-response")
+    state.selector.AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
+        var grant ResourceGrant
+        c.Receive(state.ctx, &grant)
+        cmd := state.cmdsById[grant.RequestId]
+        state.RunCmdWithGrant(cmd, grant)
+    })
+    return nil
+}
+
+func (state *TemporalBwbWorkflowState) Select() {
+    state.selector.Select(state.ctx)
+}
+
+func (state *TemporalBwbWorkflowState) Shutdown() {
+    state.cancelChild()
+}
+
+func (state *TemporalBwbWorkflowState) IsFinished() bool {
+    return *state.finished
+}
+
+func (state *TemporalBwbWorkflowState) SetFinished() {
+    *state.finished = true
+}
+
+func (state *TemporalBwbWorkflowState) AddError(err error) {
+    state.errors = append(state.errors, err)
+}
+
+func (state *TemporalBwbWorkflowState) GetErrors() []error {
+    return state.errors
+}
+
+func (state *TemporalBwbWorkflowState) RequestResourceGrant(
+    cmds []parsing.CmdTemplate,
+) {
+    workflowId := workflow.GetInfo(state.ctx).WorkflowExecution.ID
+    for _, cmd := range cmds {
+        state.cmdsById[cmd.Id] = cmd
+        req := ResourceRequest{
+            Rank: 0,
+            Id: cmd.Id,
+            Requirements: cmd.ResourceReqs,
+            CallerWorkflowId: workflowId,
+        }
+
+        workflow.SignalExternalWorkflow(
+            state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
+            "new-request", req,
+        )
+    }
+}
+
+func (state *TemporalBwbWorkflowState) ReleaseResourceGrant(
+    grant ResourceGrant,
+) error {
+    workflow.SignalExternalWorkflow(
+        state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
+        "release-allocation", grant,
+    )
+    return nil
+}
+
+func (state *TemporalBwbWorkflowState) SetupWorkerFSs(
+) (error) {
+    for queueId := range state.workers {
+        ao := workflow.ActivityOptions{
+            TaskQueue: queueId,
+            StartToCloseTimeout: 1*time.Minute,
+            RetryPolicy: &temporal.RetryPolicy{
+                MaximumAttempts: 1,
+            },
+        }
+        cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+
+        var volumes map[string]string
+        err := workflow.ExecuteActivity(
+            cmdCtx, SetupVolumes, state.storageId,
+        ).Get(state.ctx, &volumes)
+
+        if err != nil {
+            return fmt.Errorf(
+                "error setting up cmd dirs on worker %s: %s",
+                queueId, err,
+            )
+        }
+
+        state.workerFSs[queueId] = fs.LocalFS{ Volumes: volumes }
+    }
+    return nil
+}
+
+func (state *TemporalBwbWorkflowState) BuildImages(imageNames []string) error {
+    ao := workflow.ActivityOptions{
+        TaskQueue: "bwb_worker",
+        StartToCloseTimeout: 10*time.Minute,
+        RetryPolicy: &temporal.RetryPolicy{
+            MaximumAttempts: 1,
+        },
+    }
+    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    for _, imageName := range imageNames {
+        err := workflow.ExecuteActivity(
+            cmdCtx, BuildSingularitySIF, imageName,
+        ).Get(state.ctx, nil)
+        if err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func (state *TemporalBwbWorkflowState) RunCmdWithGrant(
+    cmd parsing.CmdTemplate, grant ResourceGrant,
+) {
+    ao := workflow.ActivityOptions{
+        TaskQueue: grant.WorkerId,
+        StartToCloseTimeout: 3*time.Hour,
+        RetryPolicy: &temporal.RetryPolicy{
+            MaximumAttempts: 1,
+        },
+    }
+
+    fs, ok := state.workerFSs[grant.WorkerId]
+    if !ok {
+        state.errors = append(state.errors, fmt.Errorf(
+            "worker %s has no FS", grant.WorkerId,
+        ))
+        *state.finished = true
+        return
+    }
+    volumes := fs.GetVolumes()
+
+    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    cmdFuture := workflow.ExecuteActivity(
+        cmdCtx, RunCmd, volumes, cmd,
+    )
+    state.selector.AddFuture(cmdFuture, func(f workflow.Future) {
+        var result CmdOutput
+        err := f.Get(state.ctx, &result)
+        HandleCompletedCmd(result, err, state.softFail, state.cmdMan, state, cmd, grant)
+    })
+
+}
+
+func (state *TemporalBwbWorkflowState) Glob(
+    root, pattern string, 
+    findFile, findDir bool,
+) ([]string, error) {
+    ao := workflow.ActivityOptions{
+        TaskQueue: "bwb_worker",
+        StartToCloseTimeout: 1*time.Minute,
+        RetryPolicy: &temporal.RetryPolicy{
+            MaximumAttempts: 3,
+        },
+    }
+    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    var out []string
+    err := workflow.ExecuteActivity(
+        cmdCtx, fs.GlobActivity[fs.LocalFS], state.masterFS, 
+        root,  pattern, findFile, findDir,
+    ).Get(state.ctx, &out)
+    return out, err
+}
+
+type NonTemporalBwbWorkflowState struct {
+    cmdMan              *parsing.CmdManager
+    masterFS            fs.LocalFS
+    localWorker         WorkerInfo
+    storageId           string
+    softFail            bool
+    logger              slog.Logger
+    reqGrantChan        chan ResourceRequest
+    releaseGrantChan    chan ResourceGrant
+    recvGrantChan       chan ResourceGrant
+    doneChan            chan bool
+    cmdResChan          chan struct{result CmdOutput; err error}
+    cmdsById            map[int]parsing.CmdTemplate
+    grantsById          map[int]ResourceGrant
+    errors              []error
+    finished            bool
+}
+
+func NewNonTemporalBwbWorkflowState(
+    cmdMan *parsing.CmdManager, masterFS fs.LocalFS,
+    worker WorkerInfo, storageId string,
+    softFail bool, logger slog.Logger,
+) NonTemporalBwbWorkflowState {
+    var state NonTemporalBwbWorkflowState
+    state.finished = false
+    state.cmdMan = cmdMan
+    state.masterFS = masterFS
+    state.localWorker = worker
+    state.storageId = storageId
+    state.softFail = softFail
+    state.logger = logger
+    state.grantsById = make(map[int]ResourceGrant)
+    state.cmdsById = make(map[int]parsing.CmdTemplate)
+    state.grantsById = make(map[int]ResourceGrant)
+    state.errors = make([]error, 0)
+    state.reqGrantChan = make(chan ResourceRequest)
+    state.releaseGrantChan = make(chan ResourceGrant)
+    state.recvGrantChan = make(chan ResourceGrant)
+    state.doneChan = make(chan bool)
+    state.cmdResChan = make(chan struct{result CmdOutput; err error})
+    return state
+}
+
+func (state *NonTemporalBwbWorkflowState) Setup() error {
+    workers := map[string]WorkerInfo{"local": state.localWorker}
+    go LocalResourceScheduler(
+        state.logger, workers, state.reqGrantChan, 
+        state.releaseGrantChan, state.recvGrantChan, 
+        state.doneChan,
+    )
+    return nil
+}
+
+func (state *NonTemporalBwbWorkflowState) Select() {
+    select { 
+    case grant := <-state.recvGrantChan: {
+        state.grantsById[grant.RequestId] = grant
+        cmd := state.cmdsById[grant.RequestId]
+        state.RunCmdWithGrant(cmd, grant)
+    }
+
+    case res := <- state.cmdResChan: {
+        cmd, cmdOk := state.cmdsById[res.result.Id]
+        grant, grantOk := state.grantsById[res.result.Id]
+        if !cmdOk || !grantOk {
+            state.logger.Warn(fmt.Sprintf(
+                "Received result for non-existent CMD ID %d", res.result.Id,
+            ))
+        }
+
+        // This absolutely needs to be done in a "select" of the main
+        // thread rather than in the finished command's goroutine, since
+        // none of these data-structures have been made thread-safe.
+        HandleCompletedCmd(
+            res.result, res.err, state.softFail, 
+            state.cmdMan, state, cmd, grant,
+        )
+    }
+    }
+}
+
+func (state *NonTemporalBwbWorkflowState) Shutdown() {
+    state.doneChan <- true
+}
+
+func (state *NonTemporalBwbWorkflowState) IsFinished() bool {
+    return state.finished
+}
+
+func (state *NonTemporalBwbWorkflowState) SetFinished() {
+    state.finished = true
+}
+
+func (state *NonTemporalBwbWorkflowState) AddError(err error) {
+    state.errors = append(state.errors, err)
+}
+
+func (state *NonTemporalBwbWorkflowState) GetErrors() []error {
+    return state.errors
+}
+
+func (state *NonTemporalBwbWorkflowState) RequestResourceGrant(
+    cmds []parsing.CmdTemplate,
+) {
+    for _, cmd := range cmds {
+        state.logger.Warn("requesting cmd")
+        state.cmdsById[cmd.Id] = cmd
+        req := ResourceRequest{
+            Rank: 0,
+            Id: cmd.Id,
+            Requirements: cmd.ResourceReqs,
+        }
+
+        state.reqGrantChan <- req
+    }
+}
+
+func (state *NonTemporalBwbWorkflowState) ReleaseResourceGrant(
+    grant ResourceGrant,
+) error {
+    state.releaseGrantChan <- grant
+    return nil
+}
+
+func (state *NonTemporalBwbWorkflowState) BuildImages(imageNames []string) error {
+    for _, imageName := range imageNames {
+        state.logger.Info(fmt.Sprintf("Building image %s\n", imageName))
+        if err := BuildSingularitySIF(imageName); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func (state *NonTemporalBwbWorkflowState) SetupWorkerFSs() error {
+    volumes, err := SetupVolumes(state.storageId)
+    if err != nil {
+        return err
+    }
+    state.masterFS.Volumes = volumes
+    return nil
+}
+
+func (state *NonTemporalBwbWorkflowState) RunCmdWithGrant(
+    cmd parsing.CmdTemplate, grant ResourceGrant,
+) {
+    volumes := state.masterFS.GetVolumes()
+
+    go func() {
+        result, err := RunCmd(volumes, cmd)
+        state.cmdResChan <- struct{result CmdOutput; err error}{
+            result: result,
+            err: err,
+        }
+    }()
+}
+
+func (state *NonTemporalBwbWorkflowState) Glob(
+    root, pattern string, 
+    findFile, findDir bool,
+) ([]string, error) {
+    return fs.GlobActivity(
+        state.masterFS, root, pattern, findFile, findDir,
+    )
 }
 
 func getSifName(dockerImage string) string {
@@ -219,6 +614,7 @@ func RunCmd(
     }
 
     out := CmdOutput {
+        Id: cmdTemplate.Id,
         StdOut: stdout.String(),
         StdErr: stderr.String(),
     }
@@ -234,206 +630,97 @@ func RunCmd(
     return out, nil
 }
 
-func releaseResourceGrant(state BwbWorkflowState, grant ResourceGrant) error {
-    workflow.SignalExternalWorkflow(
-        state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
-        "release-allocation", grant,
-    )
-    return nil
-}
-
-func awaitResourceGrants(state BwbWorkflowState, cmds []parsing.CmdTemplate) {
-    // TODO: Implement rank
-    workflowId := workflow.GetInfo(state.ctx).WorkflowExecution.ID
-    for _, cmd := range cmds {
-        state.cmdsById[cmd.Id] = cmd
-        req := ResourceRequest{
-            Rank: 0,
-            Id: cmd.Id,
-            Requirements: cmd.ResourceReqs,
-            CallerWorkflowId: workflowId,
-        }
-
-        workflow.SignalExternalWorkflow(
-            state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
-            "new-request", req,
-        )
-    }
-}
-
-func runCmdWithGrant(
-    state BwbWorkflowState,
-    cmd parsing.CmdTemplate,
-    grant ResourceGrant,
-) {
-    ao := workflow.ActivityOptions{
-        TaskQueue: grant.WorkerId,
-        StartToCloseTimeout: 3*time.Hour,
-        RetryPolicy: &temporal.RetryPolicy{
-            MaximumAttempts: 1,
-        },
-    }
-
-    fs, ok := state.workerFSs[grant.WorkerId]
-    if !ok {
-        *state.finalErr = fmt.Errorf("worker %s has no FS", grant.WorkerId)
-        *state.finished = true
-        return
-    }
-    volumes := fs.GetVolumes()
-
-    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
-    cmdFuture := workflow.ExecuteActivity(
-        cmdCtx, RunCmd, volumes, cmd,
-    )
-    state.selector.AddFuture(cmdFuture, func(f workflow.Future) {
-        handleCompletedCmd(cmdFuture, state, cmd, grant)
-    })
-}
-
-func globWorkerFS(
-    state BwbWorkflowState, 
-    root, pattern string, 
-    findFile, findDir bool,
-) ([]string, error) {
-    ao := workflow.ActivityOptions{
-        TaskQueue: "bwb_worker",
-        StartToCloseTimeout: 1*time.Minute,
-        RetryPolicy: &temporal.RetryPolicy{
-            MaximumAttempts: 3,
-        },
-    }
-    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
-    var out []string
-    err := workflow.ExecuteActivity(
-        cmdCtx, fs.GlobActivity[fs.LocalFS], state.masterFS, 
-        root,  pattern, findFile, findDir,
-    ).Get(state.ctx, &out)
-    return out, err
-}
-
-func handleCompletedCmd(
-    f workflow.Future, 
-    state BwbWorkflowState,
+func HandleCompletedCmd(
+    result CmdOutput, err error, softFail bool,
+    cmdMan *parsing.CmdManager, state WorkflowState,
     completedCmd parsing.CmdTemplate,
     grant ResourceGrant,
 ) {
     fmt.Printf("Completed cmd for node %d\n", completedCmd.NodeId)
-    var result CmdOutput
-    err := f.Get(state.ctx, &result)
     if err != nil {
-        *state.finalErr = err
-        if !state.softFail {
-            *state.finished = true
+        state.AddError(err)
+        if !softFail {
+            state.SetFinished()
             return
         }
     }
 
-    succCmds, err := state.cmdMan.GetSuccCmds(
+    succCmds, err := cmdMan.GetSuccCmds(
         completedCmd, result.RawOutputs, 
         func(root, pattern string, findFile, findDir bool) ([]string, error) {
-            return globWorkerFS(state, root, pattern, findFile, findDir)
-        }, err != nil,
+            return state.Glob(root, pattern, findFile, findDir)
+        }, err == nil,
     )
 
     if err != nil {
-        *state.finished = true
-        *state.finalErr = err
+        state.SetFinished()
+        state.AddError(err)
         return
     }
 
-    if err := releaseResourceGrant(state, grant); err != nil {
-        *state.finalErr = err
+    if err := state.ReleaseResourceGrant(grant); err != nil {
+        state.AddError(err)
         return
     }
 
-    awaitResourceGrants(state, succCmds)
+    state.RequestResourceGrant(succCmds)
 
-    failed := state.cmdMan.HasFailed()
-    complete := state.cmdMan.IsComplete()
-    if failed && !state.softFail {
-
-    }
+    complete := cmdMan.IsComplete()
     if complete {
-        *state.finished = true
-        state.finalErr = nil
+        state.SetFinished()
     }
-}
-
-func buildImages(ctx workflow.Context, imageNames []string) error {
-    ao := workflow.ActivityOptions{
-        TaskQueue: "bwb_worker",
-        StartToCloseTimeout: 10*time.Minute,
-        RetryPolicy: &temporal.RetryPolicy{
-            MaximumAttempts: 1,
-        },
-    }
-    cmdCtx := workflow.WithActivityOptions(ctx, ao)
-    for _, imageName := range imageNames {
-        err := workflow.ExecuteActivity(cmdCtx, BuildSingularitySIF, imageName).Get(ctx, nil)
-        if err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
-func getChildSchedWorkflow(
-    ctx workflow.Context, workers map[string]WorkerInfo,
-) (workflow.Execution, func(), error) {
-    childCtx, cancelChild := workflow.WithCancel(ctx)
-    schedChildWfOptions := workflow.ChildWorkflowOptions{
-        WorkflowID: "sched-workflow",
-        TaskQueue: SCHEDULER_QUEUE,
-    }
-    childCtx = workflow.WithChildOptions(childCtx, schedChildWfOptions)
-    schedChildWfFuture := workflow.ExecuteChildWorkflow(
-        childCtx, ResourceSchedulerWorkflow, SchedWorkflowState{
-            Workers: workers,
-        },
-    )
-    var schedChildWE workflow.Execution
-    err := schedChildWfFuture.GetChildWorkflowExecution().Get(ctx, &schedChildWE)
-    if err != nil {
-        outErr := fmt.Errorf("failed getting child WF execution: %s", err)
-        return workflow.Execution{}, nil, outErr
-    }
-    return schedChildWE, cancelChild, nil
-}
-
-func setupWorkerFSs(
-    ctx workflow.Context, storageID string,
-    workers map[string]WorkerInfo,
-) (map[string]fs.LocalFS, error) {
-    ret := make(map[string]fs.LocalFS)
-    for queueId := range workers {
-        ao := workflow.ActivityOptions{
-            TaskQueue: queueId,
-            StartToCloseTimeout: 1*time.Minute,
-            RetryPolicy: &temporal.RetryPolicy{
-                MaximumAttempts: 1,
-            },
-        }
-        cmdCtx := workflow.WithActivityOptions(ctx, ao)
-
-        var volumes map[string]string
-        err := workflow.ExecuteActivity(
-            cmdCtx, SetupVolumes, storageID,
-        ).Get(ctx, &volumes)
-
-        if err != nil {
-            return nil, fmt.Errorf(
-                "error setting up cmd dirs on worker %s: %s",
-                queueId, err,
-            )
-        }
-
-        ret[queueId] = fs.LocalFS{ Volumes: volumes }
-    }
-    return ret, nil
 }
 
 func RunBwbWorkflow(
+    cmdMan *parsing.CmdManager, state WorkflowState,
+) error {
+    if cmdMan == nil {
+        return errors.New("received nil CMD manager")
+    }
+
+    imageNames := cmdMan.GetImageNames()
+    if err := state.BuildImages(imageNames); err != nil {
+        return err
+    }
+
+    if err := state.SetupWorkerFSs(); err != nil {
+        return err
+    }
+
+    if err := state.Setup(); err != nil {
+        return err
+    }
+
+    initialCmds, err := cmdMan.GetInitialCmds(
+        func(root, pattern string, findFile, findDir bool) ([]string, error) {
+            return state.Glob(root, pattern, findFile, findDir)
+        },
+    )
+
+    if err != nil {
+        return fmt.Errorf("error getting initial cmds: %s", err)
+    }
+
+    state.RequestResourceGrant(initialCmds)
+    for ! state.IsFinished() {
+        state.Select()
+    }
+    state.Shutdown()
+
+    errs := state.GetErrors()
+    if len(errs) > 0 {
+        errStr := "Workflow encountered multiple errors:\n"
+        for _, err := range errs {
+            errStr += fmt.Sprintf("\t%s\n", err.Error())
+        }
+        return errors.New(errStr)
+    }
+
+    return nil
+}
+
+
+func RunBwbWorkflowTemporal(
     ctx workflow.Context, 
     storageId string,
     bwbWorkflow parsing.Workflow, 
@@ -442,70 +729,25 @@ func RunBwbWorkflow(
     masterFS fs.LocalFS,
     softFail bool,
 ) (error) {
-    logger := workflow.GetLogger(ctx)
-    logger.Info("Beginning workflow")
-
-    // It's a good idea to verify that initial commands can be correctly
-    // formed before scheduling any activities or IO, so as to fail quickly.
     cmdMan := parsing.NewCmdManager(bwbWorkflow, index)
-    imageNames := cmdMan.GetImageNames()
-    if err := buildImages(ctx, imageNames); err != nil {
-        return err
-    }
-
-    workerFSs, err := setupWorkerFSs(ctx, storageId, workers)
-    if err != nil {
-        return err
-    }
-
-    schedChildWE, cancelChild, err := getChildSchedWorkflow(ctx, workers)
-    if err != nil {
-        return err
-    }
-
-    var finished bool
-    var finalErr error
-    selector := workflow.NewSelector(ctx)
-
-    wfState := BwbWorkflowState{
-        ctx: ctx,
-        selector: selector,
-        schedulerWE: schedChildWE,
-        cmdMan: &cmdMan,
-        storageId: storageId,
-        workerFSs: workerFSs,
-        masterFS: masterFS,
-        grantsById: make(map[int]ResourceGrant),
-        cmdsById: make(map[int]parsing.CmdTemplate),
-        finalErr: &finalErr,
-        finished: &finished,
-    }
-
-    rGrantChan := workflow.GetSignalChannel(ctx, "allocation-response")
-    selector.AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
-        var grant ResourceGrant
-        c.Receive(ctx, &grant)
-        cmd := wfState.cmdsById[grant.RequestId]
-        runCmdWithGrant(wfState, cmd, grant)
-    })
-
-    initialCmds, err := cmdMan.GetInitialCmds(
-        func(root, pattern string, findFile, findDir bool) ([]string, error) {
-            return globWorkerFS(wfState, root, pattern, findFile, findDir)
-        },
+    wfState := NewTemporalBwbWorkflowState(
+        ctx, &cmdMan, masterFS, workers, storageId, softFail,
     )
-    if err != nil {
-        return fmt.Errorf("error reading initial cmds: %s", err)
-    }
-    if len(initialCmds) == 0 {
-        return nil
-    }
+    return RunBwbWorkflow(&cmdMan, &wfState)
+}
 
-    awaitResourceGrants(wfState, initialCmds)
-    for ! *wfState.finished {
-        selector.Select(ctx)
-    }
-
-    cancelChild()
-    return *wfState.finalErr
+func RunBwbWorkflowNoTemporal(
+    storageId string,
+    bwbWorkflow parsing.Workflow, 
+    index parsing.WorkflowIndex,
+    localWorker WorkerInfo,
+    masterFS fs.LocalFS,
+    softFail bool,
+    logger slog.Logger,
+) (error) {
+    cmdMan := parsing.NewCmdManager(bwbWorkflow, index)
+    wfState := NewNonTemporalBwbWorkflowState(
+        &cmdMan, masterFS, localWorker, storageId, softFail, logger,
+    )
+    return RunBwbWorkflow(&cmdMan, &wfState)
 }

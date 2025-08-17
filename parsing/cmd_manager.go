@@ -3,8 +3,6 @@ package parsing
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"time"
 )
 
 type CmdManager struct {
@@ -77,34 +75,11 @@ func (cmdMan *CmdManager) GetSuccCmds(
 		inputParams, []TypedParams{outputTp}, success,
 	)
 
-	jsonStr, _ := json.MarshalIndent(inputParams, "", "\t")
-	os.WriteFile(
-		fmt.Sprintf("/home/patrick/state/input_%s.json", time.Now().Format("2006-01-02__15:04:05")),
-		jsonStr, 0644,
-	)
-
-	jsonStr, _ = json.MarshalIndent(cmdMan.state, "", "\t")
-	os.WriteFile(
-		fmt.Sprintf("/home/patrick/state/state_%s.json", time.Now().Format("2006-01-02__15:04:05")),
-		jsonStr, 0644,
-	)
-
-	jsonStr, _ = json.MarshalIndent(outputTp, "", "\t")
-	os.WriteFile(
-		fmt.Sprintf("/home/patrick/state/output_%s.json", time.Now().Format("2006-01-02__15:04:05")),
-		jsonStr, 0644,
-	)
-
 	if err != nil {
 		return nil, err
 	}
 
 	cmds, err := cmdMan.getCmdsFromParams(succParams, glob)
-    if err == nil {
-        for _, v := range cmds {
-            fmt.Printf("\tGenerated cmd ID %d for node %d\n", v.Id, v.NodeId)
-        }
-    }
     return cmds, err
 }
 
@@ -143,7 +118,6 @@ func (cmdMan *CmdManager) getCmdsFromParams(
 			}
 
 			for i := range nodeCmds {
-                fmt.Printf("CURRENT MAX ID: %d\n", cmdMan.currentMaxCmdId)
 				cmdId := cmdMan.currentMaxCmdId
 				nodeCmds[i].Id = cmdId
 				cmdMan.cmdIdToParams[cmdId] = paramSet
