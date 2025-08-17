@@ -309,7 +309,7 @@ func runWorkflow(
     sched_dir := os.Getenv("BWB_SCHED_DIR")
     revisedStorageID := "storageID"
     if storageId != "" {
-        revisedStorageID = filepath.Join(sched_dir, storageId)
+        revisedStorageID = storageId
     }
 
     masterFS := fs.LocalFS{
@@ -354,7 +354,7 @@ func runWorkflow(
 
     we, err := c.ExecuteWorkflow(
         context.Background(), workflowOptions, 
-        workflow.RunBwbWorkflow, revisedStorageID, 
+        workflow.RunBwbWorkflowTemporal, revisedStorageID, 
         bwbWorkflow, index, workers, masterFS, softFail,
     )
 

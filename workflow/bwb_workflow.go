@@ -95,8 +95,7 @@ func (state *TemporalBwbWorkflowState) Setup() error {
             Workers: state.workers,
         },
     )
-    var schedChildWE workflow.Execution
-    err := schedChildWfFuture.GetChildWorkflowExecution().Get(state.ctx, &schedChildWE)
+    err := schedChildWfFuture.GetChildWorkflowExecution().Get(state.ctx, &state.schedulerWE)
     if err != nil {
         outErr := fmt.Errorf("failed getting child WF execution: %s", err)
         return outErr
