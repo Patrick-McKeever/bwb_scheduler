@@ -1,28 +1,27 @@
 package main
 
 import (
-    "context"
-    "encoding/json"
-    "fmt"
-    "go-scheduler/fs"
-    "go-scheduler/parsing"
-    "go-scheduler/workflow"
-    "log"
-    "log/slog"
-    "os"
-    "time"
-    "path/filepath"
-    "strings"
-    "strconv"
-    "crypto/rand"
-    "runtime"
-    "math"
+	"context"
+	"crypto/rand"
+	"encoding/json"
+	"fmt"
+	"go-scheduler/fs"
+	"go-scheduler/parsing"
+	"go-scheduler/workflow"
+	"log"
+	"log/slog"
+	"math"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
 
-    "go.temporal.io/sdk/client"
+	"github.com/shirou/gopsutil/mem"
+	"github.com/spf13/cobra"
+	"go.temporal.io/sdk/client"
     temporalLog "go.temporal.io/sdk/log"
-    "go.temporal.io/sdk/worker"
-    "github.com/spf13/cobra"
-    "github.com/shirou/gopsutil/mem"
 )
 
 type ByteSize int64
@@ -84,85 +83,38 @@ func (b *ByteSize) Set(s string) error {
     return fmt.Errorf("unknown size unit in %q", s)
 }
 
-
-func startWorker(slogger *slog.Logger, queueName string, scheduler bool) {
-    // Create Temporal client
-    logger := temporalLog.NewStructuredLogger(slogger)
-    c, err := client.NewLazyClient(client.Options{
-        Logger: logger,
-    })
-    if err != nil {
-        log.Fatalln("Unable to create Temporal client", err)
-    }
-    defer c.Close()
-
-    w := worker.New(c, queueName, worker.Options{})
-
-    if scheduler {
-        w.RegisterWorkflow(workflow.RunBwbWorkflowTemporal)
-        w.RegisterWorkflow(workflow.ResourceSchedulerWorkflow)
-        w.RegisterActivity(workflow.BuildSingularitySIF)
-        w.RegisterActivity(fs.GlobActivity[fs.LocalFS])
-    } else {
-        w.RegisterActivity(workflow.WorkerHeartbeatActivity)
-        w.RegisterActivity(workflow.RunCmd)
-        w.RegisterActivity(workflow.SetupVolumes)
-    }
-
-    log.Println("Starting worker...")
-    err = w.Run(worker.InterruptCh())
-    if err != nil {
-        log.Fatalln("Unable to start worker", err)
-    }
-
-}
-
 func randomString(length int) string {
     b := make([]byte, length+2)
     rand.Read(b)
     return fmt.Sprintf("%x", b)[2 : length+2]
 }
 
-
-
-
-//var bareword = regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_\-]*)`)
-//
-//func normalize(input string) string {
-//    return bareword.ReplaceAllStringFunc(input, func(s string) string {
-//        if s == "true" || s == "false" || s == "null" {
-//            return s
-//        }
-//        return `"` + s + `"`
-//    })
-//}
-//
 func overrideParamVals(
-    bwbWorkflow *parsing.Workflow, index *parsing.WorkflowIndex, 
+    bwbWorkflow *parsing.Workflow, index *parsing.WorkflowIndex,
     paramVals []string,
 ) error {
     for _, paramValRaw := range paramVals {
         splitByEq := strings.Split(paramValRaw, "=")
-        fmtBaseErr := fmt.Sprintf(
-            "could not parse param override %s; --param arguments must be " +
-            " of the form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is " +
-            "the title or numeric ID of a node defined in the workflow JSON, " +
-            "PARAM_NAME is one of its parameters, and value is a JSON-parsable " +
+        fmtBaseErr := fmt.Errorf(
+            "could not parse param override %s; --param arguments must be "+
+            " of the form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is "+
+            "the title or numeric ID of a node defined in the workflow JSON, "+
+            "PARAM_NAME is one of its parameters, and value is a JSON-parsable "+
             "string giving the desired value of this parameter.", paramValRaw,
         )
 
         if len(splitByEq) != 2 {
-            return fmt.Errorf(fmtBaseErr)
+            return fmtBaseErr
         }
         nodeParamIdStr := splitByEq[0]
         valStr, err := parsing.NormalizeLooseJSON(splitByEq[1])
         if err != nil {
-            return fmt.Errorf(fmtBaseErr)
+            return fmtBaseErr
         }
 
         splitByDot := strings.Split(nodeParamIdStr, ".")
         if len(splitByDot) != 2 {
-            return fmt.Errorf(fmtBaseErr)
+            return fmtBaseErr
         }
         nodeNameStr := splitByDot[0]
         pname := splitByDot[1]
@@ -179,7 +131,7 @@ func overrideParamVals(
         nodeId, nodeNameIsTitle := index.GetIdFromTitle(nodeNameStr)
         invalidNodeNameErr := fmt.Errorf(
             "%s Node name %s is neither the title nor the numeric ID of a node",
-             fmtBaseErr, nodeNameStr, 
+            fmtBaseErr, nodeNameStr,
         )
         if !nodeNameIsTitle {
             var err error
@@ -189,7 +141,6 @@ func overrideParamVals(
             }
         }
 
-
         node, nodeExists := bwbWorkflow.Nodes[nodeId]
         if !nodeExists {
             return invalidNodeNameErr
@@ -198,7 +149,7 @@ func overrideParamVals(
         argType, argTypeExists := node.ArgTypes[pname]
         if !argTypeExists {
             return fmt.Errorf(
-                "node %s has no property / no argtype for %s", 
+                "node %s has no property / no argtype for %s",
                 nodeNameStr, pname,
             )
         }
@@ -232,7 +183,7 @@ func convertOWSWorkflow(
 }
 
 func dryRunWorkflow(
-    wfPath string, paramVals []string, 
+    wfPath string, paramVals []string,
 ) error {
     data, err := os.ReadFile(wfPath)
     if err != nil {
@@ -265,9 +216,9 @@ func dryRunWorkflow(
 }
 
 func runWorkflow(
-    wfPath, workerName, temporalWfName, storageId string, paramVals []string, 
-    noTemporal, softFail bool, checkptPath string, workerRam ByteSize, 
-    workerCpus, workerGpus int,
+    wfPath string, configPath *string, workerName, temporalWfName,
+    storageId string, paramVals []string, noTemporal, softFail bool,
+    checkptPath string, workerRam ByteSize, workerCpus, workerGpus int,
 ) error {
     data, err := os.ReadFile(wfPath)
     if err != nil {
@@ -301,8 +252,8 @@ func runWorkflow(
         QueueId: queueName,
         TotalResources: parsing.ResourceVector{
             MemMb: workerRam.AsUnit("MB"),
-            Cpus: workerCpus,
-            Gpus: workerGpus,
+            Cpus:  workerCpus,
+            Gpus:  workerGpus,
         },
     }
 
@@ -318,9 +269,9 @@ func runWorkflow(
         },
     }
 
-    logger := slog.New(slog.NewTextHandler(os.Stdout, 
+    logger := slog.New(slog.NewTextHandler(os.Stdout,
         &slog.HandlerOptions{
-            Level: slog.LevelWarn,
+            Level: slog.LevelDebug,
         },
     ))
 
@@ -331,30 +282,46 @@ func runWorkflow(
         )
     }
 
-    go startWorker(logger, "bwb_worker", true)
-    go startWorker(logger, queueName, false)
+    var jobConfig parsing.JobConfig
+    if configPath != nil {
+        jobConfig, err = parsing.ParseAndValidateJobConfigFile(*configPath)
+        if err != nil {
+            return fmt.Errorf(
+                "error parsing job control file %s: %s",
+                *configPath, err,
+            )
+        }
+    } else {
+        jobConfig = parsing.GetDefaultConfig(bwbWorkflow, noTemporal)
+    }
 
-    c, err := client.NewLazyClient(client.Options{})
-
+    c, err := client.NewLazyClient(client.Options{
+        Logger: temporalLog.NewStructuredLogger(logger),
+    })
     if err != nil {
         return fmt.Errorf("unable to create Temporal client: %s", err)
     }
     defer c.Close()
+
+    if err := workflow.StartWorkers(c, jobConfig, queueName); err != nil {
+        return err
+    }
+
 
     wfName := temporalWfName
     if temporalWfName == "" {
         wfName = "bwb_workflow_" + time.Now().Format("20060102150405")
     }
     workflowOptions := client.StartWorkflowOptions{
-        ID: wfName,
+        ID:        wfName,
         TaskQueue: "bwb_worker",
     }
 
-    workers := map[string]workflow.WorkerInfo{ queueName: localWorker }
+    workers := map[string]workflow.WorkerInfo{queueName: localWorker}
 
     we, err := c.ExecuteWorkflow(
-        context.Background(), workflowOptions, 
-        workflow.RunBwbWorkflowTemporal, revisedStorageID, 
+        context.Background(), workflowOptions,
+        workflow.RunBwbWorkflow, revisedStorageID, jobConfig,
         bwbWorkflow, index, workers, masterFS, softFail,
     )
 
@@ -389,10 +356,22 @@ func main() {
     var workerCpus int
     var workerGpus int
     runCmd := &cobra.Command{
-        Use:   "run [WORKFLOW_FILE]",
+        SilenceUsage: false,
+        Use:   "run WORKFLOW_FILE [CONFIG_FILE]",
         Short: "Run JSON-serialized BWB workflow",
-        Args: cobra.ExactArgs(1),
+        Args:  func(cmd *cobra.Command, args []string) error {
+            if len(args) < 1 || len(args) > 2 {
+                return fmt.Errorf(
+                    "`run` takes mandatory workflow JSON as first arg and " +
+                    "optional config JSON as second arg, with no other args",
+                )
+            }
+            return nil
+        },
         PreRunE: func(cmd *cobra.Command, args []string) error {
+            if len(args) == 2 && noTemporal {
+                return fmt.Errorf("cannot set config with --noTemporal")
+            }
             if noTemporal && checkptPath != "" {
                 return fmt.Errorf("cannot have --checkpt with --noTemporal")
             }
@@ -415,60 +394,65 @@ func main() {
                     float64(vmStat.Total) * float64(0.7),
                 )))
                 fmt.Printf(
-                    "No worker RAM value set, defaulting to 70%% of system " +
-                    "total: %d MB\n", workerRam / 1024 / 1024,
+                    "No worker RAM value set, defaulting to 70%% of system "+
+                        "total: %d MB\n", workerRam/1024/1024,
                 )
             }
 
             if !cmd.Flags().Changed("cpus") {
                 totalCpus := runtime.NumCPU()
-                workerCpus = max(totalCpus / 2, 1)
+                workerCpus = max(totalCpus/2, 1)
                 fmt.Printf(
-                    "No worker CPUs value set, defaulting to 50%% of system " +
-                    "total: %d\n", workerCpus,
+                    "No worker CPUs value set, defaulting to 50%% of system "+
+                        "total: %d\n", workerCpus,
                 )
             }
 
+            var configPath *string = nil
+            if len(args) > 1 {
+                configPath = &args[1]
+            }
+
             return runWorkflow(
-                args[0], workerName, temporalWfName, storageId,
+                args[0], configPath, workerName, temporalWfName, storageId,
                 paramOverrides, noTemporal, softFail, checkptPath,
                 workerRam, workerCpus, workerGpus,
             )
         },
     }
     runCmd.Flags().StringVar(
-        &workerName, "workerName", "", "Temporal queue name of local worker. " +
-        "Cannot be used in conjunction with --noTemporal.",
+        &workerName, "workerName", "", "Temporal queue name of local worker. "+
+            "Cannot be used in conjunction with --noTemporal.",
     )
     runCmd.Flags().StringVar(
-        &temporalWfName, "temporalWfName", "", "Run ID for temporal workflow. " +
-        "Cannot be used in conjunction with --noTemporal.",
+        &temporalWfName, "temporalWfName", "", "Run ID for temporal workflow. "+
+            "Cannot be used in conjunction with --noTemporal.",
     )
     runCmd.Flags().StringVar(
-        &storageId, "storageId", "", "Storage ID of the workflow. " +
-        "Workflows run with the same storage ID (and the same master FS) "+
-        "will share filesystems.",
+        &storageId, "storageId", "", "Storage ID of the workflow. "+
+            "Workflows run with the same storage ID (and the same master FS) "+
+            "will share filesystems.",
     )
     runCmd.Flags().BoolVar(
         &noTemporal, "noTemporal", false, "Run workflow without temporal",
     )
     runCmd.Flags().BoolVar(
-        &softFail, "softFail", false, 
-        "Continue running workflow after encountering individual job failures," +
-        "until all cmds not dependant on the failed job have run.",
+        &softFail, "softFail", false,
+        "Continue running workflow after encountering individual job failures,"+
+            "until all cmds not dependant on the failed job have run.",
     )
     runCmd.Flags().StringArrayVarP(
-        &paramOverrides, "param", "p", []string{}, 
-        "String of form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is " +
-        "the title or numeric ID of a node defined in the workflow JSON, " +
-        "PARAM_NAME is one of its parameters, and value is a JSON-parsable " +
-        "string giving the desired value of this parameter. This will " +
-        "override the default parameters given in the JSON.",
+        &paramOverrides, "param", "p", []string{},
+        "String of form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is "+
+            "the title or numeric ID of a node defined in the workflow JSON, "+
+            "PARAM_NAME is one of its parameters, and value is a JSON-parsable "+
+            "string giving the desired value of this parameter. This will "+
+            "override the default parameters given in the JSON.",
     )
     runCmd.Flags().Var(
-        &workerRam, "ram", "Max amount of RAM to use for the local worker " +
-        "as a string formed like \"10GB\", \"500MB\", etc. Default is 70% of " +
-        "system RAM.",
+        &workerRam, "ram", "Max amount of RAM to use for the local worker "+
+            "as a string formed like \"10GB\", \"500MB\", etc. Default is 70% of "+
+            "system RAM.",
     )
     runCmd.Flags().IntVar(
         &workerCpus, "cpus", 0, "Max number of CPU cores to use on local worker.",
@@ -477,36 +461,34 @@ func main() {
         &workerGpus, "gpus", 0, "Max number of GPUs to use on local worker.",
     )
 
-
     dryRunCmd := &cobra.Command{
         Use:   "dryRun [WORKFLOW_FILE]",
         Short: "Print dry run of JSON-serialized BWB workflow",
-        Args: cobra.ExactArgs(1),
+        Args:  cobra.ExactArgs(1),
         RunE: func(cmd *cobra.Command, args []string) error {
             return dryRunWorkflow(args[0], paramOverrides)
         },
     }
     dryRunCmd.Flags().StringArrayVarP(
-        &paramOverrides, "param", "p", []string{}, 
-        "String of form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is " +
-        "the title or numeric ID of a node defined in the workflow JSON, " +
-        "PARAM_NAME is one of its parameters, and value is a JSON-parsable " +
-        "string giving the desired value of this parameter. This will " +
-        "override the default parameters given in the JSON.",
+        &paramOverrides, "param", "p", []string{},
+        "String of form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is "+
+            "the title or numeric ID of a node defined in the workflow JSON, "+
+            "PARAM_NAME is one of its parameters, and value is a JSON-parsable "+
+            "string giving the desired value of this parameter. This will "+
+            "override the default parameters given in the JSON.",
     )
-
 
     var outPath string
     convertOWSCmd := &cobra.Command{
         Use:   "convertOWS [OWS_DIR_PATH]",
         Short: "Convert workflow in BWB's OWS format to scheduler JSON format.",
-        Args: cobra.ExactArgs(1),
+        Args:  cobra.ExactArgs(1),
         RunE: func(cmd *cobra.Command, args []string) error {
             return convertOWSWorkflow(args[0], outPath)
         },
     }
     convertOWSCmd.Flags().StringVarP(
-        &outPath, "output", "o", "", 
+        &outPath, "output", "o", "",
         "File path where the converted workflow will be stored in JSON format.",
     )
     convertOWSCmd.MarkFlagRequired("output")

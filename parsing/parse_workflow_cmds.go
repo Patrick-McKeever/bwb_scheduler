@@ -17,7 +17,7 @@ type PatternQuery struct {
     Sorted   bool
 }
 
-type GlobFunc func(string, string, bool, bool) ([]string, error)
+type GlobFunc func(int, string, string, bool, bool) ([]string, error)
 
 type CmdSub struct {
     Start int
@@ -44,8 +44,8 @@ type CmdTemplate struct {
     // (OutFilePnames), since the filenames of output files may 
     // not be known until after runtime (where they may be written 
     // to /tmp/output).
-    InFiles       []string
-    OutFiles      []string
+    InFiles       map[string][]string
+    OutFiles      map[string][]string
     OutFilePnames []string
 
     ResourceReqs ResourceVector
@@ -126,24 +126,25 @@ func copyTypedParams(tp TypedParams) TypedParams {
 func copyCmdTemplate(template CmdTemplate) CmdTemplate {
     var newTemplate CmdTemplate
     newTemplate.Id = template.Id
+    newTemplate.NodeId = template.NodeId
     newTemplate.ImageName = template.ImageName
     newTemplate.ResourceReqs = template.ResourceReqs
     newTemplate.BaseCmd = make([]string, len(template.BaseCmd))
     newTemplate.Args = make([]string, len(template.Args))
     newTemplate.Flags = make([]string, len(template.Flags))
-    newTemplate.InFiles = make([]string, len(template.InFiles))
-    newTemplate.OutFiles = make([]string, len(template.OutFiles))
+    newTemplate.InFiles = make(map[string][]string, len(template.InFiles))
+    newTemplate.OutFiles = make(map[string][]string, len(template.OutFiles))
     newTemplate.OutFilePnames = make([]string, len(template.OutFilePnames))
 
     copy(newTemplate.BaseCmd, template.BaseCmd)
     copy(newTemplate.Args, template.Args)
     copy(newTemplate.Flags, template.Flags)
-    copy(newTemplate.InFiles, template.InFiles)
-    copy(newTemplate.OutFiles, template.OutFiles)
     copy(newTemplate.OutFilePnames, template.OutFilePnames)
 
     newTemplate.Envs = copyMapOfScalars(template.Envs)
     newTemplate.IterVals = copyTypedParams(template.IterVals)
+    newTemplate.InFiles = copyMapOfLists(template.InFiles)
+    newTemplate.OutFiles = copyMapOfLists(template.OutFiles)
 
     return newTemplate
 }
@@ -519,7 +520,7 @@ func (tp *TypedParams) ResolvePq(
     }
     performPqSubs(&pq, node, *tp)
 
-    matches, err := glob(pq.Root, pq.Pattern, pq.FindFile, pq.FindDir)
+    matches, err := glob(node.Id, pq.Root, pq.Pattern, pq.FindFile, pq.FindDir)
     if err != nil {
         return err
     }
@@ -707,7 +708,7 @@ func evaluateEnvVars(
 func joinFlagVal(flag string, val string) string {
     trimmedFlag := strings.TrimSpace(flag)
     trimmedVal := strings.TrimSpace(val)
-    if trimmedFlag[len(trimmedFlag)-1] == '=' {
+    if len(trimmedFlag) > 0 && trimmedFlag[len(trimmedFlag)-1] == '=' {
         return fmt.Sprintf("%s%s", trimmedFlag, trimmedVal)
     }
     return fmt.Sprintf("%s %s", trimmedFlag, trimmedVal)
@@ -875,6 +876,8 @@ func evaluateInOutFiles(
     node WorkflowNode, template *CmdTemplate,
     tp TypedParams, iterAttrs map[string]bool,
 ) error {
+    template.InFiles = make(map[string][]string)
+    template.OutFiles = make(map[string][]string)
     for pname, argType := range node.ArgTypes {
         if argType.InputFile == nil && argType.OutputFile == nil {
             continue
@@ -923,21 +926,29 @@ func evaluateInOutFiles(
                 var pValList []string
                 pValList, convOk = pVal.([]string)
                 if isInFile {
-                    template.InFiles = append(template.InFiles, pValList...)
+                    template.InFiles[pname] = append(
+                        template.InFiles[pname], pValList...,
+                    )
                 }
 
                 if isOutFile {
-                    template.OutFiles = append(template.OutFiles, pValList...)
+                    template.OutFiles[pname] = append(
+                        template.OutFiles[pname], pValList...,
+                    )
                 }
             } else {
                 var pValStr string
                 pValStr, convOk = pVal.(string)
                 if isInFile {
-                    template.InFiles = append(template.InFiles, pValStr)
+                    template.InFiles[pname] = append(
+                        template.InFiles[pname], pValStr,
+                    )
                 }
 
                 if isOutFile {
-                    template.OutFiles = append(template.OutFiles, pValStr)
+                    template.OutFiles[pname] = append(
+                        template.OutFiles[pname], pValStr,
+                    )
                 }
             }
             if !convOk {
@@ -1171,15 +1182,15 @@ func evaluateIterables(
                 // Validation ensures that only string types can be
                 // input files.
                 if argType.InputFile != nil && *argType.InputFile {
-                    ithIteration.InFiles = append(
-                        ithIteration.InFiles,
+                    ithIteration.InFiles[pname] = append(
+                        ithIteration.InFiles[pname],
                         strGroups[pname][i%numGroups]...,
                     )
                 }
 
                 if argType.OutputFile != nil && *argType.OutputFile {
-                    ithIteration.OutFiles = append(
-                        ithIteration.OutFiles,
+                    ithIteration.OutFiles[pname] = append(
+                        ithIteration.OutFiles[pname],
                         strGroups[pname][i%numGroups]...,
                     )
                 }
@@ -1509,7 +1520,7 @@ func DryRun(workflow Workflow) ([]string, error) {
         // to str lists), so we can safely pass a DummyFS which returns nothing
         // when queried.
         cmdTemplates, cmdErrs := ParseNodeCmd(
-            revisedNode, tp, func(_, _ string, _, _ bool) ([]string, error) {
+            revisedNode, tp, func(_ int, _, _ string, _, _ bool) ([]string, error) {
                 return nil, nil
             },
         )

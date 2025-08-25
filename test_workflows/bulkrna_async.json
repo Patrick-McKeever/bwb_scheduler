@@ -757,7 +757,7 @@
 					"label": "The `Aligned.out.bam` files produced after alignment",
 					"default": null,
 					"input_file": null,
-					"output_file": true
+					"output_file": null
 				},
 				"genomeDir": {
 					"type": "directory",
@@ -1226,7 +1226,7 @@
 					"env": null,
 					"label": "Parameters file",
 					"default": null,
-					"input_file": true,
+					"input_file": null,
 					"output_file": null
 				},
 				"quantMode": {
@@ -2413,7 +2413,7 @@
 					"label": "Output directory",
 					"default": null,
 					"input_file": null,
-					"output_file": true
+					"output_file": false
 				},
 				"paired": {
 					"type": "bool",

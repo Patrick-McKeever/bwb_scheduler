@@ -213,15 +213,19 @@ func TestScalarInFile(t *testing.T) {
 		t.Fatalf("error parsing in files: %s", err)
 	}
 
-	if len(template.InFiles) != 1 {
+    if _, ok := template.InFiles["scalarInParam"]; !ok {
+        t.Fatal("expected infile entry for scalarInParam")
+    }
+
+	if len(template.InFiles["scalarInParam"]) != 1 {
 		t.Fatalf("got %d infiles, expected 1", len(template.InFiles))
 	}
 
 	expVal := baseProps["scalarInParam"].(string)
-	if template.InFiles[0] != expVal {
+	if template.InFiles["scalarInParam"][0] != expVal {
 		t.Fatalf(
 			"got incorrect value for input file, got %s, expected %s",
-			template.InFiles[0], expVal,
+			template.InFiles["scalarInParam"][0], expVal,
 		)
 	}
 }
@@ -266,14 +270,18 @@ func TestScalarOutFile(t *testing.T) {
 		)
 	}
 
-    if len(template.OutFiles) != 1 {
+    if _, ok := template.OutFiles["scalarOutParamPresent"]; !ok {
+        t.Fatalf("expected outfile for scalarOutParam")
+    }
+
+    if len(template.OutFiles["scalarOutParamPresent"]) != 1 {
         t.Fatalf("got %d outfile paths, expected 1", len(template.OutFiles))
     }
 
-    if template.OutFiles[0] != "/path" {
+    if template.OutFiles["scalarOutParamPresent"][0] != "/path" {
         t.Fatalf(
             "got incorrect value for output file, got %s, expected %s",
-            template.OutFiles[0], "/path",
+            template.OutFiles["scalarOutParamPresent"][0], "/path",
         )
     }
 }
@@ -712,10 +720,10 @@ func TestIterInputFiles(t *testing.T) {
 	fListParamVals := baseProps["fListParam"].([]any)
 	for i := range iters {
 		expFname := fListParamVals[i].(string)
-		if len(iters[i].InFiles) != 1 && iters[i].InFiles[0] != expFname {
+		if len(iters[i].InFiles["fListParam"]) != 1 && iters[i].InFiles["fListParam"][0] != expFname {
 			t.Fatalf(
 				"error with iterable infile assignment: xpected %s, got %s",
-				iters[i].InFiles[0], expFname,
+				expFname, iters[i].InFiles["fListParam"],
 			)
 		}
 	}

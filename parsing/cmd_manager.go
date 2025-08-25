@@ -7,22 +7,26 @@ import (
 
 type CmdManager struct {
 	state           *WorkflowExecutionState
+    jobConfig       JobConfig
 	currentMaxCmdId int
 	cmdIdToParams   map[int]NodeParams
+    completedCmds   map[int]struct{}
 	remainingIters  map[int]map[string]map[int]struct{}
 }
 
 func NewCmdManager(
-	workflow Workflow, index WorkflowIndex,
+	workflow Workflow, index WorkflowIndex, config JobConfig,
 ) CmdManager {
 	var cmdMan CmdManager
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
 	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
+    cmdMan.completedCmds = make(map[int]struct{})
 	for nodeId := range workflow.Nodes {
 		cmdMan.remainingIters[nodeId] = make(map[string]map[int]struct{})
 	}
     wes := NewWorkflowExecutionState(workflow, index)
 	cmdMan.state = &wes
+    cmdMan.jobConfig = config
 	return cmdMan
 }
 
@@ -39,18 +43,23 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	rawOutputs map[string]string,
 	glob GlobFunc,
     success bool,
-) ([]CmdTemplate, error) {
+) (map[int][]CmdTemplate, error) {
 	inputParams, inputParamsExist := cmdMan.cmdIdToParams[completedCmd.Id]
 	if !inputParamsExist {
 		return nil, fmt.Errorf("cmd has invalid ID %d", completedCmd.Id)
 	}
 
+    // Do not return successors for already completed cmd,
+    // these have already been consumed by some prior call.
+    if _, ok := cmdMan.completedCmds[completedCmd.Id]; ok {
+        return nil, nil
+    }
+
+    cmdMan.completedCmds[completedCmd.Id] = struct{}{}
 	nodeId := inputParams.NodeId
 	node := cmdMan.state.workflow.Nodes[nodeId]
 	nodeRunId := fmt.Sprintf("%#v", inputParams.AncList)
 	delete(cmdMan.remainingIters[nodeId][nodeRunId], completedCmd.Id)
-
-    fmt.Printf("Completed node %d, nodeRunId %s, cmd ID %d\n", nodeId, nodeRunId, completedCmd.Id)
 
 	var outputTp TypedParams
 	for k, v := range rawOutputs {
@@ -66,9 +75,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
 
 
 	if !node.Async && len(cmdMan.remainingIters[nodeId][nodeRunId]) > 0 {
-        fmt.Printf("\tCmd %d has %d remaining runs before triggering succs\n", nodeId, len(cmdMan.remainingIters[nodeId][nodeRunId]))
-        fmt.Printf("\tRemaining cmds: %#v\n", cmdMan.remainingIters[nodeId][nodeRunId])
-		return []CmdTemplate{}, nil
+		return nil, nil
 	}
 
 	succParams, err := cmdMan.state.getSuccParams(
@@ -80,6 +87,14 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	}
 
 	cmds, err := cmdMan.getCmdsFromParams(succParams, glob)
+    for nodeId := range cmds {
+        for i := range cmds[nodeId] {
+            RemoveElideableFileXfers(
+                &cmds[nodeId][i], cmdMan.state.workflow, cmdMan.state.index, 
+                cmdMan.jobConfig,
+            )
+        }
+    }
     return cmds, err
 }
 
@@ -91,7 +106,7 @@ func (cmdMan *CmdManager) HasFailed() bool {
 	return cmdMan.state.HasFailed()
 }
 
-func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) ([]CmdTemplate, error) {
+func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, error) {
 	initialParams, err := cmdMan.state.getInitialNodeParams()
 	if err != nil {
 		return nil, err
@@ -102,8 +117,8 @@ func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) ([]CmdTemplate, error) {
 
 func (cmdMan *CmdManager) getCmdsFromParams(
 	nodeParams map[int][]NodeParams, glob GlobFunc,
-) ([]CmdTemplate, error) {
-	ret := make([]CmdTemplate, 0)
+) (map[int][]CmdTemplate, error) {
+	ret := make(map[int][]CmdTemplate, 0)
 	for nodeId, paramSets := range nodeParams {
 		node := cmdMan.state.workflow.Nodes[nodeId]
 		for _, paramSet := range paramSets {
@@ -125,7 +140,7 @@ func (cmdMan *CmdManager) getCmdsFromParams(
 				cmdMan.currentMaxCmdId += 1
 			}
 
-			ret = append(ret, nodeCmds...)
+			ret[nodeId] = append(ret[nodeId], nodeCmds...)
 			if len(nodeCmds) == 0 {
 				marshaledCmd, _ := json.MarshalIndent(paramSet.Params, "", "\t")
 				return nil, fmt.Errorf(

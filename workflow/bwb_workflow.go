@@ -1,20 +1,22 @@
 package workflow
 
 import (
-	"bytes"
-	"crypto/rand"
-	"fmt"
-	"go-scheduler/parsing"
-    "go-scheduler/fs"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"time"
+    "bytes"
+    "crypto/rand"
     "errors"
+    "fmt"
+    "go-scheduler/fs"
+    "go-scheduler/parsing"
     "log/slog"
-	"go.temporal.io/sdk/temporal"
-	"go.temporal.io/sdk/workflow"
+    "os"
+    "os/exec"
+    "path/filepath"
+    "strings"
+    "time"
+
+    "go.temporal.io/sdk/temporal"
+    "go.temporal.io/sdk/workflow"
+    "go.temporal.io/sdk/log"
 )
 
 const (
@@ -29,53 +31,43 @@ type CmdOutput struct {
     OutputFiles []string
 }
 
-type WorkflowState interface {
+type Executor interface {
     Setup() error
+    SetCmdHandler(CmdHandler)
     Select()
     Shutdown()
-    IsFinished() bool
-    AddError(error)
     GetErrors() []error
-    SetFinished()
-    RequestResourceGrant([]parsing.CmdTemplate)
-    ReleaseResourceGrant(ResourceGrant) error
+    RunCmds([]parsing.CmdTemplate)
     BuildImages([]string) error
-    SetupWorkerFSs() error
-    RunCmdWithGrant(parsing.CmdTemplate, ResourceGrant)
     Glob(string, string, bool, bool) ([]string, error)
 }
 
-type TemporalBwbWorkflowState struct {
-    ctx         workflow.Context
-    cmdMan      *parsing.CmdManager
-    masterFS    fs.LocalFS
-    workers     map[string]WorkerInfo
-    softFail    bool
-    storageId   string
-    selector    workflow.Selector
-    schedulerWE workflow.Execution
-    cancelChild func()
-    workerFSs   map[string]fs.LocalFS
-    cmdsById    map[int]parsing.CmdTemplate
-    grantsById  map[int]ResourceGrant
-    errors      []error
-    finished    *bool
+type CmdHandler func(CmdOutput, error, Executor, parsing.CmdTemplate)
+type TemporalExecutor struct {
+    ctx               workflow.Context
+    handleFinishedCmd CmdHandler
+    masterFS          fs.LocalFS
+    workers           map[string]WorkerInfo
+    storageId         string
+    selector          workflow.Selector
+    schedulerWE       workflow.Execution
+    cancelChild       func()
+    workerFSs         map[string]fs.LocalFS
+    cmdsById          map[int]parsing.CmdTemplate
+    grantsById        map[int]ResourceGrant
+    errors            []error
 }
 
-func NewTemporalBwbWorkflowState(
-    ctx workflow.Context, cmdMan *parsing.CmdManager, 
-    masterFS fs.LocalFS, workers map[string]WorkerInfo, 
-    storageId string, softFail bool,
-) TemporalBwbWorkflowState {
-    var state TemporalBwbWorkflowState
-    lValForFalse := false
-    state.finished = &lValForFalse
+func NewTemporalExecutor(
+    ctx workflow.Context, cmdMan *parsing.CmdManager,
+    masterFS fs.LocalFS, workers map[string]WorkerInfo,
+    storageId string,
+) TemporalExecutor {
+    var state TemporalExecutor
     state.ctx = ctx
-    state.cmdMan = cmdMan
     state.masterFS = masterFS
     state.workers = workers
     state.storageId = storageId
-    state.softFail = softFail
     state.workerFSs = make(map[string]fs.LocalFS)
     state.cmdsById = make(map[int]parsing.CmdTemplate)
     state.grantsById = make(map[int]ResourceGrant)
@@ -83,106 +75,49 @@ func NewTemporalBwbWorkflowState(
     return state
 }
 
-func (state *TemporalBwbWorkflowState) Setup() error {
-    childCtx, cancelChild := workflow.WithCancel(state.ctx)
+func (exec *TemporalExecutor) Setup() error {
+    childCtx, cancelChild := workflow.WithCancel(exec.ctx)
     schedChildWfOptions := workflow.ChildWorkflowOptions{
         WorkflowID: "sched-workflow",
-        TaskQueue: SCHEDULER_QUEUE,
+        TaskQueue:  SCHEDULER_QUEUE,
     }
     childCtx = workflow.WithChildOptions(childCtx, schedChildWfOptions)
     schedChildWfFuture := workflow.ExecuteChildWorkflow(
         childCtx, ResourceSchedulerWorkflow, SchedWorkflowState{
-            Workers: state.workers,
+            Workers: exec.workers,
         },
     )
-    err := schedChildWfFuture.GetChildWorkflowExecution().Get(state.ctx, &state.schedulerWE)
+    err := schedChildWfFuture.GetChildWorkflowExecution().Get(exec.ctx, &exec.schedulerWE)
     if err != nil {
         outErr := fmt.Errorf("failed getting child WF execution: %s", err)
         return outErr
     }
-    state.cancelChild = cancelChild
+    exec.cancelChild = cancelChild
 
-    state.selector = workflow.NewSelector(state.ctx)
-    rGrantChan := workflow.GetSignalChannel(state.ctx, "allocation-response")
-    state.selector.AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
+    exec.selector = workflow.NewSelector(exec.ctx)
+    rGrantChan := workflow.GetSignalChannel(exec.ctx, "allocation-response")
+    exec.selector.AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
         var grant ResourceGrant
-        c.Receive(state.ctx, &grant)
-        cmd := state.cmdsById[grant.RequestId]
-        state.RunCmdWithGrant(cmd, grant)
+        c.Receive(exec.ctx, &grant)
+        cmd := exec.cmdsById[grant.RequestId]
+        exec.RunCmdWithGrant(cmd, grant)
     })
-    return nil
-}
 
-func (state *TemporalBwbWorkflowState) Select() {
-    state.selector.Select(state.ctx)
-}
-
-func (state *TemporalBwbWorkflowState) Shutdown() {
-    state.cancelChild()
-}
-
-func (state *TemporalBwbWorkflowState) IsFinished() bool {
-    return *state.finished
-}
-
-func (state *TemporalBwbWorkflowState) SetFinished() {
-    *state.finished = true
-}
-
-func (state *TemporalBwbWorkflowState) AddError(err error) {
-    state.errors = append(state.errors, err)
-}
-
-func (state *TemporalBwbWorkflowState) GetErrors() []error {
-    return state.errors
-}
-
-func (state *TemporalBwbWorkflowState) RequestResourceGrant(
-    cmds []parsing.CmdTemplate,
-) {
-    workflowId := workflow.GetInfo(state.ctx).WorkflowExecution.ID
-    for _, cmd := range cmds {
-        state.cmdsById[cmd.Id] = cmd
-        req := ResourceRequest{
-            Rank: 0,
-            Id: cmd.Id,
-            Requirements: cmd.ResourceReqs,
-            CallerWorkflowId: workflowId,
-        }
-
-        workflow.SignalExternalWorkflow(
-            state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
-            "new-request", req,
-        )
-    }
-}
-
-func (state *TemporalBwbWorkflowState) ReleaseResourceGrant(
-    grant ResourceGrant,
-) error {
-    workflow.SignalExternalWorkflow(
-        state.ctx, state.schedulerWE.ID, state.schedulerWE.RunID,
-        "release-allocation", grant,
-    )
-    return nil
-}
-
-func (state *TemporalBwbWorkflowState) SetupWorkerFSs(
-) (error) {
-    for queueId := range state.workers {
+    // Setup worker FSs.
+    for queueId := range exec.workers {
         ao := workflow.ActivityOptions{
-            TaskQueue: queueId,
-            StartToCloseTimeout: 1*time.Minute,
+            TaskQueue:           queueId,
+            StartToCloseTimeout: 1 * time.Minute,
             RetryPolicy: &temporal.RetryPolicy{
                 MaximumAttempts: 1,
             },
         }
-        cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+        cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
 
         var volumes map[string]string
         err := workflow.ExecuteActivity(
-            cmdCtx, SetupVolumes, state.storageId,
-        ).Get(state.ctx, &volumes)
+            cmdCtx, fs.SetupVolumes, exec.storageId,
+        ).Get(exec.ctx, &volumes)
 
         if err != nil {
             return fmt.Errorf(
@@ -191,24 +126,70 @@ func (state *TemporalBwbWorkflowState) SetupWorkerFSs(
             )
         }
 
-        state.workerFSs[queueId] = fs.LocalFS{ Volumes: volumes }
+        exec.workerFSs[queueId] = fs.LocalFS{Volumes: volumes}
     }
     return nil
 }
 
-func (state *TemporalBwbWorkflowState) BuildImages(imageNames []string) error {
+func (exec *TemporalExecutor) SetCmdHandler(handler CmdHandler) {
+    exec.handleFinishedCmd = handler
+}
+
+func (exec *TemporalExecutor) Select() {
+    exec.selector.Select(exec.ctx)
+}
+
+func (exec *TemporalExecutor) Shutdown() {
+    exec.cancelChild()
+}
+
+func (exec *TemporalExecutor) GetErrors() []error {
+    return exec.errors
+}
+
+func (exec *TemporalExecutor) RunCmds(
+    cmds []parsing.CmdTemplate,
+) {
+    workflowId := workflow.GetInfo(exec.ctx).WorkflowExecution.ID
+    for _, cmd := range cmds {
+        exec.cmdsById[cmd.Id] = cmd
+        req := ResourceRequest{
+            Rank:             0,
+            Id:               cmd.Id,
+            Requirements:     cmd.ResourceReqs,
+            CallerWorkflowId: workflowId,
+        }
+
+        workflow.SignalExternalWorkflow(
+            exec.ctx, exec.schedulerWE.ID, exec.schedulerWE.RunID,
+            "new-request", req,
+        )
+    }
+}
+
+func (exec *TemporalExecutor) ReleaseResourceGrant(
+    grant ResourceGrant,
+) error {
+    workflow.SignalExternalWorkflow(
+        exec.ctx, exec.schedulerWE.ID, exec.schedulerWE.RunID,
+        "release-allocation", grant,
+    )
+    return nil
+}
+
+func (exec *TemporalExecutor) BuildImages(imageNames []string) error {
     ao := workflow.ActivityOptions{
-        TaskQueue: "bwb_worker",
-        StartToCloseTimeout: 10*time.Minute,
+        TaskQueue:           "bwb_worker",
+        StartToCloseTimeout: 10 * time.Minute,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 1,
         },
     }
-    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
     for _, imageName := range imageNames {
         err := workflow.ExecuteActivity(
             cmdCtx, BuildSingularitySIF, imageName,
-        ).Get(state.ctx, nil)
+        ).Get(exec.ctx, nil)
         if err != nil {
             return err
         }
@@ -216,89 +197,90 @@ func (state *TemporalBwbWorkflowState) BuildImages(imageNames []string) error {
     return nil
 }
 
-func (state *TemporalBwbWorkflowState) RunCmdWithGrant(
+func (exec *TemporalExecutor) RunCmdWithGrant(
     cmd parsing.CmdTemplate, grant ResourceGrant,
 ) {
     ao := workflow.ActivityOptions{
-        TaskQueue: grant.WorkerId,
-        StartToCloseTimeout: 3*time.Hour,
+        TaskQueue:           grant.WorkerId,
+        StartToCloseTimeout: 3 * time.Hour,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 1,
         },
     }
 
-    fs, ok := state.workerFSs[grant.WorkerId]
+    fs, ok := exec.workerFSs[grant.WorkerId]
     if !ok {
-        state.errors = append(state.errors, fmt.Errorf(
+        exec.errors = append(exec.errors, fmt.Errorf(
             "worker %s has no FS", grant.WorkerId,
         ))
-        *state.finished = true
         return
     }
     volumes := fs.GetVolumes()
 
-    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
     cmdFuture := workflow.ExecuteActivity(
         cmdCtx, RunCmd, volumes, cmd,
     )
-    state.selector.AddFuture(cmdFuture, func(f workflow.Future) {
+    exec.selector.AddFuture(cmdFuture, func(f workflow.Future) {
         var result CmdOutput
-        err := f.Get(state.ctx, &result)
-        HandleCompletedCmd(result, err, state.softFail, state.cmdMan, state, cmd, grant)
+        err := f.Get(exec.ctx, &result)
+        if err := exec.ReleaseResourceGrant(grant); err != nil {
+            exec.errors = append(exec.errors, err)
+            return
+        }
+        exec.handleFinishedCmd(result, err, exec, cmd)
     })
 
 }
 
-func (state *TemporalBwbWorkflowState) Glob(
-    root, pattern string, 
+func (exec *TemporalExecutor) Glob(
+    root, pattern string,
     findFile, findDir bool,
 ) ([]string, error) {
     ao := workflow.ActivityOptions{
-        TaskQueue: "bwb_worker",
-        StartToCloseTimeout: 1*time.Minute,
+        TaskQueue:           "bwb_worker",
+        StartToCloseTimeout: 1 * time.Minute,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 3,
         },
     }
-    cmdCtx := workflow.WithActivityOptions(state.ctx, ao)
+    cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
     var out []string
     err := workflow.ExecuteActivity(
-        cmdCtx, fs.GlobActivity[fs.LocalFS], state.masterFS, 
-        root,  pattern, findFile, findDir,
-    ).Get(state.ctx, &out)
+        cmdCtx, fs.GlobActivity[fs.LocalFS], exec.masterFS,
+        root, pattern, findFile, findDir,
+    ).Get(exec.ctx, &out)
     return out, err
 }
 
-type NonTemporalBwbWorkflowState struct {
-    cmdMan              *parsing.CmdManager
-    masterFS            fs.LocalFS
-    localWorker         WorkerInfo
-    storageId           string
-    softFail            bool
-    logger              slog.Logger
-    reqGrantChan        chan ResourceRequest
-    releaseGrantChan    chan ResourceGrant
-    recvGrantChan       chan ResourceGrant
-    doneChan            chan bool
-    cmdResChan          chan struct{result CmdOutput; err error}
-    cmdsById            map[int]parsing.CmdTemplate
-    grantsById          map[int]ResourceGrant
-    errors              []error
-    finished            bool
+type LocalExecutor struct {
+    handleFinishedCmd CmdHandler
+    masterFS          fs.LocalFS
+    localWorker       WorkerInfo
+    storageId         string
+    logger            slog.Logger
+    reqGrantChan      chan ResourceRequest
+    releaseGrantChan  chan ResourceGrant
+    recvGrantChan     chan ResourceGrant
+    doneChan          chan bool
+    cmdResChan        chan struct {
+        result CmdOutput
+        err    error
+    }
+    cmdsById   map[int]parsing.CmdTemplate
+    grantsById map[int]ResourceGrant
+    errors     []error
 }
 
-func NewNonTemporalBwbWorkflowState(
+func NewLocalExecutor(
     cmdMan *parsing.CmdManager, masterFS fs.LocalFS,
     worker WorkerInfo, storageId string,
-    softFail bool, logger slog.Logger,
-) NonTemporalBwbWorkflowState {
-    var state NonTemporalBwbWorkflowState
-    state.finished = false
-    state.cmdMan = cmdMan
+    logger slog.Logger,
+) LocalExecutor {
+    var state LocalExecutor
     state.masterFS = masterFS
     state.localWorker = worker
     state.storageId = storageId
-    state.softFail = softFail
     state.logger = logger
     state.grantsById = make(map[int]ResourceGrant)
     state.cmdsById = make(map[int]parsing.CmdTemplate)
@@ -308,130 +290,130 @@ func NewNonTemporalBwbWorkflowState(
     state.releaseGrantChan = make(chan ResourceGrant)
     state.recvGrantChan = make(chan ResourceGrant)
     state.doneChan = make(chan bool)
-    state.cmdResChan = make(chan struct{result CmdOutput; err error})
+    state.cmdResChan = make(chan struct {
+        result CmdOutput
+        err    error
+    })
     return state
 }
 
-func (state *NonTemporalBwbWorkflowState) Setup() error {
-    workers := map[string]WorkerInfo{"local": state.localWorker}
+func (exec *LocalExecutor) Setup() error {
+    workers := map[string]WorkerInfo{"local": exec.localWorker}
     go LocalResourceScheduler(
-        state.logger, workers, state.reqGrantChan, 
-        state.releaseGrantChan, state.recvGrantChan, 
-        state.doneChan,
+        exec.logger, workers, exec.reqGrantChan,
+        exec.releaseGrantChan, exec.recvGrantChan,
+        exec.doneChan,
     )
+
+    // Setup worker FS.
+    volumes, err := fs.SetupVolumes(exec.storageId)
+    if err != nil {
+        return err
+    }
+    exec.masterFS.Volumes = volumes
     return nil
 }
 
-func (state *NonTemporalBwbWorkflowState) Select() {
-    select { 
-    case grant := <-state.recvGrantChan: {
-        state.grantsById[grant.RequestId] = grant
-        cmd := state.cmdsById[grant.RequestId]
-        state.RunCmdWithGrant(cmd, grant)
-    }
+func (exec *LocalExecutor) SetCmdHandler(handler CmdHandler) {
+    exec.handleFinishedCmd = handler
+}
 
-    case res := <- state.cmdResChan: {
-        cmd, cmdOk := state.cmdsById[res.result.Id]
-        grant, grantOk := state.grantsById[res.result.Id]
-        if !cmdOk || !grantOk {
-            state.logger.Warn(fmt.Sprintf(
-                "Received result for non-existent CMD ID %d", res.result.Id,
-            ))
+func (exec *LocalExecutor) Select() {
+    select {
+    case grant := <-exec.recvGrantChan:
+        {
+            exec.grantsById[grant.RequestId] = grant
+            cmd := exec.cmdsById[grant.RequestId]
+            exec.RunCmdWithGrant(cmd, grant)
         }
 
-        // This absolutely needs to be done in a "select" of the main
-        // thread rather than in the finished command's goroutine, since
-        // none of these data-structures have been made thread-safe.
-        HandleCompletedCmd(
-            res.result, res.err, state.softFail, 
-            state.cmdMan, state, cmd, grant,
-        )
+    case res := <-exec.cmdResChan:
+        {
+            cmd, cmdOk := exec.cmdsById[res.result.Id]
+            grant, grantOk := exec.grantsById[res.result.Id]
+            if !cmdOk || !grantOk {
+                exec.logger.Warn(fmt.Sprintf(
+                    "Received result for non-existent CMD ID %d", res.result.Id,
+                ))
+            }
+
+            if err := exec.ReleaseResourceGrant(grant); err != nil {
+                exec.errors = append(exec.errors, err)
+                return
+            }
+
+            // This absolutely needs to be done in a "select" of the main
+            // thread rather than in the finished command's goroutine, since
+            // none of these data-structures have been made thread-safe.
+            exec.handleFinishedCmd(res.result, res.err, exec, cmd)
+        }
     }
-    }
 }
 
-func (state *NonTemporalBwbWorkflowState) Shutdown() {
-    state.doneChan <- true
+func (exec *LocalExecutor) Shutdown() {
+    exec.doneChan <- true
 }
 
-func (state *NonTemporalBwbWorkflowState) IsFinished() bool {
-    return state.finished
+func (exec *LocalExecutor) GetErrors() []error {
+    return exec.errors
 }
 
-func (state *NonTemporalBwbWorkflowState) SetFinished() {
-    state.finished = true
-}
-
-func (state *NonTemporalBwbWorkflowState) AddError(err error) {
-    state.errors = append(state.errors, err)
-}
-
-func (state *NonTemporalBwbWorkflowState) GetErrors() []error {
-    return state.errors
-}
-
-func (state *NonTemporalBwbWorkflowState) RequestResourceGrant(
+func (exec *LocalExecutor) RunCmds(
     cmds []parsing.CmdTemplate,
 ) {
     for _, cmd := range cmds {
-        state.logger.Warn("requesting cmd")
-        state.cmdsById[cmd.Id] = cmd
+        exec.logger.Warn("requesting cmd")
+        exec.cmdsById[cmd.Id] = cmd
         req := ResourceRequest{
-            Rank: 0,
-            Id: cmd.Id,
+            Rank:         0,
+            Id:           cmd.Id,
             Requirements: cmd.ResourceReqs,
         }
 
-        state.reqGrantChan <- req
+        exec.reqGrantChan <- req
     }
 }
 
-func (state *NonTemporalBwbWorkflowState) ReleaseResourceGrant(
+func (exec *LocalExecutor) ReleaseResourceGrant(
     grant ResourceGrant,
 ) error {
-    state.releaseGrantChan <- grant
+    exec.releaseGrantChan <- grant
     return nil
 }
 
-func (state *NonTemporalBwbWorkflowState) BuildImages(imageNames []string) error {
+func (exec *LocalExecutor) BuildImages(imageNames []string) error {
     for _, imageName := range imageNames {
-        state.logger.Info(fmt.Sprintf("Building image %s\n", imageName))
-        if err := BuildSingularitySIF(imageName); err != nil {
+        exec.logger.Info(fmt.Sprintf("Building image %s\n", imageName))
+        if _, err := BuildSingularitySIF(imageName); err != nil {
             return err
         }
     }
     return nil
 }
 
-func (state *NonTemporalBwbWorkflowState) SetupWorkerFSs() error {
-    volumes, err := SetupVolumes(state.storageId)
-    if err != nil {
-        return err
-    }
-    state.masterFS.Volumes = volumes
-    return nil
-}
-
-func (state *NonTemporalBwbWorkflowState) RunCmdWithGrant(
+func (exec *LocalExecutor) RunCmdWithGrant(
     cmd parsing.CmdTemplate, grant ResourceGrant,
 ) {
-    volumes := state.masterFS.GetVolumes()
+    volumes := exec.masterFS.GetVolumes()
 
     go func() {
         result, err := RunCmd(volumes, cmd)
-        state.cmdResChan <- struct{result CmdOutput; err error}{
+        exec.cmdResChan <- struct {
+            result CmdOutput
+            err    error
+        }{
             result: result,
-            err: err,
+            err:    err,
         }
     }()
 }
 
-func (state *NonTemporalBwbWorkflowState) Glob(
-    root, pattern string, 
+func (exec *LocalExecutor) Glob(
+    root, pattern string,
     findFile, findDir bool,
 ) ([]string, error) {
     return fs.GlobActivity(
-        state.masterFS, root, pattern, findFile, findDir,
+        exec.masterFS, root, pattern, findFile, findDir,
     )
 }
 
@@ -448,52 +430,52 @@ func randomString(length int) string {
     return fmt.Sprintf("%x", b)[2 : length+2]
 }
 
-func BuildSingularitySIF(dockerImage string) error {
-	if _, err := exec.LookPath("singularity"); err != nil {
-		return fmt.Errorf("singularity not found in PATH: %v", err)
-	}
+func BuildSingularitySIF(dockerImage string) (string, error) {
+    if _, err := exec.LookPath("singularity"); err != nil {
+        return "", fmt.Errorf("singularity not found in PATH: %v", err)
+    }
 
     dataDir := os.Getenv("BWB_SCHED_DIR")
     imageDir := filepath.Join(dataDir, "images")
-	if err := os.MkdirAll(imageDir, 0755); err != nil {
-		return fmt.Errorf(
-            "failed to create output directory %s: %v", 
+    if err := os.MkdirAll(imageDir, 0755); err != nil {
+        return "", fmt.Errorf(
+            "failed to create output directory %s: %v",
             imageDir, err,
         )
-	}
+    }
 
     sifBasename := getSifName(dockerImage)
     outputPath := filepath.Join(imageDir, sifBasename)
 
     // Do not rebuild existing image.
     if _, err := os.Stat(outputPath); err == nil {
-        return nil
+        return outputPath, nil
     }
 
-	cmd := exec.Command(
-		"singularity", 
-		"build",
-		outputPath,
-		"docker://"+dockerImage,
-	)
+    cmd := exec.Command(
+        "singularity",
+        "build",
+        outputPath,
+        "docker://"+dockerImage,
+    )
 
     var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+    cmd.Stdout = &stdout
+    cmd.Stderr = &stderr
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf(
-            "failed to build singularity image %s: %v\nSTDOUT: %s\nSTDERR: %s", 
+    if err := cmd.Run(); err != nil {
+        return "", fmt.Errorf(
+            "failed to build singularity image %s: %v\nSTDOUT: %s\nSTDERR: %s",
             dockerImage, err, stdout.String(), stderr.String(),
         )
-	}
+    }
 
-	return nil
+    return outputPath, nil
 }
 
 func getCmdOutputs(
-    tmpOutputHostPath string, 
-    expOutFilePnames []string, 
+    tmpOutputHostPath string,
+    expOutFilePnames []string,
 ) (map[string]string, []string, error) {
     if _, err := os.Stat(tmpOutputHostPath); os.IsNotExist(err) {
         return nil, nil, fmt.Errorf(
@@ -501,29 +483,29 @@ func getCmdOutputs(
         )
     }
 
-	outPaths, err := os.ReadDir(tmpOutputHostPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf(
+    outPaths, err := os.ReadDir(tmpOutputHostPath)
+    if err != nil {
+        return nil, nil, fmt.Errorf(
             "error reading output dir %s: %s", tmpOutputHostPath, err,
         )
-	}
+    }
 
     outKvs := make(map[string]string)
-	for _, outPath := range outPaths {
+    for _, outPath := range outPaths {
         pname := outPath.Name()
-		if outPath.IsDir() {
-			continue
-		}
+        if outPath.IsDir() {
+            continue
+        }
 
-		fullPath := filepath.Join(tmpOutputHostPath, pname)
-		data, err := os.ReadFile(fullPath)
-		if err != nil {
-			fmt.Printf("failed to read %s: %v\n", fullPath, err)
-			continue
-		}
+        fullPath := filepath.Join(tmpOutputHostPath, pname)
+        data, err := os.ReadFile(fullPath)
+        if err != nil {
+            fmt.Printf("failed to read %s: %v\n", fullPath, err)
+            continue
+        }
 
-        outKvs[pname] = string(data)
-	}
+        outKvs[pname] = strings.TrimSuffix(string(data), "\n")
+    }
 
     outFiles := make([]string, 0)
     for _, expOutFilePname := range expOutFilePnames {
@@ -537,7 +519,7 @@ func getCmdOutputs(
             }
         }
     }
-    
+
     return outKvs, outFiles, nil
 }
 
@@ -546,33 +528,22 @@ func setupCmdDirs() (string, string, error) {
     randStr := randomString(32)
     tmpDir := filepath.Join(schedDir, randStr)
     imageDir := filepath.Join(schedDir, "images")
-    
+
     for _, dir := range []string{tmpDir, imageDir} {
-	    if err := os.MkdirAll(dir, 0755); err != nil {
-	    	return "", "", fmt.Errorf("failed to create dir %s: %s", dir, err)
-	    }
+        if err := os.MkdirAll(dir, 0755); err != nil {
+            return "", "", fmt.Errorf("failed to create dir %s: %s", dir, err)
+        }
     }
 
     return tmpDir, imageDir, nil
 }
 
-func SetupVolumes(storageId string) (map[string]string, error) {
-    schedDir := os.Getenv("BWB_SCHED_DIR")
-    dataDir := filepath.Join(schedDir, storageId)
-
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-	    return nil, fmt.Errorf("failed to create dir %s: %s", dataDir, err)
-	}
-
-    return map[string]string{"/data": dataDir}, nil
-}
-
 func RunCmd(
-    volumes map[string]string, cmdTemplate parsing.CmdTemplate, 
+    volumes map[string]string, cmdTemplate parsing.CmdTemplate,
 ) (CmdOutput, error) {
-	if _, err := exec.LookPath("singularity"); err != nil {
-		return CmdOutput{}, fmt.Errorf("singularity not found in PATH: %v", err)
-	}
+    if _, err := exec.LookPath("singularity"); err != nil {
+        return CmdOutput{}, fmt.Errorf("singularity not found in PATH: %v", err)
+    }
 
     tmpDir, imageDir, err := setupCmdDirs()
     if err != nil {
@@ -606,14 +577,14 @@ func RunCmd(
     fmt.Println(cmdWithEnvStr)
 
     if err = cmd.Run(); err != nil {
-		return CmdOutput{}, fmt.Errorf(
-            "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s", 
+        return CmdOutput{}, fmt.Errorf(
+            "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s",
             cmdWithEnvStr, err, stdout.String(), stderr.String(),
         )
     }
 
-    out := CmdOutput {
-        Id: cmdTemplate.Id,
+    out := CmdOutput{
+        Id:     cmdTemplate.Id,
         StdOut: stdout.String(),
         StdErr: stderr.String(),
     }
@@ -630,69 +601,130 @@ func RunCmd(
 }
 
 func HandleCompletedCmd(
-    result CmdOutput, err error, softFail bool,
-    cmdMan *parsing.CmdManager, state WorkflowState,
-    completedCmd parsing.CmdTemplate,
-    grant ResourceGrant,
+    logger log.Logger, result CmdOutput, err error, softFail bool,
+    cmdMan *parsing.CmdManager, executors map[int]Executor,
+    completedCmd parsing.CmdTemplate, finalErr *error,
 ) {
-    fmt.Printf("Completed cmd for node %d\n", completedCmd.NodeId)
-    if err != nil {
-        state.AddError(err)
-        if !softFail {
-            state.SetFinished()
-            return
-        }
-    }
-
+    logger.Info("Finished cmd", "cmdId", completedCmd.Id, "nodeId", completedCmd.NodeId)
+    cmdSucceeded := err == nil
     succCmds, err := cmdMan.GetSuccCmds(
-        completedCmd, result.RawOutputs, 
-        func(root, pattern string, findFile, findDir bool) ([]string, error) {
-            return state.Glob(root, pattern, findFile, findDir)
-        }, err == nil,
+        completedCmd, result.RawOutputs,
+        func(nodeId int, root, pattern string, findFile, findDir bool) ([]string, error) {
+            executor, ok := executors[nodeId]
+            if !ok {
+                return nil, fmt.Errorf("no executor for node %d", nodeId)
+            }
+            return executor.Glob(root, pattern, findFile, findDir)
+        }, cmdSucceeded,
     )
 
     if err != nil {
-        state.SetFinished()
-        state.AddError(err)
+        *finalErr = err
         return
     }
 
-    if err := state.ReleaseResourceGrant(grant); err != nil {
-        state.AddError(err)
-        return
-    }
-
-    state.RequestResourceGrant(succCmds)
-
-    complete := cmdMan.IsComplete()
-    if complete {
-        state.SetFinished()
-    }
+    logger.Debug("Got succ CMDs", "succCmds", succCmds)
+    RunCmds(executors, succCmds)
 }
 
-func RunBwbWorkflow(
-    cmdMan *parsing.CmdManager, state WorkflowState,
+func setupExecutors(
+    ctx workflow.Context,
+    storageId string,
+    bwbWorkflow parsing.Workflow,
+    cmdMan *parsing.CmdManager,
+    workers map[string]WorkerInfo,
+    masterFS fs.LocalFS,
+    jobConfig parsing.JobConfig,
+) (map[int]Executor, []Executor, error) {
+    executors := make(map[int]Executor)
+    executorList := make([]Executor, 0)
+    if len(jobConfig.LocalConfigsByNode) > 0 {
+        if len(jobConfig.SlurmConfigsByNode) > 0 || len(jobConfig.TemporalConfigsByNode) > 0 {
+            return nil, nil, fmt.Errorf(
+                "cannot have temporal / SLURM executor alongside local one",
+            )
+        }
+    }
+
+    if len(jobConfig.TemporalConfigsByNode) > 0 {
+        temporalExecutor := NewTemporalExecutor(
+            ctx, cmdMan, masterFS, workers, storageId,
+        )
+        executorList = append(executorList, &temporalExecutor)
+        for nodeId := range jobConfig.TemporalConfigsByNode {
+            executors[nodeId] = &temporalExecutor
+        }
+    }
+
+    if len(jobConfig.SlurmConfigsByNode) > 0 {
+        slurmExecutor := NewSlurmRemoteExecutor(
+            ctx, cmdMan, masterFS, storageId, jobConfig.SlurmConfigsByNode,
+            jobConfig.SlurmExecutor,
+        )
+        executorList = append(executorList, &slurmExecutor)
+        for nodeId := range jobConfig.SlurmConfigsByNode {
+            executors[nodeId] = &slurmExecutor
+        }
+    }
+
+    for nodeId := range bwbWorkflow.Nodes {
+        if _, execExists := executors[nodeId]; !execExists {
+            return nil, nil, fmt.Errorf(
+                "no executor set for node %d in config", nodeId,
+            )
+        }
+    }
+
+    return executors, executorList, nil
+}
+
+func RunCmds(executors map[int]Executor, cmdsByNode map[int][]parsing.CmdTemplate) error {
+    for nodeId, cmdList := range cmdsByNode {
+        executor, ok := executors[nodeId]
+        if !ok {
+            return fmt.Errorf("no executor for node ID %d", nodeId)
+        }
+        executor.RunCmds(cmdList)
+    }
+    return nil
+}
+
+func RunBwbWorkflowHelper(
+    logger log.Logger,
+    cmdMan *parsing.CmdManager, 
+    executorsByNode map[int]Executor, 
+    executors []Executor,
+    softFail bool,
 ) error {
     if cmdMan == nil {
         return errors.New("received nil CMD manager")
     }
 
+    var finalErr error = nil
     imageNames := cmdMan.GetImageNames()
-    if err := state.BuildImages(imageNames); err != nil {
-        return err
-    }
+    for _, executor := range executors {
+        if err := executor.Setup(); err != nil {
+            return err
+        }
 
-    if err := state.SetupWorkerFSs(); err != nil {
-        return err
-    }
+        if err := executor.BuildImages(imageNames); err != nil {
+            return err
+        }
 
-    if err := state.Setup(); err != nil {
-        return err
+        executor.SetCmdHandler(func(res CmdOutput, err error, exec Executor, cmd parsing.CmdTemplate) {
+            HandleCompletedCmd(
+                logger, res, err, softFail, cmdMan, executorsByNode, cmd, &finalErr,
+            )
+        })
     }
 
     initialCmds, err := cmdMan.GetInitialCmds(
-        func(root, pattern string, findFile, findDir bool) ([]string, error) {
-            return state.Glob(root, pattern, findFile, findDir)
+        func(nodeId int, root, pattern string, findFile, findDir bool) ([]string, error) {
+            executor, ok := executorsByNode[nodeId]
+            if !ok {
+                return nil, fmt.Errorf("no executor for node %d", nodeId)
+            }
+            return executor.Glob(root, pattern, findFile, findDir)
         },
     )
 
@@ -700,53 +732,72 @@ func RunBwbWorkflow(
         return fmt.Errorf("error getting initial cmds: %s", err)
     }
 
-    state.RequestResourceGrant(initialCmds)
-    for ! state.IsFinished() {
-        state.Select()
-    }
-    state.Shutdown()
+    RunCmds(executorsByNode, initialCmds)
+    for !cmdMan.IsComplete() && (!cmdMan.HasFailed() || softFail) && finalErr == nil {
+        for _, executor := range executors {
+            execErrs := executor.GetErrors()
+            if len(execErrs) > 0 {
+                errStr := ""
+                for _, err := range execErrs {
+                    errStr += fmt.Sprintf("\t%s\n", err.Error())
+                }
+                return errors.New(errStr)
+            }
 
-    errs := state.GetErrors()
-    if len(errs) > 0 {
-        errStr := "Workflow encountered multiple errors:\n"
-        for _, err := range errs {
-            errStr += fmt.Sprintf("\t%s\n", err.Error())
+            executor.Select()
         }
-        return errors.New(errStr)
+    }
+
+    for _, executor := range executors {
+        executor.Shutdown()
+    }
+
+    if finalErr != nil {
+        return finalErr
     }
 
     return nil
 }
 
-
-func RunBwbWorkflowTemporal(
-    ctx workflow.Context, 
+func RunBwbWorkflow(
+    ctx workflow.Context,
     storageId string,
-    bwbWorkflow parsing.Workflow, 
+    jobConfig parsing.JobConfig,
+    bwbWorkflow parsing.Workflow,
     index parsing.WorkflowIndex,
     workers map[string]WorkerInfo,
     masterFS fs.LocalFS,
     softFail bool,
-) (error) {
-    cmdMan := parsing.NewCmdManager(bwbWorkflow, index)
-    wfState := NewTemporalBwbWorkflowState(
-        ctx, &cmdMan, masterFS, workers, storageId, softFail,
+) error {
+    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, jobConfig)
+    executors, executorList, err := setupExecutors(
+        ctx, storageId, bwbWorkflow, &cmdMan, workers, masterFS, jobConfig,
     )
-    return RunBwbWorkflow(&cmdMan, &wfState)
+    if err != nil {
+        return fmt.Errorf("error parsing job config: %s", err)
+    }
+    logger := workflow.GetLogger(ctx)
+    return RunBwbWorkflowHelper(logger, &cmdMan, executors, executorList, softFail)
 }
 
 func RunBwbWorkflowNoTemporal(
     storageId string,
-    bwbWorkflow parsing.Workflow, 
+    bwbWorkflow parsing.Workflow,
     index parsing.WorkflowIndex,
     localWorker WorkerInfo,
     masterFS fs.LocalFS,
     softFail bool,
     logger slog.Logger,
-) (error) {
-    cmdMan := parsing.NewCmdManager(bwbWorkflow, index)
-    wfState := NewNonTemporalBwbWorkflowState(
-        &cmdMan, masterFS, localWorker, storageId, softFail, logger,
+) error {
+    configs := parsing.GetDefaultConfig(bwbWorkflow, true)
+    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, configs)
+    executors := make(map[int]Executor)
+    localExecutor := NewLocalExecutor(
+        &cmdMan, masterFS, localWorker, storageId, logger,
     )
-    return RunBwbWorkflow(&cmdMan, &wfState)
+    executorList := []Executor{&localExecutor}
+    for nodeId := range bwbWorkflow.Nodes {
+        executors[nodeId] = &localExecutor
+    }
+    return RunBwbWorkflowHelper(&logger, &cmdMan, executors, executorList, softFail)
 }
