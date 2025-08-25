@@ -43,8 +43,8 @@ type SlurmJob struct {
 }
 
 type GetOutputsFuture struct {
-    future workflow.Future
-    result SacctResult
+    future  workflow.Future
+    results map[string]SacctResult
 }
 
 type SlurmState struct {
@@ -53,9 +53,10 @@ type SlurmState struct {
     SlurmFS          fs.SshFS
     RunningJobs      map[string]SlurmJob
     CompletedJobs    map[string]SlurmJob
-    GetOutputFutures map[string]GetOutputsFuture
+    GetOutputFutures map[int]GetOutputsFuture
     SchedDir         string
     StorageId        string
+    MaxSlurmBatchId  int
 }
 
 func GetTemporalSshQueueName(config parsing.SshConfig) string {
@@ -267,6 +268,12 @@ func RunSacct(
             )
         }
 
+        fmt.Printf("%v\n ", rawFields[0])
+        if strings.HasSuffix(rawFields[0], ".batch") || strings.HasSuffix(rawFields[0], ".extern") {
+            fmt.Printf("CONTINUING\n")
+            continue
+        }
+
         cleanedJobId := strings.Split(rawFields[0], ".")[0]
         out[cleanedJobId] = SacctResult{
             JobId:    cleanedJobId,
@@ -295,13 +302,25 @@ func AwaitFileExistence(path string, runCmd CmdRunner) bool {
 }
 
 func (connMan *SlurmActivity) GetRemoteSlurmJobOutputsActivity(
-    job SlurmJob,
-) (CmdOutput, error) {
-    return GetSlurmJobOutputs(job,
-        func(cmd string) (CmdOut, error) {
-            return connMan.ExecCmd(cmd)
-        },
-    )
+    jobs []SlurmJob,
+) ([]CmdOutput, error) {
+    // Allow container volumes time to propagate backward onto host FS.
+    time.Sleep(5 * time.Second)
+    out := make([]CmdOutput, 0)
+    for _, job := range jobs {
+        jobOut, err := GetSlurmJobOutputs(job,
+            func(cmd string) (CmdOut, error) {
+                return connMan.ExecCmd(cmd)
+            },
+        )
+
+        if err != nil {
+            return nil, err
+        }
+        out = append(out, jobOut)
+    }
+
+    return out, nil
 }
 
 func (connMan *SlurmActivity) PollRemoteSlurmActivity(
@@ -394,6 +413,22 @@ func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
     }, nil
 }
 
+func readRemoteFile(outFile string, runCmd CmdRunner) (string, error) {
+    if !AwaitFileExistence(outFile, runCmd) {
+        return "", fmt.Errorf("%s does not exist", outFile)
+    }
+
+    catOutFileCmd := fmt.Sprintf("cat %s", outFile)
+    catStdoutOut, err := runCmd(catOutFileCmd)
+    if err != nil {
+        return "", fmt.Errorf(
+            "\"%s\" failed with exit code %d, error %s, and stderr %s",
+            catOutFileCmd, catStdoutOut.ExitCode, err, catStdoutOut.StdErr,
+        )
+    }
+    return catStdoutOut.StdOut, nil
+}
+
 func GetSlurmJobOutputs(job SlurmJob, runCmd CmdRunner) (CmdOutput, error) {
     cmdOutput := CmdOutput{
         Id:          job.CmdId,
@@ -401,43 +436,25 @@ func GetSlurmJobOutputs(job SlurmJob, runCmd CmdRunner) (CmdOutput, error) {
         OutputFiles: make([]string, 0),
     }
 
-    if !AwaitFileExistence(job.OutPath, runCmd) {
-        return CmdOutput{}, fmt.Errorf(
-            "job ID %s (cmd ID %d) outfile %s does not exist",
-            job.JobId, job.CmdId, job.OutPath,
-        )
+    baseErrStr := fmt.Sprintf(
+        "failed getting outputs for job ID %s (cmd ID %d)",
+        job.JobId, job.CmdId,
+    )
+    
+    cleanupCmd := fmt.Sprintf(
+        "rm -rf %s %s %s", job.OutPath, job.ErrPath, job.TmpOutputHostPath,
+    )
+    defer runCmd(cleanupCmd)
+
+    var err error
+    if cmdOutput.StdOut, err = readRemoteFile(job.OutPath, runCmd); err != nil {
+        return CmdOutput{}, fmt.Errorf("%s: %s", baseErrStr, err)
     }
 
-    catOutFileCmd := fmt.Sprintf("cat %s", job.OutPath)
-    catStdoutOut, err := runCmd(catOutFileCmd)
-    if err != nil {
-        return CmdOutput{}, fmt.Errorf(
-            "\"%s\" failed with exit code %d, error %s, and stderr %s",
-            catOutFileCmd, catStdoutOut.ExitCode, err, catStdoutOut.StdErr,
-        )
-    }
-    cmdOutput.StdOut = catStdoutOut.StdOut
-
-    if !AwaitFileExistence(job.ErrPath, runCmd) {
-        return CmdOutput{}, fmt.Errorf(
-            "job ID %s (cmd ID %d) errfile %s does not exist",
-            job.JobId, job.CmdId, job.ErrPath,
-        )
+    if cmdOutput.StdErr, err = readRemoteFile(job.ErrPath, runCmd); err != nil {
+        return CmdOutput{}, fmt.Errorf("%s: %s", baseErrStr, err)
     }
 
-    catErrFileCmd := fmt.Sprintf("cat %s", job.ErrPath)
-    catStderrOut, err := runCmd(catErrFileCmd)
-    if err != nil {
-        return CmdOutput{}, fmt.Errorf(
-            "\"%s\" failed with exit code %d, error %s, and stderr %s",
-            catErrFileCmd, catStderrOut.ExitCode, err, catStderrOut.StdErr,
-        )
-    }
-    cmdOutput.StdErr = catStderrOut.StdErr
-
-    // TEMPORARY FIX: Account for time to propagate singularity volumes to 
-    // host FS.
-    time.Sleep(2*time.Second)
     lsCmd := fmt.Sprintf("ls -1 %s", job.TmpOutputHostPath)
     lsOut, err := runCmd(lsCmd)
     if err != nil {
@@ -453,16 +470,12 @@ func GetSlurmJobOutputs(job SlurmJob, runCmd CmdRunner) (CmdOutput, error) {
             continue
         }
 
-        catCmd := fmt.Sprintf("cat %s", filepath.Join(job.TmpOutputHostPath, file))
-        catOutfileOut, err := runCmd(catCmd)
+        outFilePath := filepath.Join(job.TmpOutputHostPath, file)
+        outVal, err := readRemoteFile(outFilePath, runCmd)
         if err != nil {
-            return CmdOutput{}, fmt.Errorf(
-                "\"%s\"failed with exit code %d, error %s, and stderr %s",
-                catCmd, catOutfileOut.ExitCode, err, catOutfileOut.StdErr,
-            )
+            return CmdOutput{}, fmt.Errorf("%s: %s", baseErrStr, err)
         }
-
-        cmdOutput.RawOutputs[file] = catOutfileOut.StdOut
+        cmdOutput.RawOutputs[file] = strings.TrimSuffix(outVal, "\n")
     }
 
     for _, expOutFilePname := range job.ExpOutFilePnames {
@@ -525,47 +538,67 @@ func ProcessCompletedSlurmCmd(
             Error:  slurmErr,
         },
     )
-    delete(state.GetOutputFutures, jobId)
     state.CompletedJobs[jobId] = job
 }
 
 func ProcessSacctResult(
     ctx workflow.Context, selector workflow.Selector,
-    state *SlurmState, result SacctResult,
+    state *SlurmState, results map[string]SacctResult,
 ) {
-    var a SlurmActivity
-    logger := workflow.GetLogger(ctx)
-    jobId := result.JobId
-    job, jobExists := state.RunningJobs[jobId]
-    if !jobExists {
-        logger.Warn(
-            "job ID %d (returned by sacct) is not a running job", jobId,
-        )
+    finishedJobs := make([]SlurmJob, 0)
+    resultsByCmdId := make(map[int]SacctResult)
+    for jobId, result := range results {
+        logger := workflow.GetLogger(ctx)
+        job, jobExists := state.RunningJobs[jobId]
+        if !jobExists {
+            logger.Warn(
+                "job ID %d (returned by sacct) is not a running job", jobId,
+            )
+            return
+        }
+
+        if JOB_CODES[result.State].done {
+            delete(state.RunningJobs, jobId)
+            if JOB_CODES[result.State].failed {
+                // Add resched logic
+            } else {
+                finishedJobs = append(finishedJobs, job)
+            }
+        }
+        resultsByCmdId[job.CmdId] = result
+    }
+
+    if len(results) == 0 {
         return
     }
 
-    if JOB_CODES[result.State].done {
-        delete(state.RunningJobs, jobId)
-        ao := workflow.ActivityOptions{
-            TaskQueue:           GetTemporalSshQueueName(state.SlurmConfig),
-            StartToCloseTimeout: time.Minute,
-            RetryPolicy: &temporal.RetryPolicy{
-                MaximumAttempts:    1,
-                BackoffCoefficient: 4,
-            },
-        }
-        childCtx := workflow.WithActivityOptions(ctx, ao)
-        f := workflow.ExecuteActivity(childCtx, a.GetRemoteSlurmJobOutputsActivity, job)
-        state.GetOutputFutures[result.JobId] = GetOutputsFuture{
-            future: f,
-            result: result,
-        }
-        selector.AddFuture(f, func(f workflow.Future) {
-            var output CmdOutput
-            err := f.Get(ctx, &output)
-            ProcessCompletedSlurmCmd(ctx, state, result, output, err)
-        })
+    var a SlurmActivity
+    ao := workflow.ActivityOptions{
+        TaskQueue:           GetTemporalSshQueueName(state.SlurmConfig),
+        StartToCloseTimeout: time.Minute,
+        RetryPolicy: &temporal.RetryPolicy{
+            MaximumAttempts:    1,
+            BackoffCoefficient: 4,
+        },
     }
+    childCtx := workflow.WithActivityOptions(ctx, ao)
+    f := workflow.ExecuteActivity(childCtx, a.GetRemoteSlurmJobOutputsActivity, finishedJobs)
+    state.GetOutputFutures[state.MaxSlurmBatchId] = GetOutputsFuture{
+        future: f,
+        results: results,
+    }
+    state.MaxSlurmBatchId++
+    selector.AddFuture(f, func(f workflow.Future) {
+        var outputs []CmdOutput
+        err := f.Get(ctx, &outputs)
+        if err != nil {
+            state.FinalErr = err
+        }
+        for _, output := range outputs {
+            result := resultsByCmdId[output.Id]
+            ProcessCompletedSlurmCmd(ctx, state, result, output, err)
+        }
+    })
 }
 
 func StartSlurmJob(
@@ -620,15 +653,13 @@ func PollSlurm(ctx workflow.Context, selector workflow.Selector, state *SlurmSta
         state.FinalErr = err
     }
 
-    for _, result := range jobRes {
-        ProcessSacctResult(ctx, selector, state, result)
-    }
+    ProcessSacctResult(ctx, selector, state, jobRes)
 }
 
 func SlurmPollerWorkflow(ctx workflow.Context, state SlurmState) error {
     // These should be empty at start of each workflow incarnation.
     state.FinalErr = nil
-    state.GetOutputFutures = make(map[string]GetOutputsFuture)
+    state.GetOutputFutures = make(map[int]GetOutputsFuture)
 
     // These will be emtpy in initial incarnation but full after continue-as-new.
     if state.RunningJobs == nil {
@@ -683,10 +714,13 @@ func SlurmPollerWorkflow(ctx workflow.Context, state SlurmState) error {
     // Likewise, make sure that any running GetOutput tasks complete
     // before continuing, since we'll lose their AddFuture handlers along
     // with the selector.
-    for _, f := range state.GetOutputFutures {
+    for slurmBatchInd, f := range state.GetOutputFutures {
         var output CmdOutput
         err := f.future.Get(ctx, &output)
-        ProcessCompletedSlurmCmd(ctx, &state, f.result, output, err)
+        for _, result := range f.results {
+            ProcessCompletedSlurmCmd(ctx, &state, result, output, err)
+        }
+        delete(state.GetOutputFutures, slurmBatchInd)
     }
 
     return workflow.NewContinueAsNewError(ctx, SlurmPollerWorkflow, state)
