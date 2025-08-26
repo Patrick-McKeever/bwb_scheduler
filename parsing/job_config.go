@@ -25,6 +25,7 @@ type SshConfig struct {
 }
 
 type SlurmJobConfig struct {
+    MaxRetries  *int      `json:"max_retries,omitempty"`
     Mem         *string   `json:"mem,omitempty"`
     CpusPerTask *int      `json:"cpus_per_task,omitempty"`
     Gpus        *string   `json:"gpus,omitempty"`
