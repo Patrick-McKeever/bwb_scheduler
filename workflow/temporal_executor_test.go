@@ -69,8 +69,9 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
         }).Once()
 
     env.ExecuteWorkflow(func(ctx workflow.Context) error {
+        selector := workflow.NewSelector(ctx)
         temporalExec := NewTemporalExecutor(
-            ctx, nil, fs.LocalFS{}, map[string]WorkerInfo{
+            ctx, &selector, nil, fs.LocalFS{}, map[string]WorkerInfo{
                 assignedQueue: { QueueId: assignedQueue },
             }, "")
         if err := temporalExec.Setup(); err != nil {

@@ -273,9 +273,10 @@ func setupExecutors(
         }
     }
 
+    selector := workflow.NewSelector(ctx)
     if len(jobConfig.TemporalConfigsByNode) > 0 {
         temporalExecutor := NewTemporalExecutor(
-            ctx, cmdMan, masterFS, workers, storageId,
+            ctx, &selector, cmdMan, masterFS, workers, storageId,
         )
         executorList = append(executorList, &temporalExecutor)
         for nodeId := range jobConfig.TemporalConfigsByNode {
@@ -285,7 +286,7 @@ func setupExecutors(
 
     if len(jobConfig.SlurmConfigsByNode) > 0 {
         slurmExecutor := NewSlurmRemoteExecutor(
-            ctx, masterFS, storageId, jobConfig.SlurmConfigsByNode,
+            ctx, &selector, masterFS, storageId, jobConfig.SlurmConfigsByNode,
             jobConfig.SlurmExecutor,
         )
         executorList = append(executorList, &slurmExecutor)

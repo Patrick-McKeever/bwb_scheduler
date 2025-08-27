@@ -84,8 +84,9 @@ func TestSlurmExecutorFileDownloads(t *testing.T) {
 
 
     testCmdRunWf := func(ctx workflow.Context) error {
+        selector := workflow.NewSelector(ctx)
         slurmExec := NewSlurmRemoteExecutor(
-            ctx, localFs, storageId,
+            ctx, &selector, localFs, storageId,
             map[int]parsing.SlurmJobConfig{cmdToRun.NodeId: configForCmd},
             parsing.SshConfig{SchedDir: remoteDir},
         )
@@ -193,8 +194,9 @@ func TestSlurmExecutorFileUploads(t *testing.T) {
             Mem: &memLval,
         }
 
+        selector := workflow.NewSelector(ctx)
         slurmExec := NewSlurmRemoteExecutor(
-            ctx, localFs, storageId,
+            ctx, &selector, localFs, storageId,
             map[int]parsing.SlurmJobConfig{cmdToRun.NodeId: configForCmd},
             parsing.SshConfig{SchedDir: remoteDir},
         )
@@ -252,8 +254,9 @@ func TestSlurmExecutorChildWorkflowFailure(t *testing.T) {
 
 
     testCmdRunWf := func(ctx workflow.Context) error {
+        selector := workflow.NewSelector(ctx)
         slurmExec := NewSlurmRemoteExecutor(
-            ctx, fs.LocalFS{}, "", nil, parsing.SshConfig{},
+            ctx, &selector, fs.LocalFS{}, "", nil, parsing.SshConfig{},
         )
         
         // Part of the "contract" of executors is that Setup()

@@ -16,7 +16,7 @@ type TemporalExecutor struct {
     masterFS          fs.LocalFS
     workers           map[string]WorkerInfo
     storageId         string
-    selector          workflow.Selector
+    selector          *workflow.Selector
     schedulerWE       workflow.Execution
     cancelChild       func()
     workerFSs         map[string]fs.LocalFS
@@ -26,12 +26,13 @@ type TemporalExecutor struct {
 }
 
 func NewTemporalExecutor(
-    ctx workflow.Context, cmdMan *parsing.CmdManager,
-    masterFS fs.LocalFS, workers map[string]WorkerInfo,
-    storageId string,
+    ctx workflow.Context, selector *workflow.Selector, 
+    cmdMan *parsing.CmdManager, masterFS fs.LocalFS, 
+    workers map[string]WorkerInfo, storageId string,
 ) TemporalExecutor {
     var state TemporalExecutor
     state.ctx = ctx
+    state.selector = selector
     state.masterFS = masterFS
     state.workers = workers
     state.storageId = storageId
@@ -61,9 +62,8 @@ func (exec *TemporalExecutor) Setup() error {
     }
     exec.cancelChild = cancelChild
 
-    exec.selector = workflow.NewSelector(exec.ctx)
     rGrantChan := workflow.GetSignalChannel(exec.ctx, "allocation-response")
-    exec.selector.AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
+    (*exec.selector).AddReceive(rGrantChan, func(c workflow.ReceiveChannel, _ bool) {
         var grant ResourceGrant
         c.Receive(exec.ctx, &grant)
         cmd := exec.cmdsById[grant.RequestId]
@@ -103,7 +103,7 @@ func (exec *TemporalExecutor) SetCmdHandler(handler CmdHandler) {
 }
 
 func (exec *TemporalExecutor) Select() {
-    exec.selector.Select(exec.ctx)
+    (*exec.selector).Select(exec.ctx)
 }
 
 func (exec *TemporalExecutor) Shutdown() {
@@ -188,7 +188,7 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
     cmdFuture := workflow.ExecuteActivity(
         cmdCtx, RunCmd, volumes, cmd,
     )
-    exec.selector.AddFuture(cmdFuture, func(f workflow.Future) {
+    (*exec.selector).AddFuture(cmdFuture, func(f workflow.Future) {
         var result CmdOutput
         err := f.Get(exec.ctx, &result)
         if grantErr := exec.ReleaseResourceGrant(grant); grantErr != nil {

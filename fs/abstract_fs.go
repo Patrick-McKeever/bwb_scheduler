@@ -117,7 +117,7 @@ func TransferViaIntermediary(storageId string, files []string, srcFS, dstFS Abst
             }
         }
 
-        if uploadErr := dstFS.Upload(localPath, file); uploadErr != nil {
+        if uploadErr := dstFS.UploadCntFile(localPath, file); uploadErr != nil {
             return fmt.Errorf(
                 "error uploading local path %s to %s: %s",
                 localPath, file, uploadErr,

@@ -24,20 +24,21 @@ type SlurmRemoteExecutor struct {
     handleFinishedCmd CmdHandler
     configsByNode     map[int]parsing.SlurmJobConfig
     schedDir          string
-    selector          workflow.Selector
+    selector          *workflow.Selector
     slurmPollerWE     workflow.Execution
     slurmPollerFuture workflow.ChildWorkflowFuture
     cancelChild       func()
 }
 
 func NewSlurmRemoteExecutor(
-    ctx workflow.Context,
+    ctx workflow.Context, selector *workflow.Selector,
     masterFS fs.LocalFS, storageId string, 
     configsByNode map[int]parsing.SlurmJobConfig, 
     sshConfig parsing.SshConfig,
 ) SlurmRemoteExecutor {
     var state SlurmRemoteExecutor
     state.ctx = ctx
+    state.selector = selector
     state.masterFS = masterFS
     state.storageId = storageId
     state.cmdsById = make(map[int]parsing.CmdTemplate)
@@ -102,7 +103,7 @@ func (exec *SlurmRemoteExecutor) handleSlurmCompleteSignal(jobRes SlurmResponse)
         uploadCtx, exec.storageId, exec.SlurmFS, exec.masterFS,
         jobRes.Result.OutputFiles,
     )
-    exec.selector.AddFuture(uploadFuture, func(f workflow.Future) {
+    (*exec.selector).AddFuture(uploadFuture, func(f workflow.Future) {
         err := f.Get(exec.ctx, nil)
         if err != nil {
             logger.Error(
@@ -154,9 +155,8 @@ func (exec *SlurmRemoteExecutor) Setup() error {
     }
     exec.cancelChild = cancelChild
 
-    exec.selector = workflow.NewSelector(exec.ctx)
     slurmJobResChan := workflow.GetSignalChannel(exec.ctx, "slurm-response")
-    exec.selector.AddReceive(slurmJobResChan, func(c workflow.ReceiveChannel, _ bool) {
+    (*exec.selector).AddReceive(slurmJobResChan, func(c workflow.ReceiveChannel, _ bool) {
         var jobRes SlurmResponse
         c.Receive(exec.ctx, &jobRes)
         exec.handleSlurmCompleteSignal(jobRes)
@@ -171,11 +171,11 @@ func (exec *SlurmRemoteExecutor) Setup() error {
             ))
         }
         timer := workflow.NewTimer(exec.ctx, 1 * time.Minute)
-        exec.selector.AddFuture(timer, checkForChildFailure)
+        (*exec.selector).AddFuture(timer, checkForChildFailure)
     }
 
     timer := workflow.NewTimer(exec.ctx, 1 * time.Minute)
-    exec.selector.AddFuture(timer, checkForChildFailure)
+    (*exec.selector).AddFuture(timer, checkForChildFailure)
     return nil
 }
 
@@ -215,7 +215,7 @@ func (exec *SlurmRemoteExecutor) RunCmds(cmds []parsing.CmdTemplate) {
             inFiles,
         )
 
-        exec.selector.AddFuture(downloadFuture, func(f workflow.Future) {
+        (*exec.selector).AddFuture(downloadFuture, func(f workflow.Future) {
             err := f.Get(exec.ctx, nil)
             if err != nil {
                 logger.Error(
@@ -247,7 +247,7 @@ func (exec *SlurmRemoteExecutor) SetCmdHandler(handler CmdHandler) {
 }
 
 func (exec *SlurmRemoteExecutor) Select() {
-    exec.selector.Select(exec.ctx)
+    (*exec.selector).Select(exec.ctx)
 }
 
 func (exec *SlurmRemoteExecutor) Shutdown() {
