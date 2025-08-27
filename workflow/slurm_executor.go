@@ -31,7 +31,7 @@ type SlurmRemoteExecutor struct {
 }
 
 func NewSlurmRemoteExecutor(
-    ctx workflow.Context, cmdMan *parsing.CmdManager,
+    ctx workflow.Context,
     masterFS fs.LocalFS, storageId string, 
     configsByNode map[int]parsing.SlurmJobConfig, 
     sshConfig parsing.SshConfig,
@@ -105,6 +105,12 @@ func (exec *SlurmRemoteExecutor) handleSlurmCompleteSignal(jobRes SlurmResponse)
     exec.selector.AddFuture(uploadFuture, func(f workflow.Future) {
         err := f.Get(exec.ctx, nil)
         if err != nil {
+            logger.Error(
+                "failed to transfer files from SLURM executor", 
+                "nodeId", cmd.NodeId, "cmdId", cmd.Id,
+                "files", jobRes.Result.OutputFiles,
+                "error", err,
+            )
             exec.errors = append(exec.errors, err)
             return
         }
@@ -198,7 +204,7 @@ func (exec *SlurmRemoteExecutor) RunCmds(cmds []parsing.CmdTemplate) {
                 inFiles = append(inFiles, inFileList...)
                 logger.Info(
                     "Downloading input", "nodeId", cmd.NodeId, "cmdId", cmd.Id, 
-                    "pname", inFilePname, "files", fmt.Sprintf("%#v", inFileList),
+                    "pname", inFilePname, "files", inFileList,
                 )
             }
         }
@@ -212,6 +218,11 @@ func (exec *SlurmRemoteExecutor) RunCmds(cmds []parsing.CmdTemplate) {
         exec.selector.AddFuture(downloadFuture, func(f workflow.Future) {
             err := f.Get(exec.ctx, nil)
             if err != nil {
+                logger.Error(
+                    "failed to transfer files to SLURM executor", 
+                    "nodeId", cmd.NodeId, "cmdId", cmd.Id,
+                    "files", inFiles, "error", err,
+                )
                 exec.errors = append(exec.errors, fmt.Errorf(
                     "error uploading inputs for cmd %d: %s", cmd.Id, err,
                 ))

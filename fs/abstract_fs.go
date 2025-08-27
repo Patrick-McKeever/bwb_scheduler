@@ -163,7 +163,6 @@ func TransferSshToSshFS(storageId string, srcFS, dstFS LocalFS, files []string) 
 
 // It's extremely regrettable that we need to do this, but temporal activities need to know concrete types.
 func RunTransferActivity(ctx workflow.Context, storageId string, srcFS, dstFS AbstractFileSystem, files []string) (workflow.Future) {
-    fmt.Printf("Transfering %#v\n", files)
     switch srcFS.(type) {
     case LocalFS: {
         switch dstFS.(type) {

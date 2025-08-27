@@ -285,7 +285,7 @@ func setupExecutors(
 
     if len(jobConfig.SlurmConfigsByNode) > 0 {
         slurmExecutor := NewSlurmRemoteExecutor(
-            ctx, cmdMan, masterFS, storageId, jobConfig.SlurmConfigsByNode,
+            ctx, masterFS, storageId, jobConfig.SlurmConfigsByNode,
             jobConfig.SlurmExecutor,
         )
         executorList = append(executorList, &slurmExecutor)

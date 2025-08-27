@@ -428,3 +428,8 @@ func TestSlurmJobRetryOnNonFatalErr(t *testing.T) {
     env.AssertExpectations(t)
     require.True(t, env.IsWorkflowCompleted())
 }
+
+// Add test for input / output files
+// Add tests for sbatch / sacct / output parsing.
+// Ideally, add tests for ssh connection.
+// Add test for scancel

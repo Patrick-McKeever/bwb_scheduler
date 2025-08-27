@@ -191,7 +191,12 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
     exec.selector.AddFuture(cmdFuture, func(f workflow.Future) {
         var result CmdOutput
         err := f.Get(exec.ctx, &result)
-        if err := exec.ReleaseResourceGrant(grant); err != nil {
+        if grantErr := exec.ReleaseResourceGrant(grant); grantErr != nil {
+            logger := workflow.GetLogger(exec.ctx)
+            logger.Error(
+                "failed to release resource grant", "resourceGrant", grant,
+                "error", err,
+            )
             exec.errors = append(exec.errors, err)
             return
         }
