@@ -127,8 +127,6 @@ func (connMan *SlurmActivity) Close() {
 }
 
 
-type CmdRunner func(string) (CmdOut, error)
-
 func (connMan *SlurmActivity) ExecCmd(cmd string) (CmdOut, error) {
     connMan.Mtx.RLock()
     defer connMan.Mtx.RUnlock()
@@ -480,6 +478,7 @@ func GetSlurmJobOutputs(job SlurmJob, runCmd CmdRunner) (CmdOutput, error) {
     }
 
     files := strings.Split(strings.TrimSpace(string(lsOut.StdOut)), "\n")
+    rawOutputs := make(map[string]string)
     for _, file := range files {
         if file == "" {
             continue
@@ -490,24 +489,14 @@ func GetSlurmJobOutputs(job SlurmJob, runCmd CmdRunner) (CmdOutput, error) {
         if err != nil {
             return CmdOutput{}, fmt.Errorf("%s: %s", baseErrStr, err)
         }
-        cmdOutput.RawOutputs[file] = strings.TrimSuffix(outVal, "\n")
+        rawOutputs[file] = outVal
     }
 
-    for _, expOutFilePname := range job.ExpOutFilePnames {
-        outFilesRaw, outFileExists := cmdOutput.RawOutputs[expOutFilePname]
-        if outFileExists {
-            outFileVals := strings.Split(outFilesRaw, "\n")
-            if len(outFileVals) > 0 {
-                if outFileVals[len(outFileVals)-1] == "" {
-                    outFileVals = outFileVals[:len(outFileVals)-1]
-                }
-                cmdOutput.OutputFiles = append(
-                    cmdOutput.OutputFiles, outFileVals...,
-                )
-            }
-        }
-    }
-
+    cleanedOutputs, newOutFiles := processRawCmdOutputs(
+        rawOutputs, job.ExpOutFilePnames,
+    )
+    cmdOutput.RawOutputs = cleanedOutputs
+    cmdOutput.OutputFiles = append(cmdOutput.OutputFiles, newOutFiles...)
     return cmdOutput, nil
 }
 

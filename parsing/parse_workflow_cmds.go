@@ -1,12 +1,12 @@
 package parsing
 
 import (
-	"fmt"
-	"regexp"
-	"slices"
-	"sort"
-	"strconv"
-	"strings"
+    "fmt"
+    "regexp"
+    "slices"
+    "sort"
+    "strconv"
+    "strings"
 )
 
 type PatternQuery struct {
@@ -28,6 +28,7 @@ type CmdSub struct {
 type CmdTemplate struct {
     Id        int
     NodeId    int
+    Priority  int
     BaseCmd   []string
     Args      []string
     ImageName string
@@ -40,9 +41,9 @@ type CmdTemplate struct {
 
     // Keep track of input and output files for this command.
     // InFiles are fixed paths, but output files must be stored
-    // both as fixed paths (OutFiles) and by paramter names 
-    // (OutFilePnames), since the filenames of output files may 
-    // not be known until after runtime (where they may be written 
+    // both as fixed paths (OutFiles) and by paramter names
+    // (OutFilePnames), since the filenames of output files may
+    // not be known until after runtime (where they may be written
     // to /tmp/output).
     InFiles       map[string][]string
     OutFiles      map[string][]string
@@ -75,10 +76,10 @@ func concatMapsOfLists[V any](dst, src map[string][]V) {
     }
 }
 
-func concatScalarParams(tps []TypedParams) (TypedParams) {
+func concatScalarParams(tps []TypedParams) TypedParams {
     newTp := TypedParams{
-        StrLists: make(map[string][]string),
-        IntLists: make(map[string][]int),
+        StrLists:    make(map[string][]string),
+        IntLists:    make(map[string][]int),
         DoubleLists: make(map[string][]float64),
     }
 
@@ -204,7 +205,7 @@ func parsePatternQuery(pqRaw any) (PatternQuery, error) {
         Pattern:  pattern,
         FindFile: findFile,
         FindDir:  findDir,
-        Sorted: sorted,
+        Sorted:   sorted,
     }, nil
 
 }
@@ -465,7 +466,7 @@ func (tp *TypedParams) AddParam(
             )
         }
         tp.PatternQueries[pname] = pq
-    }else {
+    } else {
         return fmt.Errorf("invalid arg type %s", argType.ArgType)
     }
 
@@ -524,7 +525,7 @@ func (tp *TypedParams) ResolvePq(
     if err != nil {
         return err
     }
-    
+
     if pq.Sorted {
         slices.Sort(matches)
     }
@@ -659,7 +660,7 @@ func evaluateEnvVars(
         if !ok || propValRaw == nil {
             if reqParams[pname] {
                 return fmt.Errorf(
-                    "required env var %s of type %s is nil", 
+                    "required env var %s of type %s is nil",
                     pname, argType.ArgType,
                 )
             }
@@ -851,7 +852,7 @@ func evaluateArgs(
         if tp.IsNil(pname) {
             if reqParams[pname] {
                 return fmt.Errorf(
-                    "required argument %s of type %s is nil", 
+                    "required argument %s of type %s is nil",
                     pname, argType.ArgType,
                 )
             }
@@ -888,7 +889,7 @@ func evaluateInOutFiles(
         if argIsList {
             baseType = strings.Split(argType.ArgType, " ")[0]
         }
-        
+
         if !argTypeIsStr(baseType) && argType.ArgType != "patternQuery" {
             return fmt.Errorf(
                 "input / output file pname %s is not str or  PQ", pname,
@@ -899,8 +900,8 @@ func evaluateInOutFiles(
         // the value of an input file may vary during iteration over
         // a list.
         isIterable := iterAttrs[pname]
-        isInFile := argType.InputFile != nil && *argType.InputFile && !isIterable 
-        isOutFile := argType.OutputFile != nil && *argType.OutputFile && !isIterable 
+        isInFile := argType.InputFile != nil && *argType.InputFile && !isIterable
+        isOutFile := argType.OutputFile != nil && *argType.OutputFile && !isIterable
         if isInFile || isOutFile {
             var pVal any
             var pValExists bool
@@ -953,8 +954,8 @@ func evaluateInOutFiles(
             }
             if !convOk {
                 return fmt.Errorf(
-                    "unable to convert input/output file param %s to str " +
-                    "or str list", pname,
+                    "unable to convert input/output file param %s to str "+
+                        "or str list", pname,
                 )
             }
         }
@@ -1102,7 +1103,6 @@ func evaluateIterables(
         if !ok {
             return nil, fmt.Errorf("iterable key %s is not a parameter", pname)
         }
-
 
         isPq := argType.ArgType == "patternQuery"
         if !isPq && !strings.HasSuffix(argType.ArgType, "list") {
@@ -1288,7 +1288,7 @@ func performCmdSubs(
 func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
     for pname, argType := range node.ArgTypes {
         if argType.ArgType == "patternQuery" {
-            shouldEval := (argType.Flag != nil || argType.Env != nil || 
+            shouldEval := (argType.Flag != nil || argType.Env != nil ||
                 (argType.IsArgument != nil && *argType.IsArgument))
             if shouldEval {
                 err := tp.ResolvePq(pname, node, glob)
@@ -1314,7 +1314,7 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
 
     if err := resolvePqs(node, &tp, glob); err != nil {
         return nil, fmt.Errorf(
-            "error parsing node %d pattern queries: %s", 
+            "error parsing node %d pattern queries: %s",
             nodeId, err,
         )
     }
@@ -1385,19 +1385,12 @@ func CmdToStr(template CmdTemplate) string {
     return strings.ReplaceAll(out, "$", "\\$")
 }
 
-func FormSingularityCmd(
-    template CmdTemplate,
-    volumes map[string]string,
-    sif_path string,
+func FormSingularityCmdPrefix(
+    template CmdTemplate, 
+    volumes map[string]string, 
     useGpu bool,
-) (string, []string) {
-    envStrs := make([]string, 0)
-    for envK, envV := range template.Envs {
-        envStrs = append(
-            envStrs, fmt.Sprintf("SINGULARITYENV_%s=%s", envK, envV),
-        )
-    }
-
+    sifPath string,
+) string {
     gpuFlag := ""
     if useGpu {
         gpuFlag = "--nv"
@@ -1407,18 +1400,79 @@ func FormSingularityCmd(
     for cntPath, hostPath := range volumes {
         volumesStr += fmt.Sprintf("-B %s:%s ", hostPath, cntPath)
     }
+    return fmt.Sprintf(
+        "singularity exec %s -p -i --containall --cleanenv %s %s",
+        gpuFlag, volumesStr, sifPath,
+    )
+}
+
+func FormSingularityCmd(
+    template CmdTemplate,
+    volumes map[string]string,
+    sifPath string,
+    useGpu bool,
+) (string, []string) {
+    envStrs := make([]string, 0)
+    for envK, envV := range template.Envs {
+        envStrs = append(
+            envStrs, fmt.Sprintf("SINGULARITYENV_%s=%s", envK, envV),
+        )
+    }
 
     cmdStr := strings.Join(template.BaseCmd, " && ") + " "
     cmdStr += strings.Join(template.Flags, " ") + " "
     cmdStr += strings.Join(template.Args, " ")
     //cmdStr = strings.ReplaceAll(cmdStr, "$", "\\$")
 
-    fullCmd := fmt.Sprintf(
-        "singularity exec %s -p -i --containall --cleanenv %s %s sh -c '%s'",
-        gpuFlag, volumesStr, sif_path, cmdStr,
-    )
+    singularityPrefix := FormSingularityCmdPrefix(template, volumes, useGpu, sifPath)
+    fullCmd := fmt.Sprintf("%s sh -c '%s'", singularityPrefix, cmdStr)
 
     return fullCmd, envStrs
+}
+
+func FormDockerCmdPrefix(
+    template CmdTemplate,
+    volumes map[string]string,
+    useGpu bool,
+    cntName string,
+) string {
+    envStr := ""
+    for envK, envV := range template.Envs {
+        envStr += fmt.Sprintf("-e %s=%s ", envK, envV)
+    }
+
+    gpuFlag := ""
+    if useGpu {
+        gpuFlag = "--gpus all"
+    }
+
+    volumesStr := ""
+    for cntPath, hostPath := range volumes {
+        volumesStr += fmt.Sprintf("-v %s:%s ", hostPath, cntPath)
+    }
+
+    return fmt.Sprintf(
+        "docker run --rm --name %s %s %s %s %s ",
+        cntName, gpuFlag, envStr, volumesStr, template.ImageName, 
+    )
+}
+
+func FormDockerCmd(
+    template CmdTemplate,
+    volumes map[string]string,
+    useGpu bool,
+    cntName string,
+) (string, []string) {
+    cmdStr := strings.Join(template.BaseCmd, " && ") + " "
+    cmdStr += strings.Join(template.Flags, " ") + " "
+    cmdStr += strings.Join(template.Args, " ")
+
+    dockerPrefix := FormDockerCmdPrefix(template, volumes, useGpu, cntName)
+    fullCmd := fmt.Sprintf(
+        "%s sh -c '%s'", dockerPrefix, cmdStr,
+    )
+
+    return fullCmd, []string{}
 }
 
 func DryRun(workflow Workflow) ([]string, error) {

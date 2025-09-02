@@ -160,7 +160,7 @@ func processRequests(state *SchedWorkflowState) []ResourceGrant {
         reqI := state.PendingRequests[i]
         reqJ := state.PendingRequests[j]
         if reqI.Rank != reqJ.Rank {
-            return reqI.Rank < reqJ.Rank
+            return reqI.Rank > reqJ.Rank
         }
         if reqI.Requirements.Gpus != reqJ.Requirements.Gpus {
             return reqI.Requirements.Gpus > reqJ.Requirements.Gpus

@@ -36,27 +36,27 @@ func checkDeps() error {
 
 func StartWorkers(
     c client.Client, config parsing.JobConfig,
-    queueName string,
+    queueName string, cancelChan chan any,
 ) error {
     if err := checkDeps(); err != nil {
         return err
     }
 
-    go StartWorker(c, SCHEDULER_QUEUE, true)
+    go StartWorker(c, SCHEDULER_QUEUE, true, cancelChan)
     if len(config.TemporalConfigsByNode) > 0 {
-        go StartWorker(c, queueName, false)
+        go StartWorker(c, queueName, false, cancelChan)
     }
 
     if len(config.SlurmConfigsByNode) > 0 {
-        go StartSlurmWorker(c, config.SlurmExecutor)
+        go StartSlurmWorker(c, config.SlurmExecutor, cancelChan)
     }
 
     return nil
 }
 
 func StartWorker(
-    c client.Client, 
-    queueName string, scheduler bool,
+    c client.Client, queueName string, scheduler bool,
+    cancelChan chan any,
 ) {
     w := worker.New(c, queueName, worker.Options{})
 
@@ -67,18 +67,20 @@ func StartWorker(
         w.RegisterActivity(fs.GlobActivity[fs.LocalFS])
     } else {
         w.RegisterActivity(WorkerHeartbeatActivity)
-        w.RegisterActivity(RunCmd)
+        w.RegisterActivity(RunCmdActivity)
         w.RegisterActivity(fs.SetupVolumes)
     }
 
     log.Println("Starting worker...")
-    err := w.Run(worker.InterruptCh())
+    err := w.Run(cancelChan)
     if err != nil {
         log.Fatalln("Unable to start worker", err)
     }
 }
 
-func StartSlurmWorker(c client.Client, config parsing.SshConfig) {
+func StartSlurmWorker(
+    c client.Client, config parsing.SshConfig, cancelChan chan any,
+) {
     sshClient, connConfig, err := getSshConnection(config)
     if err != nil {
         log.Fatalf(
@@ -110,7 +112,7 @@ func StartSlurmWorker(c client.Client, config parsing.SshConfig) {
     w.RegisterActivity(fs.TransferSshToLocalFS)
     w.RegisterActivity(fs.TransferSshToSshFS)
     log.Println("Starting worker...")
-    err = w.Run(worker.InterruptCh())
+    err = w.Run(cancelChan)
     if err != nil {
         log.Fatalln("Unable to start slurm worker", err)
     }

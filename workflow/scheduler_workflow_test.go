@@ -132,7 +132,7 @@ func TestResourceOrdering(t *testing.T) {
         {Id: 2, Rank: 1, Requirements: parsing.ResourceVector{Cpus: totalWorkerCpus-1}, CallerWorkflowId: "sig2"},
         {Id: 3, Rank: 1, Requirements: parsing.ResourceVector{Cpus: totalWorkerCpus}, CallerWorkflowId: "sig3"},
     }
-    expectedOrder := []int{3, 2, 1}
+    expectedOrder := []int{1, 3, 2}
     orderReceived := make([]int, 0)
 
     env := testSuite.NewTestWorkflowEnvironment()

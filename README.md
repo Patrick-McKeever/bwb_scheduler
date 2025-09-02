@@ -45,6 +45,7 @@ Usage:
 
 Flags:
       --cpus int                Max number of CPU cores to use on local worker.
+      --docker                  Use docker for locally run containers rather than singularity. Overrides values in job config.
       --gpus int                Max number of GPUs to use on local worker.
   -h, --help                    help for run
       --noTemporal              Run workflow without temporal

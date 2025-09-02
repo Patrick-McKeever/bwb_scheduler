@@ -1,7 +1,9 @@
 package workflow
 
 import (
-    "bytes"
+    "maps"
+    "time"
+	"bytes"
     "crypto/rand"
     "errors"
     "fmt"
@@ -12,8 +14,10 @@ import (
     "os/exec"
     "path/filepath"
     "strings"
+    "context"
 
     "go.temporal.io/sdk/workflow"
+    "go.temporal.io/sdk/activity"
     "go.temporal.io/sdk/log"
 )
 
@@ -43,6 +47,7 @@ type Executor interface {
 }
 
 
+type CmdRunner func(string) (CmdOut, error)
 
 func getSifName(dockerImage string) string {
     // Replace all `/` in docker image name, since this is going
@@ -100,7 +105,77 @@ func BuildSingularitySIF(dockerImage string) (string, error) {
     return outputPath, nil
 }
 
-func getCmdOutputs(
+func processRawCmdOutputs(
+    rawOutputs map[string]string,
+    expOutFilePnames []string,
+) (map[string]string, []string) {
+    outKvs := make(map[string]string)
+    for pname, contents := range rawOutputs {
+        outKvs[pname] = strings.TrimSuffix(contents, "\n")
+    }
+
+    outFiles := make([]string, 0)
+    for _, expOutFilePname := range expOutFilePnames {
+        if outFilesRaw, outFileExists := outKvs[expOutFilePname]; outFileExists {
+            outFileVals := strings.Split(outFilesRaw, "\n")
+            if len(outFileVals) > 0 {
+                if outFileVals[len(outFileVals)-1] == "" {
+                    outFileVals = outFileVals[:len(outFileVals)-1]
+                }
+                outFiles = append(outFiles, outFileVals...)
+            }
+        }
+    }
+    return outKvs, outFiles
+}
+
+func dockerGetCmdOutputs(
+    dockerPrefix string, expOutFilePnames []string,
+) (map[string]string, []string, error) {
+    var stdout bytes.Buffer
+    var stderr bytes.Buffer
+    findCmdStr := fmt.Sprintf(
+        "%s find /tmp/output -maxdepth 1 -type f", dockerPrefix,
+    )
+    findCmd := exec.Command("sh", "-c", findCmdStr)
+    findCmd.Stdout = &stdout
+    findCmd.Stderr = &stderr
+    if err := findCmd.Run(); err != nil {
+        return nil, nil, fmt.Errorf(
+            "cmd %s failed w/ stderr %s and err %s", 
+            findCmdStr, stderr.String(), err,
+        )
+    }
+
+    files := strings.Split(strings.TrimSpace(stdout.String()), "\n")
+    rawOutputs := make(map[string]string)
+    for _, outFile := range files {
+        if outFile == "" {
+            continue
+        }
+
+        stdout.Reset()
+        stderr.Reset()
+        catCmdStr := fmt.Sprintf("%s cat %s", dockerPrefix, outFile)
+        catCmd := exec.Command("sh", "-c", catCmdStr)
+        catCmd.Stdout = &stdout
+        catCmd.Stderr = &stderr
+        if err := catCmd.Run(); err != nil {
+            return nil, nil, fmt.Errorf(
+                "cmd %s failed w/ stderr %s and err %s", 
+                catCmdStr, stderr.String(), err,
+            )
+        }
+
+        pname := filepath.Base(outFile)
+        rawOutputs[pname] = stdout.String()
+    }
+
+    outKvs, outFiles := processRawCmdOutputs(rawOutputs, expOutFilePnames)
+    return outKvs, outFiles, nil
+}
+
+func singularityGetCmdOutputs(
     tmpOutputHostPath string,
     expOutFilePnames []string,
 ) (map[string]string, []string, error) {
@@ -117,7 +192,7 @@ func getCmdOutputs(
         )
     }
 
-    outKvs := make(map[string]string)
+    rawOutputs := make(map[string]string)
     for _, outPath := range outPaths {
         pname := outPath.Name()
         if outPath.IsDir() {
@@ -131,52 +206,118 @@ func getCmdOutputs(
             continue
         }
 
-        outKvs[pname] = strings.TrimSuffix(string(data), "\n")
+        rawOutputs[pname] = string(data)
     }
 
-    outFiles := make([]string, 0)
-    for _, expOutFilePname := range expOutFilePnames {
-        if outFilesRaw, outFileExists := outKvs[expOutFilePname]; outFileExists {
-            outFileVals := strings.Split(outFilesRaw, "\n")
-            if len(outFileVals) > 0 {
-                if outFileVals[len(outFileVals)-1] == "" {
-                    outFileVals = outFileVals[:len(outFileVals)-1]
-                }
-                outFiles = append(outFiles, outFileVals...)
-            }
-        }
-    }
-
+    outKvs, outFiles := processRawCmdOutputs(rawOutputs, expOutFilePnames)
     return outKvs, outFiles, nil
 }
 
-func setupCmdDirs() (string, string, error) {
+func setupTmpDir() (string, error) {
     schedDir := os.Getenv("BWB_SCHED_DIR")
     randStr := randomString(32)
     tmpDir := filepath.Join(schedDir, randStr)
-    imageDir := filepath.Join(schedDir, "images")
 
-    for _, dir := range []string{tmpDir, imageDir} {
-        if err := os.MkdirAll(dir, 0755); err != nil {
-            return "", "", fmt.Errorf("failed to create dir %s: %s", dir, err)
-        }
+    if err := os.MkdirAll(tmpDir, 0755); err != nil {
+        return "", fmt.Errorf("failed to create dir %s: %s", tmpDir, err)
     }
 
-    return tmpDir, imageDir, nil
+    return tmpDir, nil
 }
 
-func RunCmd(
-    volumes map[string]string, cmdTemplate parsing.CmdTemplate,
-) (CmdOutput, error) {
-    if _, err := exec.LookPath("singularity"); err != nil {
-        return CmdOutput{}, fmt.Errorf("singularity not found in PATH: %v", err)
+func setupImageDir() (string, error) {
+    schedDir := os.Getenv("BWB_SCHED_DIR")
+    imageDir := filepath.Join(schedDir, "images")
+
+    if err := os.MkdirAll(imageDir, 0755); err != nil {
+        return "", fmt.Errorf("failed to create dir %s: %s", imageDir, err)
     }
 
-    tmpDir, imageDir, err := setupCmdDirs()
-    if err != nil {
-        return CmdOutput{}, fmt.Errorf("error making tmp dir: %s", err)
+    return imageDir, nil
+}
+
+func runCmdDocker(
+    ctx context.Context, 
+    volumes map[string]string, 
+    cmdTemplate parsing.CmdTemplate,
+) (CmdOutput, error) {
+    useGpu := cmdTemplate.ResourceReqs.Gpus > 0
+    cntName := randomString(16)
+    cmdStr, envs := parsing.FormDockerCmd(
+        cmdTemplate, volumes, useGpu, cntName,
+    )
+
+    var stdout, stderr bytes.Buffer
+    cmd := exec.Command("sh", "-c", cmdStr)
+    cmd.Env = envs
+    cmd.Stdout = &stdout
+    cmd.Stderr = &stderr
+
+    cmdWithEnvStr := fmt.Sprintf("%s %s", strings.Join(envs, " "), cmdStr)
+    fmt.Println(cmdWithEnvStr)
+
+    dockerCmdPrefix := parsing.FormDockerCmdPrefix(
+        cmdTemplate, volumes, useGpu, cntName,
+    )
+    rmTmpDirCmdStr := fmt.Sprintf("%s rm -rf /tmp/output", dockerCmdPrefix)
+    rmTmpDirCmd := exec.Command("sh", "-c", rmTmpDirCmdStr)
+    defer rmTmpDirCmd.Run()
+
+    errChan := make(chan error)
+    go func() {
+        errChan <- cmd.Run()
+    }()
+
+    select {
+    case <-ctx.Done(): {
+        rmCntCmdStr := fmt.Sprintf("docker rm -f %s", cntName)
+        rmCntCmd := exec.Command("sh", "-c", rmCntCmdStr)
+        rmCntCmd.Run()
+        return CmdOutput{}, context.Canceled
     }
-    volumes["/tmp/output"] = tmpDir
+    case procErr := <-errChan: {
+        if procErr != nil {
+            return CmdOutput{}, fmt.Errorf(
+                "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s",
+                cmdWithEnvStr, procErr, stdout.String(), stderr.String(),
+            )
+        }
+    }
+    }
+
+    out := CmdOutput{
+        Id:     cmdTemplate.Id,
+        StdOut: stdout.String(),
+        StdErr: stderr.String(),
+    }
+
+    var err error
+    out.RawOutputs, out.OutputFiles, err = dockerGetCmdOutputs(
+        dockerCmdPrefix, cmdTemplate.OutFilePnames,
+    )
+
+    if err != nil {
+        return CmdOutput{}, fmt.Errorf(
+            "error getting outputs of command %s: %s", cmd, err,
+        )
+    }
+    return out, nil
+}
+
+func runCmdSingularity(
+    ctx context.Context,
+    volumes map[string]string,
+    cmdTemplate parsing.CmdTemplate,
+) (CmdOutput, error) {
+    imageDir, err := setupImageDir()
+    if err != nil {
+        return CmdOutput{}, fmt.Errorf("unable to setup image dir: %s", err)
+    }
+
+    tmpDir, ok := volumes["/tmp/output"]
+    if !ok {
+        return CmdOutput{}, fmt.Errorf("failed to set /tmp/output volume")
+    }
     defer os.RemoveAll(tmpDir)
 
     sifBasename := getSifName(cmdTemplate.ImageName)
@@ -194,8 +335,9 @@ func RunCmd(
         cmdTemplate, volumes, localSifPath, useGpu,
     )
 
+    // Configure cmd to get killed automatically if ctx is cancelled.
+    cmd := exec.CommandContext(ctx, "sh", "-c", cmdStr)
     var stdout, stderr bytes.Buffer
-    cmd := exec.Command("sh", "-c", cmdStr)
     cmd.Env = envs
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
@@ -203,10 +345,15 @@ func RunCmd(
     cmdWithEnvStr := fmt.Sprintf("%s %s", strings.Join(envs, " "), cmdStr)
     fmt.Println(cmdWithEnvStr)
 
-    if err = cmd.Run(); err != nil {
+    procErr := cmd.Run()
+    if ctx.Err() != nil {
+        return CmdOutput{}, context.Canceled
+    }
+
+    if procErr != nil {
         return CmdOutput{}, fmt.Errorf(
             "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s",
-            cmdWithEnvStr, err, stdout.String(), stderr.String(),
+            cmdWithEnvStr, procErr, stdout.String(), stderr.String(),
         )
     }
 
@@ -215,16 +362,68 @@ func RunCmd(
         StdOut: stdout.String(),
         StdErr: stderr.String(),
     }
-    out.RawOutputs, out.OutputFiles, err = getCmdOutputs(
+    out.RawOutputs, out.OutputFiles, err = singularityGetCmdOutputs(
         tmpDir, cmdTemplate.OutFilePnames,
     )
+
     if err != nil {
         return CmdOutput{}, fmt.Errorf(
             "error getting outputs of command %s: %s", cmd, err,
         )
     }
-
     return out, nil
+}
+
+func RunCmd(
+    ctx context.Context,
+    volumes map[string]string, 
+    cmdTemplate parsing.CmdTemplate,
+    useDocker bool,
+) (CmdOutput, error) {
+    tmpDir, err := setupTmpDir()
+    if err != nil {
+        return CmdOutput{}, fmt.Errorf(
+            "unable to setup /tmp/output dir: %s", err,
+        )
+    }
+
+    volumesCopy := make(map[string]string)
+    maps.Copy(volumesCopy, volumes)
+    volumesCopy["/tmp/output"] = tmpDir
+    if useDocker {
+        return runCmdDocker(ctx, volumesCopy, cmdTemplate)
+    } else {
+        return runCmdSingularity(ctx, volumesCopy, cmdTemplate)
+    }
+}
+
+func RunCmdActivity(
+    ctx context.Context,
+    volumes map[string]string, 
+    cmdTemplate parsing.CmdTemplate,
+    useDocker bool,
+) (CmdOutput, error) {
+    outChan := make(chan struct{out CmdOutput; err error})
+    type outType struct{out CmdOutput; err error}
+
+    go func ()  {
+        out, err := RunCmd(ctx, volumes, cmdTemplate, useDocker)
+        outChan <- outType{ out: out, err: err }
+    }()
+
+    finished := false
+    var outVal outType
+    for !finished {
+        select {
+        case <-time.After(1 * time.Second): {
+            activity.RecordHeartbeat(ctx, struct{}{})
+        }
+        case outVal = <-outChan: {
+            finished = true
+        }
+        }
+    }
+    return outVal.out, outVal.err
 }
 
 func HandleCompletedCmd(
@@ -277,6 +476,7 @@ func setupExecutors(
     if len(jobConfig.TemporalConfigsByNode) > 0 {
         temporalExecutor := NewTemporalExecutor(
             ctx, &selector, cmdMan, masterFS, workers, storageId,
+            jobConfig.TemporalConfigsByNode,
         )
         executorList = append(executorList, &temporalExecutor)
         for nodeId := range jobConfig.TemporalConfigsByNode {
@@ -323,6 +523,7 @@ func RunBwbWorkflowHelper(
     executorsByNode map[int]Executor, 
     executors []Executor,
     softFail bool,
+    isDone func() bool,
 ) error {
     if cmdMan == nil {
         return errors.New("received nil CMD manager")
@@ -361,7 +562,7 @@ func RunBwbWorkflowHelper(
     }
 
     RunCmds(executorsByNode, initialCmds)
-    for !cmdMan.IsComplete() && (!cmdMan.HasFailed() || softFail) && finalErr == nil {
+    for !cmdMan.IsComplete() && (!cmdMan.HasFailed() || softFail) && finalErr == nil && !isDone() {
         for _, executor := range executors {
             execErrs := executor.GetErrors()
             if len(execErrs) > 0 {
@@ -405,11 +606,16 @@ func RunBwbWorkflow(
         return fmt.Errorf("error parsing job config: %s", err)
     }
     logger := workflow.GetLogger(ctx)
-    return RunBwbWorkflowHelper(logger, &cmdMan, executors, executorList, softFail)
+    return RunBwbWorkflowHelper(
+        logger, &cmdMan, executors, executorList, softFail, func() bool {
+            return ctx.Err() != nil
+        })
 }
 
 func RunBwbWorkflowNoTemporal(
+    ctx context.Context,
     storageId string,
+    jobConfig parsing.JobConfig,
     bwbWorkflow parsing.Workflow,
     index parsing.WorkflowIndex,
     localWorker WorkerInfo,
@@ -417,15 +623,19 @@ func RunBwbWorkflowNoTemporal(
     softFail bool,
     logger slog.Logger,
 ) error {
-    configs := parsing.GetDefaultConfig(bwbWorkflow, true)
-    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, configs)
+    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, jobConfig)
     executors := make(map[int]Executor)
     localExecutor := NewLocalExecutor(
-        &cmdMan, masterFS, localWorker, storageId, logger,
+        ctx, &cmdMan, masterFS, localWorker, storageId, 
+        jobConfig.LocalConfigsByNode, logger,
     )
     executorList := []Executor{&localExecutor}
     for nodeId := range bwbWorkflow.Nodes {
         executors[nodeId] = &localExecutor
     }
-    return RunBwbWorkflowHelper(&logger, &cmdMan, executors, executorList, softFail)
+    return RunBwbWorkflowHelper(
+        &logger, &cmdMan, executors, executorList, softFail, func() bool {
+            return ctx.Err() != nil
+        },
+    )
 }

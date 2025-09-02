@@ -7,10 +7,10 @@ import (
 
 type CmdManager struct {
 	state           *WorkflowExecutionState
-    jobConfig       JobConfig
+	jobConfig       JobConfig
 	currentMaxCmdId int
 	cmdIdToParams   map[int]NodeParams
-    completedCmds   map[int]struct{}
+	completedCmds   map[int]struct{}
 	remainingIters  map[int]map[string]map[int]struct{}
 }
 
@@ -20,13 +20,13 @@ func NewCmdManager(
 	var cmdMan CmdManager
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
 	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
-    cmdMan.completedCmds = make(map[int]struct{})
+	cmdMan.completedCmds = make(map[int]struct{})
 	for nodeId := range workflow.Nodes {
 		cmdMan.remainingIters[nodeId] = make(map[string]map[int]struct{})
 	}
-    wes := NewWorkflowExecutionState(workflow, index)
+	wes := NewWorkflowExecutionState(workflow, index)
 	cmdMan.state = &wes
-    cmdMan.jobConfig = config
+	cmdMan.jobConfig = config
 	return cmdMan
 }
 
@@ -42,20 +42,20 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	completedCmd CmdTemplate,
 	rawOutputs map[string]string,
 	glob GlobFunc,
-    success bool,
+	success bool,
 ) (map[int][]CmdTemplate, error) {
 	inputParams, inputParamsExist := cmdMan.cmdIdToParams[completedCmd.Id]
 	if !inputParamsExist {
 		return nil, fmt.Errorf("cmd has invalid ID %d", completedCmd.Id)
 	}
 
-    // Do not return successors for already completed cmd,
-    // these have already been consumed by some prior call.
-    if _, ok := cmdMan.completedCmds[completedCmd.Id]; ok {
-        return nil, nil
-    }
+	// Do not return successors for already completed cmd,
+	// these have already been consumed by some prior call.
+	if _, ok := cmdMan.completedCmds[completedCmd.Id]; ok {
+		return nil, nil
+	}
 
-    cmdMan.completedCmds[completedCmd.Id] = struct{}{}
+	cmdMan.completedCmds[completedCmd.Id] = struct{}{}
 	nodeId := inputParams.NodeId
 	node := cmdMan.state.workflow.Nodes[nodeId]
 	nodeRunId := fmt.Sprintf("%#v", inputParams.AncList)
@@ -73,7 +73,6 @@ func (cmdMan *CmdManager) GetSuccCmds(
 		outputTp.AddSerializedParam(v, k, argType)
 	}
 
-
 	if !node.Async && len(cmdMan.remainingIters[nodeId][nodeRunId]) > 0 {
 		return nil, nil
 	}
@@ -87,15 +86,15 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	}
 
 	cmds, err := cmdMan.getCmdsFromParams(succParams, glob)
-    for nodeId := range cmds {
-        for i := range cmds[nodeId] {
-            RemoveElideableFileXfers(
-                &cmds[nodeId][i], cmdMan.state.workflow, cmdMan.state.index, 
-                cmdMan.jobConfig,
-            )
-        }
-    }
-    return cmds, err
+	for nodeId := range cmds {
+		for i := range cmds[nodeId] {
+			RemoveElideableFileXfers(
+				&cmds[nodeId][i], cmdMan.state.workflow, cmdMan.state.index,
+				cmdMan.jobConfig,
+			)
+		}
+	}
+	return cmds, err
 }
 
 func (cmdMan *CmdManager) IsComplete() bool {
@@ -135,6 +134,7 @@ func (cmdMan *CmdManager) getCmdsFromParams(
 			for i := range nodeCmds {
 				cmdId := cmdMan.currentMaxCmdId
 				nodeCmds[i].Id = cmdId
+				nodeCmds[i].Priority = cmdMan.state.index.MaxDistanceFromSink[nodeId]
 				cmdMan.cmdIdToParams[cmdId] = paramSet
 				cmdMan.remainingIters[nodeId][nodeRunId][cmdId] = struct{}{}
 				cmdMan.currentMaxCmdId += 1

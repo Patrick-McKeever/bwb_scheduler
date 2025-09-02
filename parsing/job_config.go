@@ -36,6 +36,10 @@ type SlurmJobConfig struct {
     Modules     *[]string `json:"modules,omitempty"`
 }
 
+type LocalJobConfig struct {
+    UseDocker   bool
+}
+
 type ConfigValue struct {
     Executor    string                 `json:"executor"`
     Annotations map[string]any         `json:"annotations,omitempty"`
@@ -56,11 +60,11 @@ type JobConfig struct {
     // Currently, these executors take no user arguments, but
     // we mark them anyway in case we ever want to add any.
     LocalExecutor           struct{}
-    LocalConfigsByNode      map[int]struct{}
-    LocalConfigsByName      map[string]struct{}
+    LocalConfigsByNode      map[int]LocalJobConfig
+    LocalConfigsByName      map[string]LocalJobConfig
     TemporalExecutor        struct{}
-    TemporalConfigsByNode   map[int]struct{}
-    TemporalConfigsByName   map[string]struct{}
+    TemporalConfigsByNode   map[int]LocalJobConfig
+    TemporalConfigsByName   map[string]LocalJobConfig
 }
 
 func ParseJobConfig(data []byte, jc *JobConfig) error {
@@ -98,10 +102,10 @@ func ParseJobConfig(data []byte, jc *JobConfig) error {
     jc.ExecTypeByNode = make(map[int]ExecType)
     jc.SlurmConfigsByName = make(map[string]SlurmJobConfig)
     jc.SlurmConfigsByNode = make(map[int]SlurmJobConfig)
-    jc.LocalConfigsByName = make(map[string]struct{})
-    jc.LocalConfigsByNode = make(map[int]struct{})
-    jc.TemporalConfigsByName = make(map[string]struct{})
-    jc.TemporalConfigsByNode = make(map[int]struct{})
+    jc.LocalConfigsByName = make(map[string]LocalJobConfig)
+    jc.LocalConfigsByNode = make(map[int]LocalJobConfig)
+    jc.TemporalConfigsByName = make(map[string]LocalJobConfig)
+    jc.TemporalConfigsByNode = make(map[int]LocalJobConfig)
     return jd.Validate(jc)
 }
 
@@ -299,26 +303,15 @@ func (jd *RawJobConfig) validateAnnotations(
     if configValue.Annotations == nil {
         // Annotations are optional for non-slurm executors
         if configValue.Executor == "local" {
-            jc.LocalConfigsByName[configName] = struct{}{}
+            jc.LocalConfigsByName[configName] = LocalJobConfig{UseDocker: false}
             return nil
         } else if configValue.Executor == "temporal" {
-            jc.TemporalConfigsByName[configName] = struct{}{}
+            jc.TemporalConfigsByName[configName] = LocalJobConfig{UseDocker: false}
             return nil
         }
         return fmt.Errorf(
             "config '%s' with slurm executor requires annotations", 
             configName,
-        )
-    }
-
-    if configValue.Executor != "slurm" {
-        // We'll change this later.
-        if len(configValue.Annotations) == 0 {
-            return nil
-        }
-        return fmt.Errorf(
-            "config '%s' with executor '%s' must have empty or no annotations, got: %v", 
-            configName, configValue.Executor, configValue.Annotations,
         )
     }
 
@@ -329,6 +322,23 @@ func (jd *RawJobConfig) validateAnnotations(
             "failed to marshal annotations for config '%s': %w", 
             configName, err,
         )
+    }
+
+    if configValue.Executor == "local" || configValue.Executor == "temporal" {
+        // We'll change this later.
+        var localConfig LocalJobConfig
+        if err := json.Unmarshal(annotationsBytes, &localConfig); err != nil {
+            return fmt.Errorf(
+                "invalid LocalJobConfig annotations for config '%s': %w", 
+                configName, err,
+            )
+        }
+        if configValue.Executor == "local" {
+            jc.LocalConfigsByName[configName] = localConfig
+        } else if configValue.Executor == "temporal" {
+            jc.TemporalConfigsByName[configName] = localConfig
+        }
+        return nil
     }
 
     var slurmConfig SlurmJobConfig
@@ -417,16 +427,24 @@ func ParseAndValidateJobConfigFile(file string) (JobConfig, error) {
 func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
     var jc JobConfig
     if noTemporal {
-        jc.LocalConfigsByName = map[string]struct{}{"default": {}}
-        jc.LocalConfigsByNode = make(map[int]struct{})
+        jc.LocalConfigsByName = map[string]LocalJobConfig{
+            "default": {UseDocker: false},
+        }
+        jc.LocalConfigsByNode = make(map[int]LocalJobConfig)
         for nodeId := range wf.Nodes {
-            jc.LocalConfigsByNode[nodeId] = struct{}{}
+            jc.LocalConfigsByNode[nodeId] = LocalJobConfig{
+                UseDocker: false,
+            }
         }
     } else {
-        jc.TemporalConfigsByName = map[string]struct{}{"default": {}}
-        jc.TemporalConfigsByNode = make(map[int]struct{})
+        jc.TemporalConfigsByName = map[string]LocalJobConfig{
+            "default": {UseDocker: false},
+        }
+        jc.TemporalConfigsByNode = make(map[int]LocalJobConfig)
         for nodeId := range wf.Nodes {
-            jc.TemporalConfigsByNode[nodeId] = struct{}{}
+            jc.TemporalConfigsByNode[nodeId] = LocalJobConfig{
+                UseDocker: false,
+            }
         }
     }
     return jc

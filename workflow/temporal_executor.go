@@ -18,10 +18,13 @@ type TemporalExecutor struct {
     storageId         string
     selector          *workflow.Selector
     schedulerWE       workflow.Execution
+    cancelCmds        []func()
+    cancelIdxs        map[int]struct{}
     cancelChild       func()
     workerFSs         map[string]fs.LocalFS
     cmdsById          map[int]parsing.CmdTemplate
     grantsById        map[int]ResourceGrant
+    configsByNode     map[int]parsing.LocalJobConfig
     errors            []error
 }
 
@@ -29,9 +32,12 @@ func NewTemporalExecutor(
     ctx workflow.Context, selector *workflow.Selector, 
     cmdMan *parsing.CmdManager, masterFS fs.LocalFS, 
     workers map[string]WorkerInfo, storageId string,
+    configsByNode map[int]parsing.LocalJobConfig,
 ) TemporalExecutor {
     var state TemporalExecutor
     state.ctx = ctx
+    state.cancelCmds = make([]func(), 0)
+    state.cancelIdxs = make(map[int]struct{})
     state.selector = selector
     state.masterFS = masterFS
     state.workers = workers
@@ -40,6 +46,7 @@ func NewTemporalExecutor(
     state.cmdsById = make(map[int]parsing.CmdTemplate)
     state.grantsById = make(map[int]ResourceGrant)
     state.errors = make([]error, 0)
+    state.configsByNode = configsByNode
     return state
 }
 
@@ -108,6 +115,9 @@ func (exec *TemporalExecutor) Select() {
 
 func (exec *TemporalExecutor) Shutdown() {
     exec.cancelChild()
+    for cancelIdx := range exec.cancelIdxs {
+        exec.cancelCmds[cancelIdx]()
+    }
 }
 
 func (exec *TemporalExecutor) GetErrors() []error {
@@ -121,7 +131,7 @@ func (exec *TemporalExecutor) RunCmds(
     for _, cmd := range cmds {
         exec.cmdsById[cmd.Id] = cmd
         req := ResourceRequest{
-            Rank:             0,
+            Rank:             cmd.Priority,
             Id:               cmd.Id,
             Requirements:     cmd.ResourceReqs,
             CallerWorkflowId: workflowId,
@@ -170,6 +180,7 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
     ao := workflow.ActivityOptions{
         TaskQueue:           grant.WorkerId,
         StartToCloseTimeout: 3 * time.Hour,
+        HeartbeatTimeout: 1 * time.Minute,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 1,
         },
@@ -184,13 +195,20 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
     }
     volumes := fs.GetVolumes()
 
-    cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
+    useDocker := exec.configsByNode[cmd.Id].UseDocker
+    aoCtx := workflow.WithActivityOptions(exec.ctx, ao)
+    cmdCtx, cancel := workflow.WithCancel(aoCtx)
     cmdFuture := workflow.ExecuteActivity(
-        cmdCtx, RunCmd, volumes, cmd,
+        cmdCtx, RunCmdActivity, volumes, cmd, useDocker,
     )
+    exec.cancelCmds = append(exec.cancelCmds, cancel)
+    cancelIdx := len(exec.cancelCmds) - 1
+    exec.cancelIdxs[cancelIdx] = struct{}{}
+
     (*exec.selector).AddFuture(cmdFuture, func(f workflow.Future) {
         var result CmdOutput
         err := f.Get(exec.ctx, &result)
+        delete(exec.cancelIdxs, cancelIdx)
         if grantErr := exec.ReleaseResourceGrant(grant); grantErr != nil {
             logger := workflow.GetLogger(exec.ctx)
             logger.Error(

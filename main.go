@@ -12,16 +12,18 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/shirou/gopsutil/mem"
 	"github.com/spf13/cobra"
 	"go.temporal.io/sdk/client"
-    temporalLog "go.temporal.io/sdk/log"
+	temporalLog "go.temporal.io/sdk/log"
 )
 
 type ByteSize int64
@@ -100,7 +102,7 @@ func overrideParamVals(
             " of the form [NODE_NAME].[PARAM_NAME]=[VAL], where NODE_NAME is "+
             "the title or numeric ID of a node defined in the workflow JSON, "+
             "PARAM_NAME is one of its parameters, and value is a JSON-parsable "+
-            "string giving the desired value of this parameter.", paramValRaw,
+            "string giving the desired value of this parameter", paramValRaw,
         )
 
         if len(splitByEq) != 2 {
@@ -162,6 +164,36 @@ func overrideParamVals(
     return nil
 }
 
+func overrideConfigVals(
+    jobConfig *parsing.JobConfig, useDocker bool,
+) error {
+    for name, config := range jobConfig.LocalConfigsByName {
+        if useDocker {
+            config.UseDocker = true
+            jobConfig.LocalConfigsByName[name] = config
+        }
+    }
+    for nodeId, config := range jobConfig.LocalConfigsByNode {
+        if useDocker {
+            config.UseDocker = true
+            jobConfig.LocalConfigsByNode[nodeId] = config
+        }
+    }
+    for name, config := range jobConfig.TemporalConfigsByName {
+        if useDocker {
+            config.UseDocker = true
+            jobConfig.TemporalConfigsByName[name] = config
+        }
+    }
+    for nodeId, config := range jobConfig.TemporalConfigsByNode {
+        if useDocker {
+            config.UseDocker = true
+            jobConfig.TemporalConfigsByNode[nodeId] = config
+        }
+    }
+    return nil
+}
+
 func convertOWSWorkflow(
     owsDirPath string, outPath string,
 ) error {
@@ -215,9 +247,93 @@ func dryRunWorkflow(
     return nil
 }
 
+func runWorkflowTemporal(
+    bwbWorkflow parsing.Workflow, index parsing.WorkflowIndex, 
+    jobConfig parsing.JobConfig, masterFS fs.LocalFS,
+    temporalWfName, storageId string, softFail bool, 
+    checkptPath string, logger *slog.Logger, 
+    localWorker workflow.WorkerInfo,
+) error {
+    var err error
+
+    c, err := client.NewLazyClient(client.Options{
+        Logger: temporalLog.NewStructuredLogger(logger),
+    })
+    if err != nil {
+        return fmt.Errorf("unable to create Temporal client: %s", err)
+    }
+    defer c.Close()
+
+    cancelChan := make(chan any)
+    queueName := localWorker.QueueId
+    if err := workflow.StartWorkers(c, jobConfig, queueName, cancelChan); err != nil {
+        return err
+    }
+
+
+    wfName := temporalWfName
+    if temporalWfName == "" {
+        wfName = "bwb_workflow_" + time.Now().Format("20060102150405")
+    }
+    workflowOptions := client.StartWorkflowOptions{
+        ID:        wfName,
+        TaskQueue: "bwb_worker",
+    }
+
+    workers := map[string]workflow.WorkerInfo{queueName: localWorker}
+
+    we, err := c.ExecuteWorkflow(
+        context.Background(), workflowOptions,
+        workflow.RunBwbWorkflow, storageId, jobConfig,
+        bwbWorkflow, index, workers, masterFS, softFail,
+    )
+
+    if err != nil {
+        return fmt.Errorf("failed to start workflow: %s", err)
+    }
+
+    sigChan := make(chan os.Signal, 1)
+    signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+    go func() {
+        <-sigChan
+        c.CancelWorkflow(context.Background(), we.GetID(), we.GetRunID())
+    }()
+
+    var resultErr error
+    err = we.Get(context.Background(), &resultErr)
+    cancelChan <- struct{}{}
+    if err != nil {
+        return fmt.Errorf("workflow failed with err: %s", err)
+    } else {
+        fmt.Println("Workflow completed successfully")
+    }
+    return nil
+}
+
+func runWorkflowNoTemporal(
+    bwbWorkflow parsing.Workflow, index parsing.WorkflowIndex, 
+    jobConfig parsing.JobConfig, masterFS fs.LocalFS, storageId string, 
+    softFail bool,  checkptPath string, logger *slog.Logger, 
+    localWorker workflow.WorkerInfo,
+) error {
+    ctx, cancelCtx := context.WithCancel(context.Background())
+    sigChan := make(chan os.Signal, 1)
+    signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+    go func() {
+        <-sigChan
+        cancelCtx()
+    }()
+
+
+    return workflow.RunBwbWorkflowNoTemporal(
+        ctx, storageId, jobConfig, bwbWorkflow, index, 
+        localWorker, masterFS, softFail, *logger,
+    )
+}
+
 func runWorkflow(
     wfPath string, configPath *string, workerName, temporalWfName,
-    storageId string, paramVals []string, noTemporal, softFail bool,
+    storageId string, paramVals []string, noTemporal, softFail, useDocker bool, 
     checkptPath string, workerRam ByteSize, workerCpus, workerGpus int,
 ) error {
     data, err := os.ReadFile(wfPath)
@@ -275,13 +391,6 @@ func runWorkflow(
         },
     ))
 
-    if noTemporal {
-        return workflow.RunBwbWorkflowNoTemporal(
-            storageId, bwbWorkflow, index, localWorker,
-            masterFS, softFail, *logger,
-        )
-    }
-
     var jobConfig parsing.JobConfig
     if configPath != nil {
         jobConfig, err = parsing.ParseAndValidateJobConfigFile(*configPath)
@@ -295,48 +404,21 @@ func runWorkflow(
         jobConfig = parsing.GetDefaultConfig(bwbWorkflow, noTemporal)
     }
 
-    c, err := client.NewLazyClient(client.Options{
-        Logger: temporalLog.NewStructuredLogger(logger),
-    })
-    if err != nil {
-        return fmt.Errorf("unable to create Temporal client: %s", err)
-    }
-    defer c.Close()
-
-    if err := workflow.StartWorkers(c, jobConfig, queueName); err != nil {
-        return err
+    if err := overrideConfigVals(&jobConfig, useDocker); err != nil {
+        return fmt.Errorf("error overriding job config params: %s", err)
     }
 
-
-    wfName := temporalWfName
-    if temporalWfName == "" {
-        wfName = "bwb_workflow_" + time.Now().Format("20060102150405")
-    }
-    workflowOptions := client.StartWorkflowOptions{
-        ID:        wfName,
-        TaskQueue: "bwb_worker",
+    if noTemporal {
+        return runWorkflowNoTemporal(
+            bwbWorkflow, index, jobConfig, masterFS, revisedStorageID, 
+            softFail, checkptPath, logger, localWorker,
+        )
     }
 
-    workers := map[string]workflow.WorkerInfo{queueName: localWorker}
-
-    we, err := c.ExecuteWorkflow(
-        context.Background(), workflowOptions,
-        workflow.RunBwbWorkflow, revisedStorageID, jobConfig,
-        bwbWorkflow, index, workers, masterFS, softFail,
+    return runWorkflowTemporal(
+        bwbWorkflow, index, jobConfig, masterFS, temporalWfName, 
+        revisedStorageID, softFail, checkptPath, logger, localWorker,
     )
-
-    if err != nil {
-        return fmt.Errorf("failed to start workflow: %s", err)
-    }
-
-    var resultErr error
-    err = we.Get(context.Background(), &resultErr)
-    if err != nil {
-        return fmt.Errorf("workflow failed with err: %s", err)
-    } else {
-        fmt.Println("Workflow completed successfully")
-    }
-    return nil
 }
 
 func main() {
@@ -346,10 +428,11 @@ func main() {
     }
 
     var noTemporal bool
+    var useDocker bool
+    var softFail bool
     var workerName string
     var storageId string
     var temporalWfName string
-    var softFail bool
     var paramOverrides []string
     var checkptPath string
     var workerRam ByteSize
@@ -415,7 +498,7 @@ func main() {
 
             return runWorkflow(
                 args[0], configPath, workerName, temporalWfName, storageId,
-                paramOverrides, noTemporal, softFail, checkptPath,
+                paramOverrides, noTemporal, softFail, useDocker, checkptPath,
                 workerRam, workerCpus, workerGpus,
             )
         },
@@ -435,6 +518,10 @@ func main() {
     )
     runCmd.Flags().BoolVar(
         &noTemporal, "noTemporal", false, "Run workflow without temporal",
+    )
+    runCmd.Flags().BoolVar(
+        &useDocker, "docker", false, "Use docker for locally run containers "+
+        "rather than singularity. Overrides values in job config.",
     )
     runCmd.Flags().BoolVar(
         &softFail, "softFail", false,

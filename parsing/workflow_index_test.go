@@ -1,6 +1,7 @@
 package parsing
 
 import (
+	"maps"
 	"testing"
 )
 
@@ -138,4 +139,47 @@ func TestAsyncAncestorValidation(t *testing.T) {
 			"failed to error on node w/ multiple non-related async ancestors",
 		)
 	}
+}
+
+func TestSinkDistances(t *testing.T) {
+    var testCases = []struct{
+        name        string
+        preds       map[int][]int
+        succs       map[int][]int
+        expected    map[int]int
+    }{
+        {
+            name: "Single-node base case",
+            preds: map[int][]int{1: {}},
+            succs: map[int][]int{1: {}},
+            expected: map[int]int{1: 0},
+        }, {
+            name: "Graph with unique top sort",
+            preds: map[int][]int{3: {2}, 2: {1}, 1: {}},
+            succs: map[int][]int{1: {2}, 2: {3}, 3: {}},
+            expected: map[int]int{1: 2, 2: 1, 3: 0},
+        }, {
+            name: "Graph with multiple top sorts",
+            preds: map[int][]int{5: {4, 2}, 4: {3}, 3: {1}, 2: {1}, 1: {}},
+            succs: map[int][]int{1: {2, 3}, 2: {5}, 3: {4}, 4: {5}, 5: {}},
+            expected: map[int]int{1: 3, 2: 1, 3: 2, 4: 1, 5: 0},
+        }, {
+            name: "Distjoint graph",
+            preds: map[int][]int{5: {4}, 4: {}, 3: {2}, 2: {1}, 1: {}},
+            succs: map[int][]int{1: {2}, 2: {3}, 3: {}, 4: {5}, 5: {}},
+            expected: map[int]int{1: 2, 2: 1, 3: 0, 4: 1, 5: 0},
+        },
+    }
+
+    for _, tt := range testCases {
+        t.Run(tt.name, func(t *testing.T) {
+            actual := getMaxSinkDists(tt.preds, tt.succs)
+            if !maps.Equal(actual, tt.expected) {
+                t.Fatalf(
+                    "incorrect max sink distance for pred list %v; " +
+                    "got %v, expected %v", tt.preds, actual, tt.expected,
+                )
+            }
+        })
+    }
 }

@@ -9,6 +9,10 @@ import (
 type WorkflowIndex struct {
 	Preds map[int][]int
 	Succs map[int][]int
+
+	// Node ID -> distance from a sink node (0 for sink nodes themselves)
+	MaxDistanceFromSink map[int]int
+
 	// Lookup links based on (dstNode, dstPname)
 	InLinks map[int]map[string]WorkflowLink
 	// Lookup links based on (srcNode, srcPname)
@@ -16,8 +20,8 @@ type WorkflowIndex struct {
 	AsyncAncestors   map[int][]int
 	AsyncDescendants map[int]map[int]struct{}
 
-    Ancestors   map[int]map[int]struct{}
-    Descendants map[int]map[int]struct{}
+	Ancestors   map[int]map[int]struct{}
+	Descendants map[int]map[int]struct{}
 
 	// Layered top sort where each inner array of node IDs is
 	// nodes that can run independently once all nodes in prior
@@ -25,16 +29,16 @@ type WorkflowIndex struct {
 	LayeredTopSort [][]int
 	BarrierFor     map[int]int
 
-    // Parsed params for each node by ID.
-	BaseParams     map[int]TypedParams
+	// Parsed params for each node by ID.
+	BaseParams map[int]TypedParams
 
-    // Node title to ID
-    TitleToId      map[string]int
+	// Node title to ID
+	TitleToId map[string]int
 }
 
 func (index *WorkflowIndex) GetIdFromTitle(title string) (int, bool) {
-    id, ok := index.TitleToId[title]
-    return id, ok
+	id, ok := index.TitleToId[title]
+	return id, ok
 }
 
 func (index *WorkflowIndex) getStartNodes() []int {
@@ -53,25 +57,25 @@ func (index *WorkflowIndex) getSharedAsyncAncs(id1 int, id2 int) ([]int, error) 
 	if !id2Exists {
 		return nil, fmt.Errorf("node %d not in async ancestor array", id2)
 	}
-    shared := make([]int, 0)
+	shared := make([]int, 0)
 	for i := 0; i < min(len(asyncAnc1), len(asyncAnc2)); i++ {
 		if asyncAnc1[i] == asyncAnc2[i] {
-            shared = append(shared, asyncAnc1[i])
+			shared = append(shared, asyncAnc1[i])
 		}
 	}
 
-    return shared, nil
+	return shared, nil
 }
 
 func (index *WorkflowIndex) AddParam(
-    nodeId int, pname string, argType WorkflowArgType, val any,
+	nodeId int, pname string, argType WorkflowArgType, val any,
 ) error {
-    baseParams, baseParamsExist := index.BaseParams[nodeId]
-    if !baseParamsExist {
-        return fmt.Errorf("node %d does not exist", nodeId)
-    }
+	baseParams, baseParamsExist := index.BaseParams[nodeId]
+	if !baseParamsExist {
+		return fmt.Errorf("node %d does not exist", nodeId)
+	}
 
-    return baseParams.AddParam(val, pname, argType)
+	return baseParams.AddParam(val, pname, argType)
 }
 
 func getInAndOutLinks(
@@ -208,9 +212,9 @@ func propagateArgTypes(
 					return fmt.Errorf("src node %d does not exist", inLink.SourceNodeId)
 				}
 
-                if _, sinkHasArgType := nodeCopy.ArgTypes[pname]; sinkHasArgType {
-                    continue
-                }
+				if _, sinkHasArgType := nodeCopy.ArgTypes[pname]; sinkHasArgType {
+					continue
+				}
 
 				if _, pnameHasArgtype := nodeCopy.ArgTypes[pname]; !pnameHasArgtype {
 					srcArgType, srcArgTypeExists := srcNode.ArgTypes[inLink.SourceChannel]
@@ -316,9 +320,9 @@ func parseAsyncAndBarriers(
 	// We don't consider barriers yet, because we need this to
 	// validate barrier structure in the first place.
 	asyncAncestors := make(map[int][]int)
-    for nodeId := range workflow.Nodes {
-        asyncAncestors[nodeId] = []int{-1}
-    }
+	for nodeId := range workflow.Nodes {
+		asyncAncestors[nodeId] = []int{-1}
+	}
 
 	for _, layer := range topSort {
 		for _, asyncNodeId := range layer {
@@ -364,7 +368,7 @@ func parseAsyncAndBarriers(
 				}
 
 				ancBarrier, ancHasBarrier := barrierFor[asyncAncestorId]
-                _, isDesc := descendantOf[barrierNodeId][ancBarrier] 
+				_, isDesc := descendantOf[barrierNodeId][ancBarrier]
 				if ancHasBarrier && !isDesc {
 					return nil, nil, nil, fmt.Errorf(
 						"async nodes %d, %d has non-nested barriers %d and %d",
@@ -382,7 +386,7 @@ func parseAsyncAndBarriers(
 		}
 		for _, asyncAncestorId := range asyncAncestors[nodeId] {
 			if barrier, barrierExists := barrierFor[asyncAncestorId]; barrierExists {
-                _, isDesc := descendantOf[barrier][nodeId] 
+				_, isDesc := descendantOf[barrier][nodeId]
 				if nodeId == barrier || isDesc {
 					continue
 				}
@@ -393,12 +397,12 @@ func parseAsyncAndBarriers(
 			)
 		}
 	}
-    asyncAncestorsBeforeBarrier[-1] = []int{}
+	asyncAncestorsBeforeBarrier[-1] = []int{}
 
 	asyncDescendants := make(map[int]map[int]struct{})
-    asyncDescendants[-1] = map[int]struct{}{}
+	asyncDescendants[-1] = map[int]struct{}{}
 	for nodeId, asyncAncList := range asyncAncestorsBeforeBarrier {
-        asyncDescendants[-1][nodeId] = struct{}{}
+		asyncDescendants[-1][nodeId] = struct{}{}
 		if len(asyncAncList) > 0 {
 			lastAsyncAnc := asyncAncList[len(asyncAncList)-1]
 			if asyncDescendants[lastAsyncAnc] == nil {
@@ -416,14 +420,14 @@ func parseAsyncAndBarriers(
 
 		pred := asyncAncestors[0]
 		for i := 1; i < len(asyncAncestors); i++ {
-            _, isDesc := descendantOf[pred][asyncAncestors[i]]
+			_, isDesc := descendantOf[pred][asyncAncestors[i]]
 			if !isDesc && pred != -1 {
 				return nil, nil, nil, fmt.Errorf(
 					"node %d has non-nested async ancestors %d and %d",
 					nodeId, pred, asyncAncestors[i],
 				)
 			}
-            pred = asyncAncestors[i]
+			pred = asyncAncestors[i]
 		}
 	}
 
@@ -476,6 +480,29 @@ func getBaseParams(workflow Workflow) (map[int]TypedParams, error) {
 	return ret, nil
 }
 
+func getMaxSinkDists(preds map[int][]int, succs map[int][]int) map[int]int {
+	sinkDists := make(map[int]int)
+	nodeQueue := make([]int, 0)
+	for nodeId, succSet := range succs {
+		if len(succSet) == 0 {
+			nodeQueue = append(nodeQueue, nodeId)
+			sinkDists[nodeId] = 0
+		}
+	}
+
+	for len(nodeQueue) > 0 {
+		currNodeId := nodeQueue[0]
+		currNodeDist := sinkDists[currNodeId]
+		for _, predId := range preds[currNodeId] {
+			sinkDists[predId] = max(sinkDists[predId], currNodeDist + 1)
+			nodeQueue = append(nodeQueue, predId)
+		}
+		nodeQueue = nodeQueue[1:]
+	}
+
+	return sinkDists
+}
+
 // Inputs:
 //   - workflow: Workflow whose arg types will be edited so as to create
 //     an argtype entry for each incoming link if one does not exist.
@@ -490,6 +517,7 @@ func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 		return WorkflowIndex{}, fmt.Errorf("error in top sort: %s", err)
 	}
 	index.LayeredTopSort = topSort
+	index.MaxDistanceFromSink = getMaxSinkDists(index.Preds, index.Succs)
 
 	inLinks, outLinks, err := getInAndOutLinks(*workflow)
 	if err != nil {
@@ -505,8 +533,8 @@ func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 	}
 
 	index.Ancestors, index.Descendants = getAncestorsAndDescendants(
-        topSort, inLinks, outLinks,
-    )
+		topSort, inLinks, outLinks,
+	)
 	index.AsyncAncestors, index.AsyncDescendants, index.BarrierFor, err = parseAsyncAndBarriers(
 		*workflow, topSort, index.Descendants,
 	)
@@ -519,10 +547,10 @@ func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
 		return WorkflowIndex{}, err
 	}
 
-    index.TitleToId = make(map[string]int)
-    for nodeId, node := range workflow.Nodes {
-        index.TitleToId[node.Title] = nodeId
-    }
+	index.TitleToId = make(map[string]int)
+	for nodeId, node := range workflow.Nodes {
+		index.TitleToId[node.Title] = nodeId
+	}
 
 	return index, nil
 }
