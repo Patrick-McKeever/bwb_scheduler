@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"go-scheduler/fs"
+    "go-scheduler/fs"
 	"go-scheduler/parsing"
 	"go-scheduler/workflow"
 	"log"
@@ -296,7 +296,9 @@ func runWorkflowTemporal(
     signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
     go func() {
         <-sigChan
-        c.CancelWorkflow(context.Background(), we.GetID(), we.GetRunID())
+        signalCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+        defer cancel()
+        c.SignalWorkflow(signalCtx, we.GetID(), we.GetRunID(), "cancel", true)
     }()
 
     var resultErr error

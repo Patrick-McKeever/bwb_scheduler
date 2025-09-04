@@ -1,0 +1,4132 @@
+{
+	"Nodes": {
+		"0": {
+			"Id": 0,
+			"ImageName": "biodepot/downloadurl",
+			"ImageTag": "alpine-3.15__da0b8b3c__570359bc__4ed7eaa4",
+			"Title": "downloadURL",
+			"Command": [
+				"/root/download.sh"
+			],
+			"ArgTypes": {
+				"URL": {
+					"type": "text list",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "URL(s)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"concatenateFile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--concatenateFile",
+					"env": null,
+					"label": "Download and join into one file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"decompress": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--decompress",
+					"env": null,
+					"label": "Decompress files",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"directory": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--directory",
+					"env": null,
+					"label": "Download directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"noClobberFiles": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "clobber",
+					"label": "Overwrite existing files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"URL"
+			],
+			"OptionsChecked": {
+				"concatenateFile": false,
+				"decompress": true,
+				"saveLog": false
+			},
+			"RequiredParams": [
+				"URL",
+				"directory",
+				"noClobberFiles"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": true,
+			"IterGroupSize": {
+				"URL": 1
+			},
+			"IterAttrs": [
+				"URL"
+			]
+		},
+		"1": {
+			"Id": 1,
+			"ImageName": "biodepot/multistar",
+			"ImageTag": "latest",
+			"Title": "starIndex",
+			"Command": [
+				"[ -n \"$overwrite\" ] || [ !  -f  \"$genomeDir/SAindex\" ] ||  exit 0",
+				"STAR"
+			],
+			"ArgTypes": {
+				"genomeChrBinNbits": {
+					"type": "str",
+					"argument": null,
+					"flag": "--genomeChrBinNbits",
+					"env": null,
+					"label": "genomeChrBinNbits",
+					"default": "18",
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--genomeDir",
+					"env": "genomeDir",
+					"label": "genomeDir",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeFastaFile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--genomeFastaFiles",
+					"env": null,
+					"label": "genomeFastaFiles",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeSAindexNbases": {
+					"type": "int",
+					"argument": null,
+					"flag": "--genomeSAindexNbases",
+					"env": null,
+					"label": "genomeSAindexNbases",
+					"default": 14,
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeSAsparseD": {
+					"type": "int",
+					"argument": null,
+					"flag": "--genomeSAsparseD",
+					"env": null,
+					"label": "genomeSAsparseD",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeSuffixLengthMax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--genomeSuffixLengthMax",
+					"env": null,
+					"label": "genomeSuffixLengthMax",
+					"default": -1,
+					"input_file": null,
+					"output_file": null
+				},
+				"overwrite": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "overwrite",
+					"label": "Overwrite files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"rmode": {
+					"type": "str",
+					"argument": null,
+					"flag": "--runMode",
+					"env": null,
+					"label": "runMode",
+					"default": "genomeGenerate",
+					"input_file": null,
+					"output_file": null
+				},
+				"runThreadN": {
+					"type": "int",
+					"argument": null,
+					"flag": "--runThreadN",
+					"env": null,
+					"label": "runThreadN",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbFileChrStartEnd": {
+					"type": "file list",
+					"argument": null,
+					"flag": "--sjdbFileChrStartEnd",
+					"env": null,
+					"label": "sjdbFileChrStartEnd",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbGTFchrPrefix": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sjdbGTFchrPrefix ",
+					"env": null,
+					"label": "sjdbGTFchrPrefix ",
+					"default": "chr",
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbGTFfeatureExon": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sjdbGTFfeatureExon",
+					"env": null,
+					"label": "sjdbGTFfeatureExon",
+					"default": "exon",
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbGTFfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--sjdbGTFfile",
+					"env": null,
+					"label": "sjdbGTFfile",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbGTFtagExonParentGene": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sjdbGTFtagExonParentGenet",
+					"env": null,
+					"label": "sjdbGTFtagExonParentGene",
+					"default": "gene_id",
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbGTFtagExonParentTranscript": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sjdbGTFtagExonParentTranscript",
+					"env": null,
+					"label": "sjdbGTFtagExonParentTranscript",
+					"default": "transcript_id",
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbInsertSave": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sjdbInsertSave ",
+					"env": null,
+					"label": "sjdbInsertSave",
+					"default": "Basic",
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbOverhang": {
+					"type": "int",
+					"argument": null,
+					"flag": "--sjdbOverhang",
+					"env": null,
+					"label": "sjdbOverhang",
+					"default": 100,
+					"input_file": null,
+					"output_file": null
+				},
+				"sjdbScore": {
+					"type": "int",
+					"argument": null,
+					"flag": "--sjdbScore",
+					"env": null,
+					"label": "sjdbScore",
+					"default": 2,
+					"input_file": null,
+					"output_file": null
+				},
+				"starversion": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "VERSION",
+					"label": "Star version",
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"genomeChrBinNbits": false,
+				"genomeSAindexNbases": false,
+				"genomeSAsparseD": false,
+				"genomeSuffixLengthMax": false,
+				"runThreadN": true,
+				"saveLog": false,
+				"sjdbFileChrStartEnd ": false,
+				"sjdbGTFchrPrefix ": false,
+				"sjdbGTFfeatureExon": false,
+				"sjdbGTFfile": true,
+				"sjdbGTFtagExonParentGene": false,
+				"sjdbGTFtagExonParentTranscript": false,
+				"sjdbInsertSave ": false,
+				"sjdbOverhang": false,
+				"sjdbScore": false,
+				"skipIndex": false
+			},
+			"RequiredParams": [
+				"rmode",
+				"genomeDir",
+				"genomeFastaFile",
+				"starversion",
+				"overwrite"
+			],
+			"ResourceReqs": {
+				"MemMb": 32000,
+				"Cpus": 16,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {
+				"sjdbFileChrStartEnd": 1
+			},
+			"IterAttrs": []
+		},
+		"10": {
+			"Id": 10,
+			"ImageName": "biodepot/trimgalore",
+			"ImageTag": "latest",
+			"Title": "Trimgalore",
+			"Command": [
+				"trim_galore "
+			],
+			"ArgTypes": {
+				"basenames": {
+					"type": "text list",
+					"argument": null,
+					"flag": "--basename",
+					"env": null,
+					"label": "basenames",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqc": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--fastqc ",
+					"env": null,
+					"label": "fastqc ",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"gzipped": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--gzip ",
+					"env": null,
+					"label": "gzip  ",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFiles": {
+					"type": "patternQuery",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"ncores": {
+					"type": "int",
+					"argument": null,
+					"flag": "--cores ",
+					"env": null,
+					"label": "Cores ",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-o",
+					"env": null,
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"paired": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--paired ",
+					"env": null,
+					"label": "Paired ",
+					"default": false,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"inputFiles"
+			],
+			"OptionsChecked": {
+				"basenames": false,
+				"outputDir": true
+			},
+			"RequiredParams": [
+				"inputFiles",
+				"paired",
+				"fastqc",
+				"gzipped",
+				"ncores"
+			],
+			"ResourceReqs": {
+				"MemMb": 8000,
+				"Cpus": 4,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": true,
+			"IterGroupSize": {
+				"basenames": 1,
+				"inputFiles": 1
+			},
+			"IterAttrs": [
+				"inputFiles",
+				"basenames"
+			]
+		},
+		"11": {
+			"Id": 11,
+			"ImageName": "biodepot/multistar",
+			"ImageTag": "latest",
+			"Title": "starAlign",
+			"Command": [
+				"runstar.sh "
+			],
+			"ArgTypes": {
+				"alignEndsProtrude": {
+					"type": "text list",
+					"argument": null,
+					"flag": "--alignEndsProtrude",
+					"env": null,
+					"label": "alignEndsProtrude",
+					"default": [
+						"0",
+						"ConcordantPair"
+					],
+					"input_file": null,
+					"output_file": null
+				},
+				"alignEndsType": {
+					"type": "str",
+					"argument": null,
+					"flag": "--alignEndsType",
+					"env": null,
+					"label": "alignEndsType",
+					"default": "Local",
+					"input_file": null,
+					"output_file": null
+				},
+				"alignIntronMax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignIntronMax",
+					"env": null,
+					"label": "alignIntronMax",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignIntronMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignIntronMin",
+					"env": null,
+					"label": "alignIntronMin",
+					"default": 21,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignMatesGapMax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignMatesGapMax",
+					"env": null,
+					"label": "alignMatesGapMax",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSJDBoverhangMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignSJDBoverhangMin",
+					"env": null,
+					"label": "alignSJDBoverhangMin",
+					"default": 3,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSJoverhangMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignSJoverhangMin",
+					"env": null,
+					"label": "alignSJoverhangMin",
+					"default": 5,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSJstitchMismatchNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignSJstitchMismatchNmax ",
+					"env": null,
+					"label": "alignSJstitchMismatchNmax ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSoftClipAtReferenceEnds": {
+					"type": "str",
+					"argument": null,
+					"flag": "--alignSoftClipAtReferenceEnds",
+					"env": null,
+					"label": "alignSoftClipAtReferenceEnds",
+					"default": "Yes",
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSplicedMateMapLmin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignSplicedMateMapLmin",
+					"env": null,
+					"label": "alignSplicedMateMapLmin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignSplicedMateMapLminOverLmate": {
+					"type": "double",
+					"argument": null,
+					"flag": "--alignSplicedMateMapLminOverLmate",
+					"env": null,
+					"label": "alignSplicedMateMapLminOverLmate",
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignTranscriptsPerReadNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignTranscriptsPerReadNmax",
+					"env": null,
+					"label": "alignTranscriptsPerReadNmax",
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignTranscriptsPerWindowNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignTranscriptsPerWindowNmax",
+					"env": null,
+					"label": "alignTranscriptsPerWindowNmax",
+					"default": 100,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignWindowsPerReadNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--alignWindowsPerReadNmax",
+					"env": null,
+					"label": "alignWindowsPerReadNmax",
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
+				},
+				"apelist": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "APELIST",
+					"label": "Alternating paired-end files (a_R1 a_R2 b_R1 b_R2...) ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bamRemoveDuplicatesMate2basesN": {
+					"type": "int",
+					"argument": null,
+					"flag": "--bamRemoveDuplicatesMate2basesN",
+					"env": null,
+					"label": "bamRemoveDuplicatesMate2basesN",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"bamRemoveDuplicatesType": {
+					"type": "str",
+					"argument": null,
+					"flag": "--bamRemoveDuplicatesType",
+					"env": null,
+					"label": "bamRemoveDuplicatesType",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimFilter": {
+					"type": "str",
+					"argument": null,
+					"flag": "--chimFilter",
+					"env": null,
+					"label": "chimFilter",
+					"default": "banGenomicN",
+					"input_file": null,
+					"output_file": null
+				},
+				"chimJunctionOverhangMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimJunctionOverhangMin",
+					"env": null,
+					"label": "chimJunctionOverhangMin",
+					"default": 20,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimOutType": {
+					"type": "str",
+					"argument": null,
+					"flag": "--chimOutType",
+					"env": null,
+					"label": "chimOutType",
+					"default": "SeparateSAMold",
+					"input_file": null,
+					"output_file": null
+				},
+				"chimScoreDropMax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimScoreDropMax",
+					"env": null,
+					"label": "chimScoreDropMax",
+					"default": 20,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimScoreJunctionNonGTAG": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimScoreJunctionNonGTAG",
+					"env": null,
+					"label": "chimScoreJunctionNonGTAG",
+					"default": -1,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimScoreMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimScoreMin",
+					"env": null,
+					"label": "chimScoreMin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimScoreSeparation": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimScoreSeparation",
+					"env": null,
+					"label": "chimScoreSeparation",
+					"default": 10,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimSegmentMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimSegmentMin",
+					"env": null,
+					"label": "chimSegmentMin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"chimSegmentReadGapMax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--chimSegmentReadGapMax",
+					"env": null,
+					"label": "chimSegmentReadGapMax",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"clip3pAdapterMMp": {
+					"type": "double list",
+					"argument": null,
+					"flag": "--clip3pAdapterMMp",
+					"env": null,
+					"label": "clip3pAdapterMMp",
+					"default": [
+						"0.1"
+					],
+					"input_file": null,
+					"output_file": null
+				},
+				"clip3pAdapterSeq": {
+					"type": "text list",
+					"argument": null,
+					"flag": "--clip3pAdapterSeq",
+					"env": null,
+					"label": "clip3pAdapterSeq",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"clip3pAfterAdapterNbases": {
+					"type": "int list",
+					"argument": null,
+					"flag": "--clip3pAfterAdapterNbases",
+					"env": null,
+					"label": "clip3pAfterAdapterNbases",
+					"default": [
+						"0"
+					],
+					"input_file": null,
+					"output_file": null
+				},
+				"clip3pNbases": {
+					"type": "int list",
+					"argument": null,
+					"flag": "--clip3pNbases",
+					"env": null,
+					"label": "clip3pNbases",
+					"default": [
+						"0"
+					],
+					"input_file": null,
+					"output_file": null
+				},
+				"clip5pNbases": {
+					"type": "int list",
+					"argument": null,
+					"flag": "--clip5pNbases",
+					"env": null,
+					"label": "clip5pNbases",
+					"default": [
+						"0"
+					],
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--genomeDir",
+					"env": null,
+					"label": "genomeDir",
+					"default": "/data/GenomeDir",
+					"input_file": null,
+					"output_file": null
+				},
+				"genomeLoad": {
+					"type": "str",
+					"argument": null,
+					"flag": "--genomeLoad",
+					"env": null,
+					"label": "genomeLoad",
+					"default": "NoSharedMemory",
+					"input_file": null,
+					"output_file": null
+				},
+				"limitIObufferSize": {
+					"type": "int",
+					"argument": null,
+					"flag": "--limitIObufferSize",
+					"env": null,
+					"label": "limitIObufferSize",
+					"default": 150000000,
+					"input_file": null,
+					"output_file": null
+				},
+				"limitOutSAMoneReadBytes": {
+					"type": "int",
+					"argument": null,
+					"flag": "--limitOutSAMoneReadBytes",
+					"env": null,
+					"label": "limitOutSAMoneReadBytes",
+					"default": 100000,
+					"input_file": null,
+					"output_file": null
+				},
+				"multipleSample": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "MULTISAMPLE",
+					"label": "Multiple samples",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outBAMcompression": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outBAMcompression",
+					"env": null,
+					"label": "outBAMcompression",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outBAMsortingThreadN": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outBAMsortingThreadN",
+					"env": null,
+					"label": "outBAMsortingThreadN",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterIntronMotifs": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outFilterIntronMotifs",
+					"env": null,
+					"label": "outFilterIntronMotifs",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMatchNmin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outFilterMatchNmin",
+					"env": null,
+					"label": "outFilterMatchNmin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMatchNminOverLread": {
+					"type": "double",
+					"argument": null,
+					"flag": "--outFilterMatchNminOverLread",
+					"env": null,
+					"label": "outFilterMatchNminOverLread",
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMismatchNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outFilterMismatchNmax",
+					"env": null,
+					"label": "outFilterMismatchNmax",
+					"default": 10,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMismatchNoverLmax": {
+					"type": "double",
+					"argument": null,
+					"flag": "--outFilterMismatchNoverLmax ",
+					"env": null,
+					"label": "outFilterMismatchNoverLmax ",
+					"default": 0.3,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMismatchNoverReadLmax": {
+					"type": "double",
+					"argument": null,
+					"flag": "--outFilterMismatchNoverReadLmax",
+					"env": null,
+					"label": "outFilterMismatchNoverReadLmax",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMultimapNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outFilterMultimapNmax",
+					"env": null,
+					"label": "outFilterMultimapNmax",
+					"default": 10,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterMultimapScoreRange": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outFilterMultimapScoreRange",
+					"env": null,
+					"label": "outFilterMultimapScoreRange",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterScoreMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outFilterScoreMin",
+					"env": null,
+					"label": "outFilterScoreMin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterScoreMinOverLread": {
+					"type": "double",
+					"argument": null,
+					"flag": "--outFilterScoreMinOverLread",
+					"env": null,
+					"label": "outFilterScoreMinOverLread",
+					"default": 0.66,
+					"input_file": null,
+					"output_file": null
+				},
+				"outFilterType": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outFilterType",
+					"env": null,
+					"label": "outFilterType",
+					"default": "Normal",
+					"input_file": null,
+					"output_file": null
+				},
+				"outMultimapperOrder": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outMultimapperOrder",
+					"env": null,
+					"label": "outMultimapperOrder",
+					"default": "Old_2.4",
+					"input_file": null,
+					"output_file": null
+				},
+				"outReadsUnmapped": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outReadsUnmapped",
+					"env": null,
+					"label": "outReadsUnmapped",
+					"default": "",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMattrIHstart": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outSAMattrIHstart",
+					"env": null,
+					"label": "outSAMattrIHstart",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMattrRGline": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMattrRGline",
+					"env": null,
+					"label": "outSAMattrRGline",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMattributes": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMattributes",
+					"env": null,
+					"label": "outSAMattributes",
+					"default": "Standard",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMfilter": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMfilter",
+					"env": null,
+					"label": "outSAMfilter",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMflagAND": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outSAMflagAND",
+					"env": null,
+					"label": "outSAMflagAND",
+					"default": 65535,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMflagOR": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outSAMflagOR",
+					"env": null,
+					"label": "outSAMflagOR",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMheaderCommentFile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--outSAMheaderCommentFile",
+					"env": null,
+					"label": "outSAMheaderCommentFile",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMheaderHD": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMheaderHD",
+					"env": null,
+					"label": "outSAMheaderHD",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMheaderPG": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMheaderPG",
+					"env": null,
+					"label": "outSAMheaderPG",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMmapqUnique": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outSAMmapqUnique",
+					"env": null,
+					"label": "outSAMmapqUnique",
+					"default": 255,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMmode": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMmode",
+					"env": null,
+					"label": "outSAMmode",
+					"default": "Full",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMmultNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--outSAMmultNmax",
+					"env": null,
+					"label": "outSAMmultNmax",
+					"default": -1,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMorder": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMorder",
+					"env": null,
+					"label": "outSAMorder",
+					"default": "Paired",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMprimaryFlag": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMprimaryFlag",
+					"env": null,
+					"label": "outSAMprimaryFlag",
+					"default": "OneBestScore",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMreadID": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMreadID",
+					"env": null,
+					"label": "outSAMreadID",
+					"default": "Standard",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMstrandField": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMstrandField",
+					"env": null,
+					"label": "outSAMstrandField",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMtype": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMtype",
+					"env": null,
+					"label": "outSAMtype",
+					"default": "SAM",
+					"input_file": null,
+					"output_file": null
+				},
+				"outSAMunmapped": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outSAMunmapped",
+					"env": null,
+					"label": "outSAMunmapped",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outStd": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outStd",
+					"env": null,
+					"label": "outStd",
+					"default": "Log",
+					"input_file": null,
+					"output_file": null
+				},
+				"outTmpDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--outTmpDir",
+					"env": null,
+					"label": "outTmpDir",
+					"default": "",
+					"input_file": null,
+					"output_file": null
+				},
+				"outWigNorm": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outWigNorm",
+					"env": null,
+					"label": "outWigNorm",
+					"default": "RPM",
+					"input_file": null,
+					"output_file": null
+				},
+				"outWigReferencesPrefix": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outWigReferencesPrefix",
+					"env": null,
+					"label": "outWigReferencesPrefix",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outWigStrand": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outWigStrand",
+					"env": null,
+					"label": "outWigStrand",
+					"default": "Stranded",
+					"input_file": null,
+					"output_file": null
+				},
+				"outWigType": {
+					"type": "str",
+					"argument": null,
+					"flag": "--outWigType",
+					"env": null,
+					"label": "outWigType",
+					"default": "",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputDirectory",
+					"label": "Output directory",
+					"default": "",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputFilePrefix": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "outputPrefix",
+					"label": "outputFilePrefix",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"parametersFiles": {
+					"type": "file",
+					"argument": null,
+					"flag": "--parametersFiles",
+					"env": null,
+					"label": "Parameters file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"quantMode": {
+					"type": "str",
+					"argument": null,
+					"flag": "--quantMode",
+					"env": null,
+					"label": "quantMode",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"quantTranscriptomeBAMcompression": {
+					"type": "int",
+					"argument": null,
+					"flag": "--quantTranscriptomeBAMcompression",
+					"env": null,
+					"label": "quantTranscriptomeBAMcompression",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"quantTranscriptomeBan": {
+					"type": "str",
+					"argument": null,
+					"flag": "--quantTranscriptomeBan",
+					"env": null,
+					"label": "quantTranscriptomeBan",
+					"default": "IndelSoftclipSingleend",
+					"input_file": null,
+					"output_file": null
+				},
+				"readFilesCommand": {
+					"type": "str",
+					"argument": null,
+					"flag": "--readFilesCommand",
+					"env": null,
+					"label": "readFilesCommand",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"readFilesIn": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": "--readFilesIn",
+					"env": null,
+					"label": "readFilesIn",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"readMapNumber": {
+					"type": "int",
+					"argument": null,
+					"flag": "--readMapNumber",
+					"env": null,
+					"label": "readMapNumber",
+					"default": -1,
+					"input_file": null,
+					"output_file": null
+				},
+				"readMatesLengthsIn": {
+					"type": "str",
+					"argument": null,
+					"flag": "--readMatesLengthsIn",
+					"env": null,
+					"label": "readMatesLengthsIn",
+					"default": "NotEqual",
+					"input_file": null,
+					"output_file": null
+				},
+				"readNameSeparator": {
+					"type": "str",
+					"argument": null,
+					"flag": "--readNameSeparator",
+					"env": null,
+					"label": "readNameSeparator",
+					"default": "/",
+					"input_file": null,
+					"output_file": null
+				},
+				"runRNGseed": {
+					"type": "int",
+					"argument": null,
+					"flag": "--runRNGseed",
+					"env": null,
+					"label": "runRNGseed",
+					"default": 777,
+					"input_file": null,
+					"output_file": null
+				},
+				"runThreadN": {
+					"type": "int",
+					"argument": null,
+					"flag": "--runThreadN",
+					"env": null,
+					"label": "Number of threads",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreDelBase": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreDelBase",
+					"env": null,
+					"label": "scoreDelBase",
+					"default": -2,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreDelOpen": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreDelOpen",
+					"env": null,
+					"label": "scoreDelOpen",
+					"default": -2,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreGap": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreGap",
+					"env": null,
+					"label": "scoreGap",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreGapATAC": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreGapATAC",
+					"env": null,
+					"label": "scoreGapATAC",
+					"default": -8,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreGapGCAG": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreGapGCAG",
+					"env": null,
+					"label": "scoreGapGCAG",
+					"default": -4,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreGapNoncan": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreGapNoncan",
+					"env": null,
+					"label": "scoreGapNoncan",
+					"default": -8,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreGenomicLengthLog2scale": {
+					"type": "double",
+					"argument": null,
+					"flag": "--scoreGenomicLengthLog2scale",
+					"env": null,
+					"label": "scoreGenomicLengthLog2scale",
+					"default": -0.25,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreInsBase": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreInsBase",
+					"env": null,
+					"label": "scoreInsBase",
+					"default": -2,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreInsOpen": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreInsOpen",
+					"env": null,
+					"label": "scoreInsOpen",
+					"default": -2,
+					"input_file": null,
+					"output_file": null
+				},
+				"scoreStitchSJshift": {
+					"type": "int",
+					"argument": null,
+					"flag": "--scoreStitchSJshift",
+					"env": null,
+					"label": "scoreStitchSJshift",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedMultimapNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedMultimapNmax",
+					"env": null,
+					"label": "seedMultimapNmax",
+					"default": 10000,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedNoneLociPerWindow": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedNoneLociPerWindow",
+					"env": null,
+					"label": "seedNoneLociPerWindow",
+					"default": 10,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedPerReadNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedPerReadNmax",
+					"env": null,
+					"label": "seedPerReadNmax",
+					"default": 1000,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedPerWindowNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedPerWindowNmax",
+					"env": null,
+					"label": "seedPerWindowNmax",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedSearchLmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedSearchLmax",
+					"env": null,
+					"label": "seedSearchLmax",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedSearchStartLmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--seedSearchStartLmax",
+					"env": null,
+					"label": "seedSearchStartLmax",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"seedSearchStartLmaxOverLread": {
+					"type": "double",
+					"argument": null,
+					"flag": "--seedSearchStartLmaxOverLread",
+					"env": null,
+					"label": "seedSearchStartLmaxOverLread",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"spelist": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "SPELIST",
+					"label": "Sequential paired-end files (a_R1 b_R1... a_R2 b_R2...)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"starversion": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "VERSION",
+					"label": "Star version",
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
+				},
+				"sysShell": {
+					"type": "str",
+					"argument": null,
+					"flag": "--sysShell",
+					"env": null,
+					"label": "System shell",
+					"default": "/bin/sh",
+					"input_file": null,
+					"output_file": null
+				},
+				"twopass1readsN": {
+					"type": "int",
+					"argument": null,
+					"flag": "--twopass1readsN ",
+					"env": null,
+					"label": "twopass1readsN ",
+					"default": -1,
+					"input_file": null,
+					"output_file": null
+				},
+				"twopassMode": {
+					"type": "str",
+					"argument": null,
+					"flag": "--twopassMode",
+					"env": null,
+					"label": "twopassMode",
+					"default": "",
+					"input_file": null,
+					"output_file": null
+				},
+				"winAnchorDistNbins": {
+					"type": "int",
+					"argument": null,
+					"flag": "--winAnchorDistNbins",
+					"env": null,
+					"label": "winAnchorDistNbins",
+					"default": 9,
+					"input_file": null,
+					"output_file": null
+				},
+				"winAnchorMultimapNmax": {
+					"type": "int",
+					"argument": null,
+					"flag": "--winAnchorMultimapNmax",
+					"env": null,
+					"label": "winAnchorMultimapNmax",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"winBinNbits": {
+					"type": "int",
+					"argument": null,
+					"flag": "--winBinNbits",
+					"env": null,
+					"label": "winBinNbits",
+					"default": 16,
+					"input_file": null,
+					"output_file": null
+				},
+				"winFlankNbins": {
+					"type": "int",
+					"argument": null,
+					"flag": "--winFlankNbins",
+					"env": null,
+					"label": "winFlankNbins",
+					"default": 4,
+					"input_file": null,
+					"output_file": null
+				},
+				"winReadCoverageBasesMin": {
+					"type": "int",
+					"argument": null,
+					"flag": "--winReadCoverageBasesMin",
+					"env": null,
+					"label": "winReadCoverageBasesMin",
+					"default": 0,
+					"input_file": null,
+					"output_file": null
+				},
+				"winReadCoverageRelativeMin": {
+					"type": "double",
+					"argument": null,
+					"flag": "--winReadCoverageRelativeMin",
+					"env": null,
+					"label": "winReadCoverageRelativeMin",
+					"default": 0.5,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"alignEndsProtrude": false,
+				"alignEndsType": false,
+				"alignIntronMax": false,
+				"alignIntronMin": false,
+				"alignMatesGapMax": false,
+				"alignSJDBoverhangMin": true,
+				"alignSJoverhangMin": false,
+				"alignSJstitchMismatchNmax": false,
+				"alignSoftClipAtReferenceEnds": false,
+				"alignSplicedMateMapLmin": false,
+				"alignSplicedMateMapLminOverLmate": false,
+				"alignTranscriptsPerReadNmax": false,
+				"alignTranscriptsPerWindowNmax": false,
+				"alignWindowsPerReadNmax": false,
+				"apelist": false,
+				"bamRemoveDuplicatesMate2basesN": false,
+				"bamRemoveDuplicatesType": false,
+				"chimFilter": false,
+				"chimJunctionOverhangMin": false,
+				"chimOutType": false,
+				"chimScoreDropMax": false,
+				"chimScoreJunctionNonGTAG": false,
+				"chimScoreMin": false,
+				"chimScoreSeparation": false,
+				"chimSegmentMin": false,
+				"chimSegmentReadGapMax": false,
+				"clip3pAdapterMMp": false,
+				"clip3pAdapterSeq": false,
+				"clip3pAfterAdapterNbases": false,
+				"clip3pNbases": false,
+				"clip5pNbases": false,
+				"genomeLoad": true,
+				"limitIObufferSize": false,
+				"limitOutSAMoneReadBytes": false,
+				"multipleSample": false,
+				"outBAMcompression": false,
+				"outBAMsortingThreadN": false,
+				"outFilterIntronMotifs": false,
+				"outFilterMatchNmin": false,
+				"outFilterMatchNminOverLread": false,
+				"outFilterMismatchNmax": false,
+				"outFilterMismatchNoverLmax ": false,
+				"outFilterMismatchNoverReadLmax": false,
+				"outFilterMultimapNmax": true,
+				"outFilterMultimapScoreRange": false,
+				"outFilterScoreMin": false,
+				"outFilterScoreMinOverLread": false,
+				"outFilterType": false,
+				"outMultimapperOrder": false,
+				"outReadsUnmapped": false,
+				"outSAMattrIHstart": false,
+				"outSAMattrRGline": false,
+				"outSAMattributes": true,
+				"outSAMfilter": false,
+				"outSAMflagAND": false,
+				"outSAMflagOR": false,
+				"outSAMheaderCommentFile": false,
+				"outSAMheaderHD": false,
+				"outSAMheaderPG": false,
+				"outSAMmapqUnique": false,
+				"outSAMmode": false,
+				"outSAMmultNmax": false,
+				"outSAMorder": false,
+				"outSAMprimaryFlag": false,
+				"outSAMreadID": false,
+				"outSAMstrandField": false,
+				"outSAMtype": true,
+				"outSAMunmapped": false,
+				"outStd": false,
+				"outTmpDir": false,
+				"outWigNorm": false,
+				"outWigReferencesPrefix": false,
+				"outWigStrand": false,
+				"outWigType": false,
+				"outputFilePrefix": false,
+				"paired": false,
+				"parametersFiles": false,
+				"quantMode": true,
+				"quantTranscriptomeBAMcompression": false,
+				"quantTranscriptomeBan": true,
+				"readFilesCommand": true,
+				"readMapNumber": false,
+				"readMatesLengthsIn": false,
+				"readNameSeparator": false,
+				"runRNGseed": false,
+				"runThreadN": true,
+				"scoreDelBase": false,
+				"scoreDelOpen": false,
+				"scoreGap": false,
+				"scoreGapATAC": false,
+				"scoreGapGCAG": false,
+				"scoreGapNoncan": false,
+				"scoreGenomicLengthLog2scale": false,
+				"scoreInsBase": false,
+				"scoreInsOpen": false,
+				"scoreStitchSJshift": false,
+				"seedMultimapNmax": false,
+				"seedNoneLociPerWindow": false,
+				"seedPerReadNmax": false,
+				"seedPerWindowNmax": false,
+				"seedSearchLmax": false,
+				"seedSearchStartLmax": false,
+				"seedSearchStartLmaxOverLread": false,
+				"spelist": false,
+				"sysShell": false,
+				"twopass1readsN ": false,
+				"twopassMode": true,
+				"winAnchorDistNbins": false,
+				"winAnchorMultimapNmax": false,
+				"winBinNbits": false,
+				"winFlankNbins": false,
+				"winReadCoverageBasesMin": false,
+				"winReadCoverageRelativeMin": false
+			},
+			"RequiredParams": [
+				"readFilesIn",
+				"outputDir",
+				"genomeDir",
+				"starversion"
+			],
+			"ResourceReqs": {
+				"MemMb": 32000,
+				"Cpus": 16,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {
+				"alignEndsProtrude": 1,
+				"clip3pAdapterMMp": 1,
+				"clip3pAdapterSeq": 1,
+				"clip3pAfterAdapterNbases": 1,
+				"clip3pNbases": 1,
+				"clip5pNbases": 1,
+				"readFilesIn": 1
+			},
+			"IterAttrs": []
+		},
+		"2": {
+			"Id": 2,
+			"ImageName": "biodepot/gffread",
+			"ImageTag": "latest",
+			"Title": "gffread",
+			"Command": [
+				"[ -n \"$overwrite\" ] || [ !  -f \"$outputfile\" ] ||  exit 0",
+				"samtools faidx _bwb{genomefile}",
+				"gffread -g  _bwb{genomefile}"
+			],
+			"ArgTypes": {
+				"genomefile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "genomefile",
+					"label": "Genome file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"gtffile": {
+					"type": "file",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "GTF file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-w ",
+					"env": "outputfile",
+					"label": "Transcriptome file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"overwritefiles": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "overwrite",
+					"label": "Overwite files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"gtffile"
+			],
+			"OptionsChecked": {
+				"File": false,
+				"skipGFF": false
+			},
+			"RequiredParams": [
+				"genomefile",
+				"gtffile",
+				"outputfile",
+				"overwritefiles"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"3": {
+			"Id": 3,
+			"ImageName": "brycenofu/star-salmon-dashboard-start",
+			"ImageTag": "latest",
+			"Title": "Start",
+			"Command": [
+				"python3 ./start.py"
+			],
+			"ArgTypes": {
+				"aligneddir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "aligneddir",
+					"label": "Aligned bam directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignedfiles": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Aligned bam files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"annotation_file": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "annotation_file",
+					"label": "Annotation file (gtf)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bypass_star_index": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "BYPASSSTARINDEX",
+					"label": "Bypass STAR generate index",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"download_dir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--download_dir ",
+					"env": null,
+					"label": "Download directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"downloadindexlink": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "DOWNLOADINDEXLINK",
+					"label": "Download index link",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Fastq directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqfiles": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"genome_dir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--genome_dir ",
+					"env": null,
+					"label": "Genome directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"genome_file": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "genome_file",
+					"label": "Genome reference file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"genomegtfURLs": {
+					"type": "text list",
+					"argument": null,
+					"flag": null,
+					"env": "genomegtfURLs",
+					"label": "Download URLs for genome and gtf",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"jsonFile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--json_file ",
+					"env": null,
+					"label": "JSON file with SRR ID groupings",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"notebookOutput": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"paired": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"raw_annotation_file": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "raw_annotation_file",
+					"label": "Raw annotation file (gtf)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"raw_genome_file": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "raw_genome_file",
+					"label": "Raw genome file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"s3bucket": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"s3directory": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": "bucket-dir/",
+					"input_file": null,
+					"output_file": null
+				},
+				"s3downloaddir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "s3downloaddir",
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"salmondir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Salmon output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"srridsAll": {
+					"type": "text list",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"srridsDisease": {
+					"type": "text list",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"srridsNormal": {
+					"type": "text list",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"starversion": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "starversion",
+					"label": "STAR version",
+					"default": "2.7.11a",
+					"input_file": null,
+					"output_file": null
+				},
+				"tablesDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Output counts table directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"transcriptomefile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "transcriptomefile",
+					"label": "Transcriptome file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"trimmeddir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "trimmeddir",
+					"label": "Trimmed fastq directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"trimmedfastqfiles": {
+					"type": "file list",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"trimmedfiles": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Trimmed fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"work_dir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--work_dir ",
+					"env": null,
+					"label": "Work directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"bypass_star_index": false,
+				"downloadindexlink": false,
+				"notebookOutput": false,
+				"paired": false,
+				"s3bucket": false,
+				"s3directory": false,
+				"s3downloaddir": false,
+				"srridsAll": false,
+				"srridsDisease": false,
+				"srridsNormal": false,
+				"trimmedfasqfiles": false,
+				"trimmedfastqfiles": false
+			},
+			"RequiredParams": [
+				"work_dir",
+				"genome_dir",
+				"genome_file",
+				"annotation_file",
+				"transcriptomefile",
+				"download_dir",
+				"genomegtfURLs",
+				"starversion",
+				"raw_genome_file",
+				"raw_annotation_file",
+				"trimmeddir",
+				"alignedfiles",
+				"aligneddir",
+				"trimmedfiles",
+				"fastqdir",
+				"fastqfiles",
+				"tablesDir",
+				"salmondir",
+				"jsonFile"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {
+				"alignedfiles": 1,
+				"fastqfiles": 1,
+				"genomegtfURLs": 1,
+				"srridsAll": 1,
+				"srridsDisease": 1,
+				"srridsNormal": 1,
+				"trimmedfastqfiles": 1,
+				"trimmedfiles": 1
+			},
+			"IterAttrs": []
+		},
+		"4": {
+			"Id": 4,
+			"ImageName": "biodepot/format-fa-gtf-10x",
+			"ImageTag": "latest",
+			"Title": "10x_format_fa_gtf",
+			"Command": [
+				"format-fa-gtf.pl"
+			],
+			"ArgTypes": {
+				"inputfa": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "INPUTFA",
+					"label": "Input fa file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputgtf": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "INPUTGTF",
+					"label": "Input GTF file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputfa": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "OUTPUTFA",
+					"label": "Output fa file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputgtf": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "OUTPUTGTF",
+					"label": "Output GTF file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"overwritefiles": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "overwrite",
+					"label": "Overwrite existing files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"skipFormat": false
+			},
+			"RequiredParams": [
+				"inputfa",
+				"outputfa",
+				"inputgtf",
+				"outputgtf",
+				"overwritefiles"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"5": {
+			"Id": 5,
+			"ImageName": "biodepot/salmon",
+			"ImageTag": "latest",
+			"Title": "salmon",
+			"Command": [
+				"runSalmon.sh quant "
+			],
+			"ArgTypes": {
+				"alignmentfiles": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": null,
+					"env": "inputfile",
+					"label": "Alignment files ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"gtffile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-g ",
+					"env": null,
+					"label": "gtf file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"libtype": {
+					"type": "str",
+					"argument": null,
+					"flag": "-l ",
+					"env": null,
+					"label": "Libtype ",
+					"default": "A ",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "prefix",
+					"label": "Output directory",
+					"default": "salmon-quant",
+					"input_file": null,
+					"output_file": null
+				},
+				"transcriptome": {
+					"type": "file",
+					"argument": null,
+					"flag": "-t ",
+					"env": null,
+					"label": "Transcriptome",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"outputdirs": true
+			},
+			"RequiredParams": [
+				"transcriptome",
+				"outputdir",
+				"alignmentfiles",
+				"gtffile",
+				"libtype"
+			],
+			"ResourceReqs": {
+				"MemMb": 8000,
+				"Cpus": 8,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": true,
+			"IterGroupSize": {
+				"alignmentfiles": 1
+			},
+			"IterAttrs": [
+				"alignmentfiles"
+			]
+		},
+		"6": {
+			"Id": 6,
+			"ImageName": "biodepot/gathercounts",
+			"ImageTag": "cbbd690a",
+			"Title": "gatherCounts",
+			"Command": [
+				"makeCountsMatrix.sh "
+			],
+			"ArgTypes": {
+				"alignsDir": {
+					"type": "directory",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Alignments directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"countsDir": {
+					"type": "directory",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Counts directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"tablesDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputDir",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"countsDir",
+				"alignsDir"
+			],
+			"OptionsChecked": {
+				"tablesDir": true
+			},
+			"RequiredParams": [
+				"countsDir",
+				"alignsDir"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"7": {
+			"Id": 7,
+			"ImageName": "biodepot/sratools-vdb",
+			"ImageTag": "3.0.5__3.0.5__bookworm-slim__e3b0c4429",
+			"Title": "Utilities_fastqDump",
+			"Command": [
+				"echo SKIPPING || fastq-dump "
+			],
+			"ArgTypes": {
+				"OutputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-O",
+					"env": null,
+					"label": "Output directory",
+					"default": "/data",
+					"input_file": null,
+					"output_file": null
+				},
+				"accession": {
+					"type": "str",
+					"argument": null,
+					"flag": "-A",
+					"env": null,
+					"label": "Accession",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"aligned": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--aligned",
+					"env": null,
+					"label": "aligned",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"alignedRegion": {
+					"type": "str",
+					"argument": null,
+					"flag": "--aligned-region",
+					"env": null,
+					"label": "Aligned region",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bzip2": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--bzip2",
+					"env": null,
+					"label": "Bzip2",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"clip": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-W",
+					"env": null,
+					"label": "Clip adapter sequences",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"deflineQual": {
+					"type": "str",
+					"argument": null,
+					"flag": "--defline-qual",
+					"env": null,
+					"label": "Defline qual",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"deflineSeq": {
+					"type": "str",
+					"argument": null,
+					"flag": "--defline-seq",
+					"env": null,
+					"label": "Defline seq",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"disablemt": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--disable-multithreading",
+					"env": null,
+					"label": "Disable multithreading",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"dumpcs": {
+					"type": "str",
+					"argument": null,
+					"flag": "-C",
+					"env": null,
+					"label": "Format using color space",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"fasta": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--fasta",
+					"env": null,
+					"label": "fasta (line width)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"fqdversion": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-v",
+					"env": null,
+					"label": "Version",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"groupinDirs": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--group-in-dirs",
+					"env": null,
+					"label": "Split into subdirectories",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"gzip": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--gzip",
+					"env": null,
+					"label": "Gzip",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"helicos": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--helicos",
+					"env": null,
+					"label": "Helicos format",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"help": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-h",
+					"env": null,
+					"label": "help",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keepEmpty": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-K",
+					"env": null,
+					"label": "Keep empty files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"legacyError": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--legacy-report",
+					"env": null,
+					"label": "Legacy report",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"logLevel": {
+					"type": "int",
+					"argument": null,
+					"flag": "-L",
+					"env": null,
+					"label": "Log level",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"matePairDistance": {
+					"type": "str",
+					"argument": null,
+					"flag": "--matepair-distance",
+					"env": null,
+					"label": "Mate-pair distance",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxSpotID": {
+					"type": "int",
+					"argument": null,
+					"flag": "-X",
+					"env": null,
+					"label": "maxSpotId",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"minReadLen": {
+					"type": "int",
+					"argument": null,
+					"flag": "-M",
+					"env": null,
+					"label": "Min read length",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"minSpotID": {
+					"type": "int",
+					"argument": null,
+					"flag": "-N",
+					"env": null,
+					"label": "Minimum spot ID",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"ncbiError": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--ncbi_error_report",
+					"env": null,
+					"label": "NCBI error report",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"origfmt": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-F",
+					"env": null,
+					"label": "Original format",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"qOffset": {
+					"type": "int",
+					"argument": null,
+					"flag": "-Q",
+					"env": null,
+					"label": "Quality offset",
+					"default": 33,
+					"input_file": null,
+					"output_file": null
+				},
+				"qualFilter": {
+					"type": "int",
+					"argument": null,
+					"flag": "-E",
+					"env": null,
+					"label": "Qual filter (old)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"qualFilter1": {
+					"type": "int",
+					"argument": null,
+					"flag": "--qual-filter-1",
+					"env": null,
+					"label": "Qual filter (current)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"readFilter": {
+					"type": "str",
+					"argument": null,
+					"flag": "-R",
+					"env": null,
+					"label": "Read filter",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"readids": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-I",
+					"env": null,
+					"label": "Append readID after spot ID",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"split3": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--split-3",
+					"env": null,
+					"label": "Split-3",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"splitFiles": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--split-files",
+					"env": "SPLIT",
+					"label": "Split files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"splitSpot": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--split-spot",
+					"env": null,
+					"label": "Split spot",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"spotGroup": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-G",
+					"env": null,
+					"label": "Split into spot groups",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"spotGroups": {
+					"type": "text list",
+					"argument": null,
+					"flag": "--spot-groups",
+					"env": null,
+					"label": "Spot groups",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"sraids": {
+					"type": "text list",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "ID(s)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"suppressQual": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--suppress-qual-for-cskey",
+					"env": null,
+					"label": "Suppress qual (Solid)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"tableName": {
+					"type": "str",
+					"argument": null,
+					"flag": "--table",
+					"env": null,
+					"label": "Table name",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"unaligned": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--unaligned",
+					"env": null,
+					"label": "Unaligned",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"useStdout": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-Z",
+					"env": null,
+					"label": "Output to stdout",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"verbose": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--verbose",
+					"env": null,
+					"label": "Verbose",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"sraids"
+			],
+			"OptionsChecked": {
+				"accession": false,
+				"aligned": false,
+				"alignedRegion": false,
+				"bzip2": false,
+				"clip": false,
+				"deflineQual": false,
+				"deflineSeq": false,
+				"disablemt": false,
+				"dumpcs": false,
+				"fasta": false,
+				"fqdversion": false,
+				"groupinDirs": false,
+				"gzip": false,
+				"helicos": false,
+				"help": false,
+				"keepEmpty": false,
+				"legacyError": false,
+				"logLevel": false,
+				"matePairDistance": false,
+				"maxSpotID": false,
+				"minReadLen": false,
+				"minSpotID": false,
+				"ncbiError": false,
+				"origfmt": false,
+				"qOffset": false,
+				"qualFilter": false,
+				"qualFilter1": false,
+				"readFilter": false,
+				"readids": false,
+				"split3": false,
+				"splitFiles": false,
+				"splitSpot": false,
+				"spotGroup": false,
+				"spotGroups": false,
+				"suppressQual": false,
+				"tableName": false,
+				"unaligned": false,
+				"useStdout": false,
+				"verbose": false
+			},
+			"RequiredParams": [
+				"OutputDir",
+				"sraids"
+			],
+			"ResourceReqs": {
+				"MemMb": 1000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": true,
+			"IterGroupSize": {
+				"spotGroups": 1,
+				"sraids": 1
+			},
+			"IterAttrs": [
+				"sraids"
+			]
+		},
+		"8": {
+			"Id": 8,
+			"ImageName": "patrickmckeever/rnotebook",
+			"ImageTag": "0.2",
+			"Title": "R_notebook",
+			"Command": [
+				"jupyter _bwb{subcommand} _bwb{startingNotebook}"
+			],
+			"ArgTypes": {
+				"allowRoot": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--allow-root",
+					"env": null,
+					"label": "Allow root:",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"autoyes": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-y",
+					"env": null,
+					"label": "No prompts",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"browser": {
+					"type": "str",
+					"argument": null,
+					"flag": "--browser=",
+					"env": null,
+					"label": "Custom browser:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"certfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--certfile=",
+					"env": null,
+					"label": "Cert file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"clientca": {
+					"type": "file",
+					"argument": null,
+					"flag": "--client-ca=",
+					"env": null,
+					"label": "Client cert authority",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"config": {
+					"type": "file",
+					"argument": null,
+					"flag": "--config=",
+					"env": null,
+					"label": "Config file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"countsDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "counts_dir",
+					"label": "Salmon counts output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"debug": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--debug",
+					"env": null,
+					"label": "Debug:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"execute": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--execute ",
+					"env": null,
+					"label": "(nbdocker) Execute notebook",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"generateConfig": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--generate-config",
+					"env": null,
+					"label": "Generate-config:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"ip": {
+					"type": "str",
+					"argument": null,
+					"flag": "--ip=",
+					"env": null,
+					"label": "IP:",
+					"default": "0.0.0.0",
+					"input_file": null,
+					"output_file": null
+				},
+				"keyfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--keyfile=",
+					"env": null,
+					"label": "Key file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"loglevel": {
+					"type": "str",
+					"argument": null,
+					"flag": "--log-level",
+					"env": null,
+					"label": "Log Level",
+					"default": "30",
+					"input_file": null,
+					"output_file": null
+				},
+				"metadataJson": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "metadata_json",
+					"label": "Dashboard metadata JSON file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nomathjax": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--no-mathjax",
+					"env": null,
+					"label": "Disable mathjax:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputNotebook": {
+					"type": "file",
+					"argument": null,
+					"flag": "--output ",
+					"env": null,
+					"label": "(nbconvert) Output notebook",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"port": {
+					"type": "int",
+					"argument": null,
+					"flag": "--port=",
+					"env": null,
+					"label": "Port:",
+					"default": 8888,
+					"input_file": null,
+					"output_file": null
+				},
+				"startingNotebook": {
+					"type": "file",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Notebook file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"subcommand": {
+					"type": "str",
+					"argument": null,
+					"flag": "",
+					"env": null,
+					"label": "Subcommand",
+					"default": "notebook",
+					"input_file": null,
+					"output_file": null
+				},
+				"transport": {
+					"type": "str",
+					"argument": null,
+					"flag": "--transport=",
+					"env": null,
+					"label": "Transport",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"type": {
+					"type": "str",
+					"argument": null,
+					"flag": "--to ",
+					"env": null,
+					"label": "(nbconvert) to type",
+					"default": "notebook",
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"startingNotebook"
+			],
+			"OptionsChecked": {
+				"allowRoot": false,
+				"autoyes": false,
+				"browser": false,
+				"certfile": false,
+				"clientca": false,
+				"config": false,
+				"countsDir": true,
+				"debug": false,
+				"execute": true,
+				"generateConfig": false,
+				"keyfile": false,
+				"loglevel": false,
+				"metadataJson": true,
+				"nomathjax": false,
+				"outputNotebook": true,
+				"startingNotebook": true,
+				"transport": false,
+				"type": true
+			},
+			"RequiredParams": [
+				"subcommand",
+				"ip",
+				"port"
+			],
+			"ResourceReqs": {
+				"MemMb": 8000,
+				"Cpus": 8,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"9": {
+			"Id": 9,
+			"ImageName": "brycenofu/notebook-r-dashboard",
+			"ImageTag": "latest",
+			"Title": "R_notebook",
+			"Command": [
+				"jupyter _bwb{subcommand} _bwb{startingNotebook}"
+			],
+			"ArgTypes": {
+				"allowRoot": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--allow-root",
+					"env": null,
+					"label": "Allow root:",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"autoyes": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-y",
+					"env": null,
+					"label": "No prompts",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"browser": {
+					"type": "str",
+					"argument": null,
+					"flag": "--browser=",
+					"env": null,
+					"label": "Custom browser:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"certfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--certfile=",
+					"env": null,
+					"label": "Cert file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"clientca": {
+					"type": "file",
+					"argument": null,
+					"flag": "--client-ca=",
+					"env": null,
+					"label": "Client cert authority",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"config": {
+					"type": "file",
+					"argument": null,
+					"flag": "--config=",
+					"env": null,
+					"label": "Config file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"countsDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "counts_dir",
+					"label": "Salmon counts output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"debug": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--debug",
+					"env": null,
+					"label": "Debug:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"execute": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--execute ",
+					"env": null,
+					"label": "(nbdocker) Execute notebook",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"generateConfig": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--generate-config",
+					"env": null,
+					"label": "Generate-config:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"ip": {
+					"type": "str",
+					"argument": null,
+					"flag": "--ip=",
+					"env": null,
+					"label": "IP:",
+					"default": "0.0.0.0",
+					"input_file": null,
+					"output_file": null
+				},
+				"keyfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "--keyfile=",
+					"env": null,
+					"label": "Key file:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"loglevel": {
+					"type": "str",
+					"argument": null,
+					"flag": "--log-level",
+					"env": null,
+					"label": "Log Level",
+					"default": "30",
+					"input_file": null,
+					"output_file": null
+				},
+				"metadataJson": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "metadata_json",
+					"label": "Dashboard metadata JSON file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nomathjax": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--no-mathjax",
+					"env": null,
+					"label": "Disable mathjax:",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputNotebook": {
+					"type": "file",
+					"argument": null,
+					"flag": "--output ",
+					"env": null,
+					"label": "(nbconvert) Output notebook",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"port": {
+					"type": "int",
+					"argument": null,
+					"flag": "--port=",
+					"env": null,
+					"label": "Port:",
+					"default": 8888,
+					"input_file": null,
+					"output_file": null
+				},
+				"startingNotebook": {
+					"type": "file",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Notebook file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"subcommand": {
+					"type": "str",
+					"argument": null,
+					"flag": "",
+					"env": null,
+					"label": "Subcommand",
+					"default": "notebook",
+					"input_file": null,
+					"output_file": null
+				},
+				"transport": {
+					"type": "str",
+					"argument": null,
+					"flag": "--transport=",
+					"env": null,
+					"label": "Transport",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"type": {
+					"type": "str",
+					"argument": null,
+					"flag": "--to ",
+					"env": null,
+					"label": "(nbconvert) to type",
+					"default": "notebook",
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"startingNotebook"
+			],
+			"OptionsChecked": {
+				"allowRoot": false,
+				"autoyes": false,
+				"browser": false,
+				"certfile": false,
+				"clientca": false,
+				"config": false,
+				"countsDir": true,
+				"debug": false,
+				"execute": false,
+				"generateConfig": false,
+				"keyfile": false,
+				"loglevel": false,
+				"metadataJson": true,
+				"nomathjax": false,
+				"outputNotebook": false,
+				"startingNotebook": true,
+				"transport": false,
+				"type": false
+			},
+			"RequiredParams": [
+				"subcommand",
+				"ip",
+				"port"
+			],
+			"ResourceReqs": {
+				"MemMb": 8000,
+				"Cpus": 8,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		}
+	},
+	"NodeBaseProps": {
+		"0": {
+			"URL": [
+				"https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+				"https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz"
+			],
+			"concatenateFile": "",
+			"decompress": true,
+			"directory": "/data/processing/downloads",
+			"noClobberFiles": false
+		},
+		"1": {
+			"genomeChrBinNbits": "18",
+			"genomeDir": "/data/processing/genome",
+			"genomeFastaFile": "/data/processing/genome/genome.fa",
+			"genomeSAindexNbases": 14,
+			"genomeSAsparseD": 1,
+			"genomeSuffixLengthMax": -1,
+			"overwrite": false,
+			"rmode": "genomeGenerate",
+			"runThreadN": 16,
+			"sjdbFileChrStartEnd": [],
+			"sjdbGTFchrPrefix": "chr",
+			"sjdbGTFfeatureExon": "exon",
+			"sjdbGTFfile": "/data/processing/genome/genome.gtf",
+			"sjdbGTFtagExonParentGene": "gene_id",
+			"sjdbGTFtagExonParentTranscript": "transcript_id",
+			"sjdbInsertSave": "Basic",
+			"sjdbOverhang": 100,
+			"sjdbScore": 2,
+			"starversion": "2.7.11a"
+		},
+		"10": {
+			"basenames": [],
+			"fastqc": true,
+			"gzipped": true,
+			"inputFiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*.fastq",
+				"root": "/data/work_RO3_generalized/fastq",
+				"value": [
+					"/data/work_RO3_generalized/fastq/SRR10544951.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544951_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544951_2.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544952.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544952_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544952_2.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544953.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544953_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544953_2.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544954.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544954_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544954_2.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544956.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544956_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544956_2.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544957.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544957_1.fastq.gz",
+					"/data/work_RO3_generalized/fastq/SRR10544957_2.fastq.gz"
+				]
+			},
+			"ncores": 4,
+			"outputDir": "/data/work_RO3_generalized/trimmed",
+			"paired": 0
+		},
+		"11": {
+			"alignEndsProtrude": [
+				"0",
+				"ConcordantPair"
+			],
+			"alignEndsType": "Local",
+			"alignIntronMax": 0,
+			"alignIntronMin": 21,
+			"alignMatesGapMax": 0,
+			"alignSJDBoverhangMin": 1,
+			"alignSJoverhangMin": 5,
+			"alignSJstitchMismatchNmax": 0,
+			"alignSoftClipAtReferenceEnds": "Yes",
+			"alignSplicedMateMapLmin": 0,
+			"alignSplicedMateMapLminOverLmate": 0.66,
+			"alignTranscriptsPerReadNmax": 10000,
+			"alignTranscriptsPerWindowNmax": 100,
+			"alignWindowsPerReadNmax": 10000,
+			"apelist": 1,
+			"bamRemoveDuplicatesMate2basesN": 0,
+			"bamRemoveDuplicatesType": "",
+			"chimFilter": "banGenomicN",
+			"chimJunctionOverhangMin": 20,
+			"chimOutType": "SeparateSAMold",
+			"chimScoreDropMax": 20,
+			"chimScoreJunctionNonGTAG": -1,
+			"chimScoreMin": 0,
+			"chimScoreSeparation": 10,
+			"chimSegmentMin": 0,
+			"chimSegmentReadGapMax": 0,
+			"clip3pAdapterMMp": [
+				"0.1"
+			],
+			"clip3pAdapterSeq": [],
+			"clip3pAfterAdapterNbases": [
+				"0"
+			],
+			"clip3pNbases": [
+				"0"
+			],
+			"clip5pNbases": [
+				"0"
+			],
+			"genomeDir": "/data/processing/genome",
+			"genomeLoad": "NoSharedMemory",
+			"limitIObufferSize": 150000000,
+			"limitOutSAMoneReadBytes": 100000,
+			"multipleSample": true,
+			"outBAMcompression": 1,
+			"outBAMsortingThreadN": 0,
+			"outFilterIntronMotifs": "",
+			"outFilterMatchNmin": 0,
+			"outFilterMatchNminOverLread": 0.66,
+			"outFilterMismatchNmax": 10,
+			"outFilterMismatchNoverLmax": 0.3,
+			"outFilterMismatchNoverReadLmax": 1,
+			"outFilterMultimapNmax": 20,
+			"outFilterMultimapScoreRange": 1,
+			"outFilterScoreMin": 0,
+			"outFilterScoreMinOverLread": 0.66,
+			"outFilterType": "Normal",
+			"outMultimapperOrder": "Old_2.4",
+			"outReadsUnmapped": "",
+			"outSAMattrIHstart": 1,
+			"outSAMattrRGline": "",
+			"outSAMattributes": "NH HI AS NM MD",
+			"outSAMfilter": "",
+			"outSAMflagAND": 65535,
+			"outSAMflagOR": 0,
+			"outSAMheaderCommentFile": "",
+			"outSAMheaderHD": "",
+			"outSAMheaderPG": "",
+			"outSAMmapqUnique": 255,
+			"outSAMmode": "Full",
+			"outSAMmultNmax": -1,
+			"outSAMorder": "Paired",
+			"outSAMprimaryFlag": "OneBestScore",
+			"outSAMreadID": "Standard",
+			"outSAMstrandField": "",
+			"outSAMtype": "BAM Unsorted",
+			"outSAMunmapped": "",
+			"outStd": "Log",
+			"outTmpDir": "",
+			"outWigNorm": "RPM",
+			"outWigReferencesPrefix": "",
+			"outWigStrand": "Stranded",
+			"outWigType": "",
+			"outputDir": "/data/work_RO3_generalized/alignedfiles",
+			"outputFilePrefix": "",
+			"parametersFiles": "",
+			"quantMode": "TranscriptomeSAM GeneCounts",
+			"quantTranscriptomeBAMcompression": 1,
+			"quantTranscriptomeBan": "Singleend",
+			"readFilesCommand": "zcat",
+			"readFilesIn": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*.fq.gz",
+				"root": "/data/work_RO3_generalized/trimmed",
+				"value": [
+					"/data/work_RO3_generalized/trimmed/SRR10544951_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544951_2_val_2.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544952_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544952_2_val_2.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544953_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544953_2_val_2.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544954_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544954_2_val_2.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544956_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544956_2_val_2.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544957_1_val_1.fq.gz",
+					"/data/work_RO3_generalized/trimmed/SRR10544957_2_val_2.fq.gz"
+				]
+			},
+			"readMapNumber": -1,
+			"readMatesLengthsIn": "NotEqual",
+			"readNameSeparator": "/",
+			"runRNGseed": 777,
+			"runThreadN": 16,
+			"scoreDelBase": -2,
+			"scoreDelOpen": -2,
+			"scoreGap": 0,
+			"scoreGapATAC": -8,
+			"scoreGapGCAG": -4,
+			"scoreGapNoncan": -8,
+			"scoreGenomicLengthLog2scale": -0.25,
+			"scoreInsBase": -2,
+			"scoreInsOpen": -2,
+			"scoreStitchSJshift": 1,
+			"seedMultimapNmax": 10000,
+			"seedNoneLociPerWindow": 10,
+			"seedPerReadNmax": 1000,
+			"seedPerWindowNmax": 50,
+			"seedSearchLmax": 0,
+			"seedSearchStartLmax": 50,
+			"seedSearchStartLmaxOverLread": 1,
+			"spelist": false,
+			"starversion": "2.7.11a",
+			"sysShell": "/bin/sh",
+			"twopass1readsN": -1,
+			"twopassMode": "Basic",
+			"winAnchorDistNbins": 9,
+			"winAnchorMultimapNmax": 50,
+			"winBinNbits": 16,
+			"winFlankNbins": 4,
+			"winReadCoverageBasesMin": 0,
+			"winReadCoverageRelativeMin": 0.5
+		},
+		"2": {
+			"genomefile": "/data/processing/genome/genome.fa",
+			"gtffile": "/data/processing/genome/genome.gtf",
+			"outputfile": "/data/processing/genome/transcriptome.fa",
+			"overwritefiles": false
+		},
+		"3": {
+			"aligneddir": "/data/work_RO3_generalized/alignedfiles",
+			"alignedfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*ome.out.bam",
+				"root": "/data/work_RO3_generalized/alignedfiles",
+				"value": null
+			},
+			"annotation_file": "/data/processing/genome/genome.gtf",
+			"bypass_star_index": false,
+			"download_dir": "/data/processing/downloads",
+			"downloadindexlink": false,
+			"fastqdir": "/data/work_RO3_generalized/fastq",
+			"fastqfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*.fastq",
+				"root": "/data/work_RO3_generalized/fastq",
+				"value": null
+			},
+			"genome_dir": "/data/processing/genome",
+			"genome_file": "/data/processing/genome/genome.fa",
+			"genomegtfURLs": [
+				"https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+				"https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz"
+			],
+			"jsonFile": "/data/work_RO3_generalized/sample_dashboard_data_v2.json",
+			"notebookOutput": "/data/work_RO3_generalized/dashboard_differential_expression_analysis_output.ipynb",
+			"paired": 0,
+			"raw_annotation_file": "/data/processing/downloads/gencode.v44.primary_assembly.annotation.gtf",
+			"raw_genome_file": "/data/processing/downloads/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+			"s3bucket": null,
+			"s3directory": "bucket-dir/",
+			"s3downloaddir": null,
+			"salmondir": "/data/work_RO3_generalized/alignedfiles/Counts",
+			"srridsAll": null,
+			"srridsDisease": null,
+			"srridsNormal": null,
+			"starversion": "2.7.11a",
+			"tablesDir": "/data/work_RO3_generalized/count_tables",
+			"transcriptomefile": "/data/processing/genome/transcriptome.fa",
+			"trimmeddir": "/data/work_RO3_generalized/trimmed",
+			"trimmedfastqfiles": null,
+			"trimmedfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*.fq.gz",
+				"root": "/data/work_RO3_generalized/trimmed",
+				"value": null
+			},
+			"work_dir": "/data/work_RO3_generalized"
+		},
+		"4": {
+			"inputfa": "/data/processing/downloads/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+			"inputgtf": "/data/processing/downloads/gencode.v44.primary_assembly.annotation.gtf",
+			"outputfa": "/data/processing/genome/genome.fa",
+			"outputgtf": "/data/processing/genome/genome.gtf",
+			"overwritefiles": false
+		},
+		"5": {
+			"alignmentfiles": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "**/*ome.out.bam",
+				"root": "/data/work_RO3_generalized/alignedfiles",
+				"value": [
+					"/data/work_RO3_generalized/alignedfiles/SRR10544951_1_val_1/Aligned.toTranscriptome.out.bam"
+				]
+			},
+			"gtffile": "/data/processing/genome/genome.gtf",
+			"libtype": "A ",
+			"outputdir": "/data/work_RO3_generalized/alignedfiles/Counts",
+			"transcriptome": "/data/processing/genome/transcriptome.fa"
+		},
+		"6": {
+			"alignsDir": "",
+			"countsDir": "/data/work_RO3_generalized/alignedfiles/Counts",
+			"tablesDir": "/data/work_RO3_generalized/count_tables"
+		},
+		"7": {
+			"OutputDir": "/data/work_RO3_generalized/fastq",
+			"accession": "",
+			"aligned": false,
+			"alignedRegion": "",
+			"bzip2": false,
+			"clip": false,
+			"deflineQual": "",
+			"deflineSeq": "",
+			"disablemt": false,
+			"dumpcs": "",
+			"fasta": false,
+			"fqdversion": false,
+			"groupinDirs": false,
+			"gzip": true,
+			"helicos": false,
+			"help": false,
+			"keepEmpty": false,
+			"legacyError": false,
+			"logLevel": 0,
+			"matePairDistance": "",
+			"maxSpotID": 0,
+			"minReadLen": 0,
+			"minSpotID": 0,
+			"ncbiError": false,
+			"origfmt": false,
+			"qOffset": 33,
+			"qualFilter": 0,
+			"qualFilter1": 0,
+			"readFilter": "",
+			"readids": false,
+			"split3": false,
+			"splitFiles": 1,
+			"splitSpot": false,
+			"spotGroup": false,
+			"spotGroups": [],
+			"sraids": [
+				"SRR10544951",
+				"SRR10544956",
+				"SRR10544953",
+				"SRR10544952",
+				"SRR10544957",
+				"SRR10544954"
+			],
+			"suppressQual": false,
+			"tableName": "",
+			"unaligned": false,
+			"useStdout": false,
+			"verbose": false
+		},
+		"8": {
+			"allowRoot": false,
+			"autoyes": false,
+			"browser": "",
+			"certfile": "",
+			"clientca": "",
+			"config": "",
+			"countsDir": "",
+			"debug": false,
+			"execute": true,
+			"generateConfig": false,
+			"ip": "0.0.0.0",
+			"keyfile": "",
+			"loglevel": "30",
+			"metadataJson": "/data/work_RO3_generalized/sample_dashboard_data_v2.json",
+			"nomathjax": false,
+			"outputNotebook": "/data/work_RO3_generalized/dashboard_differential_expression_analysis_output.ipynb",
+			"port": 8888,
+			"startingNotebook": "/app/dashboard_differential_expression_analysis.ipynb",
+			"subcommand": "nbconvert",
+			"transport": "",
+			"type": "notebook"
+		},
+		"9": {
+			"allowRoot": true,
+			"autoyes": true,
+			"browser": "",
+			"certfile": "",
+			"clientca": "",
+			"config": "",
+			"countsDir": "",
+			"debug": false,
+			"execute": false,
+			"generateConfig": false,
+			"ip": "0.0.0.0",
+			"keyfile": "",
+			"loglevel": "30",
+			"metadataJson": "/data/work_RO3_generalized/sample_dashboard_data_v2.json",
+			"nomathjax": false,
+			"outputNotebook": "",
+			"port": 8888,
+			"startingNotebook": "",
+			"subcommand": "notebook",
+			"transport": "",
+			"type": "notebook"
+		}
+	},
+	"Links": [
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 0,
+			"SourceChannel": "genomegtfURLs",
+			"SinkChannel": "URL"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 4,
+			"SourceChannel": "directory",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 2,
+			"SourceChannel": "transcriptomefile",
+			"SinkChannel": "outputfile"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 2,
+			"SourceChannel": "outputfa",
+			"SinkChannel": "genomefile"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 2,
+			"SourceChannel": "outputgtf",
+			"SinkChannel": "gtffile"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 1,
+			"SourceChannel": "genome_dir",
+			"SinkChannel": "genomeDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 1,
+			"SourceChannel": "starversion",
+			"SinkChannel": "starversion"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 1,
+			"SourceChannel": "outputfa",
+			"SinkChannel": "genomeFastaFile"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 1,
+			"SourceChannel": "outputgtf",
+			"SinkChannel": "sjdbGTFfile"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 0,
+			"SourceChannel": "download_dir",
+			"SinkChannel": "directory"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "genome_file",
+			"SinkChannel": "outputfa"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "raw_annotation_file",
+			"SinkChannel": "inputgtf"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "annotation_file",
+			"SinkChannel": "outputgtf"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "raw_genome_file",
+			"SinkChannel": "inputfa"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 0,
+			"SourceChannel": "bypass_star_index",
+			"SinkChannel": "skipDownload"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "bypass_star_index",
+			"SinkChannel": "skipFormat"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 2,
+			"SourceChannel": "bypass_star_index",
+			"SinkChannel": "skipGFF"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 1,
+			"SourceChannel": "bypass_star_index",
+			"SinkChannel": "skipIndex"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 1,
+			"SourceChannel": "directory",
+			"SinkChannel": "Trigger"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 2,
+			"SourceChannel": "directory",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 5,
+			"SourceChannel": "outputgtf",
+			"SinkChannel": "gtffile"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 5,
+			"SourceChannel": "alignedfiles",
+			"SinkChannel": "alignmentfiles"
+		},
+		{
+			"SourceNodeId": 2,
+			"SinkNodeId": 5,
+			"SourceChannel": "outputfile",
+			"SinkChannel": "transcriptome"
+		},
+		{
+			"SourceNodeId": 11,
+			"SinkNodeId": 6,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "alignsDir"
+		},
+		{
+			"SourceNodeId": 5,
+			"SinkNodeId": 6,
+			"SourceChannel": "outputdir",
+			"SinkChannel": "countsDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 6,
+			"SourceChannel": "tablesDir",
+			"SinkChannel": "tablesDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 7,
+			"SourceChannel": "fastqdir",
+			"SinkChannel": "OutputDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 5,
+			"SourceChannel": "salmondir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 7,
+			"SourceChannel": "srridsAll",
+			"SinkChannel": "sraids"
+		},
+		{
+			"SourceNodeId": 6,
+			"SinkNodeId": 8,
+			"SourceChannel": "tablesDir",
+			"SinkChannel": "countsDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 8,
+			"SourceChannel": "jsonFile",
+			"SinkChannel": "metadataJson"
+		},
+		{
+			"SourceNodeId": 8,
+			"SinkNodeId": 9,
+			"SourceChannel": "outputNotebook",
+			"SinkChannel": "startingNotebook"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 8,
+			"SourceChannel": "notebookOutput",
+			"SinkChannel": "outputNotebook"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 9,
+			"SourceChannel": "jsonFile",
+			"SinkChannel": "metadataJson"
+		},
+		{
+			"SourceNodeId": 6,
+			"SinkNodeId": 9,
+			"SourceChannel": "tablesDir",
+			"SinkChannel": "countsDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 10,
+			"SourceChannel": "trimmeddir",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 10,
+			"SourceChannel": "trimmeddir",
+			"SinkChannel": "outputDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 10,
+			"SourceChannel": "fastqfiles",
+			"SinkChannel": "inputFiles"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 10,
+			"SourceChannel": "paired",
+			"SinkChannel": "paired"
+		},
+		{
+			"SourceNodeId": 7,
+			"SinkNodeId": 10,
+			"SourceChannel": "OutputDir",
+			"SinkChannel": "trigger2"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 7,
+			"SourceChannel": "paired",
+			"SinkChannel": "splitFiles"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 11,
+			"SourceChannel": "starversion",
+			"SinkChannel": "starversion"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 11,
+			"SourceChannel": "aligneddir",
+			"SinkChannel": "outputDir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 11,
+			"SourceChannel": "trimmedfiles",
+			"SinkChannel": "readFilesIn"
+		},
+		{
+			"SourceNodeId": 1,
+			"SinkNodeId": 11,
+			"SourceChannel": "genomeDir",
+			"SinkChannel": "genomeDir"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 11,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "trim_trigger"
+		},
+		{
+			"SourceNodeId": 11,
+			"SinkNodeId": 5,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 7,
+			"SinkNodeId": 11,
+			"SourceChannel": "OutputDir",
+			"SinkChannel": "download_trigger"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 11,
+			"SourceChannel": "paired",
+			"SinkChannel": "apelist"
+		}
+	]
+}

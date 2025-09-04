@@ -127,9 +127,9 @@ type WorkflowNode struct {
 	ResourceReqs   ResourceVector
 	Async          bool
 	BarrierFor     *int
-	Iterate       bool
-	IterGroupSize map[string]int
-	IterAttrs     []string
+	Iterate        bool
+	IterGroupSize  map[string]int
+	IterAttrs      []string
 }
 
 type Workflow struct {
@@ -326,22 +326,22 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 		xmlNodeInfo.IterGroupSize[trimmedAttr] = groupSize
 	}
 
-    // iterateSettings->iteratedAttrs is optional
-    xmlNodeInfo.IterAttrs = make([]string, 0)
+	// iterateSettings->iteratedAttrs is optional
+	xmlNodeInfo.IterAttrs = make([]string, 0)
 	iteratedAttrsRaw, iteratedAttrsExist := iterateSettings["iteratedAttrs"]
 	if iteratedAttrsExist {
-	    iteratedAttrs, ok := iteratedAttrsRaw.([]interface{})
-	    if !ok {
-	    	return xmlNodeInfo, fmt.Errorf("`iteratedAttrs` is not a list")
-	    }
+		iteratedAttrs, ok := iteratedAttrsRaw.([]interface{})
+		if !ok {
+			return xmlNodeInfo, fmt.Errorf("`iteratedAttrs` is not a list")
+		}
 
-        for _, pnameRaw := range iteratedAttrs {
-            pnameStr, ok := pnameRaw.(string)
-            if !ok {
-                return xmlNodeInfo, fmt.Errorf("non-string attribute in `iteratedAttrs`")
-            }
-            xmlNodeInfo.IterAttrs = append(xmlNodeInfo.IterAttrs, pnameStr)
-        }
+		for _, pnameRaw := range iteratedAttrs {
+			pnameStr, ok := pnameRaw.(string)
+			if !ok {
+				return xmlNodeInfo, fmt.Errorf("non-string attribute in `iteratedAttrs`")
+			}
+			xmlNodeInfo.IterAttrs = append(xmlNodeInfo.IterAttrs, pnameStr)
+		}
 	}
 	delete(data, "iterateSettings")
 
@@ -395,16 +395,8 @@ func parseWorkflowNode(
 		)
 	}
 
-	baseProps := parsedXml.Props
-	workflowNode.Iterate = parsedXml.Iterate
-    workflowNode.IterAttrs = parsedXml.IterAttrs
-	workflowNode.IterGroupSize = parsedXml.IterGroupSize
-	workflowNode.OptionsChecked = parsedXml.OptionsChecked
-
-	//fmt.Printf("WARNING: Adding default resource vals for node %d\n", nodeId)
-
 	var useGpu bool
-	if useGpuRaw, ok := baseProps["useGpu"]; ok {
+	if useGpuRaw, ok := parsedXml.Props["useGpu"]; ok {
 		if bVal, ok := useGpuRaw.(bool); ok {
 			useGpu = bVal
 		} else {
@@ -417,7 +409,35 @@ func parseWorkflowNode(
 			"node %d has no key parameters->useGpu", nodeId,
 		)
 	}
-	delete(baseProps, "useGpu")
+	delete(parsedXml.Props, "useGpu")
+
+	baseProps := make(map[string]any)
+    var tp TypedParams
+	for k, v := range parsedXml.Props {
+		//baseProps[k] = v
+        argType, ok := workflowNode.ArgTypes[k]
+		if !ok {
+			fmt.Printf("WARNING: Cannot add node %d, param %s due to missing argtype\n", nodeId, k)
+            continue
+		}
+
+        if err := tp.AddParam(v, k, argType); err != nil {
+            fmt.Printf(
+                "WARNING: Value %v for node %d, param %s conflicts with " +
+                "stated arg type %s; adding default value.\n", v, nodeId, k,
+                argType.ArgType,
+            )
+            baseProps[k] = nil
+        } else {
+            baseProps[k] = v
+        }
+	}
+	workflowNode.Iterate = parsedXml.Iterate
+	workflowNode.IterAttrs = parsedXml.IterAttrs
+	workflowNode.IterGroupSize = parsedXml.IterGroupSize
+	workflowNode.OptionsChecked = parsedXml.OptionsChecked
+
+	fmt.Printf("WARNING: Adding default resource vals for node %d\n", nodeId)
 
 	workflowNode.ResourceReqs.Cpus = 8
 	workflowNode.ResourceReqs.MemMb = 8000

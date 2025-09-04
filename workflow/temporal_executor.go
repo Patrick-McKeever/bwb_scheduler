@@ -1,31 +1,38 @@
 package workflow
 
 import (
-    "fmt"
-    "go-scheduler/fs"
-    "go-scheduler/parsing"
-    "time"
+	"errors"
+	"fmt"
+	"go-scheduler/fs"
+	"go-scheduler/parsing"
+	"time"
 
-    "go.temporal.io/sdk/temporal"
-    "go.temporal.io/sdk/workflow"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/workflow"
 )
 
+type RunningCmdActivity struct {
+    future          workflow.Future
+    cancel          func()
+}
+
 type TemporalExecutor struct {
-    ctx               workflow.Context
-    handleFinishedCmd CmdHandler
-    masterFS          fs.LocalFS
-    workers           map[string]WorkerInfo
-    storageId         string
-    selector          *workflow.Selector
-    schedulerWE       workflow.Execution
-    cancelCmds        []func()
-    cancelIdxs        map[int]struct{}
-    cancelChild       func()
-    workerFSs         map[string]fs.LocalFS
-    cmdsById          map[int]parsing.CmdTemplate
-    grantsById        map[int]ResourceGrant
-    configsByNode     map[int]parsing.LocalJobConfig
-    errors            []error
+    ctx                         workflow.Context
+    canceled                    bool
+    handleFinishedCmd           CmdHandler
+    masterFS                    fs.LocalFS
+    workers                     map[string]WorkerInfo
+    storageId                   string
+    selector                    *workflow.Selector
+    schedulerWE                 workflow.Execution
+    runningCmdActivities        []RunningCmdActivity
+    cancelIdxs                  map[int]struct{}
+    cancelChild                 func()
+    workerFSs                   map[string]fs.LocalFS
+    cmdsById                    map[int]parsing.CmdTemplate
+    grantsById                  map[int]ResourceGrant
+    configsByNode               map[int]parsing.LocalJobConfig
+    errors                      []error
 }
 
 func NewTemporalExecutor(
@@ -36,7 +43,8 @@ func NewTemporalExecutor(
 ) TemporalExecutor {
     var state TemporalExecutor
     state.ctx = ctx
-    state.cancelCmds = make([]func(), 0)
+    state.canceled = false
+    state.runningCmdActivities = make([]RunningCmdActivity, 0)
     state.cancelIdxs = make(map[int]struct{})
     state.selector = selector
     state.masterFS = masterFS
@@ -75,6 +83,15 @@ func (exec *TemporalExecutor) Setup() error {
         c.Receive(exec.ctx, &grant)
         cmd := exec.cmdsById[grant.RequestId]
         exec.RunCmdWithGrant(cmd, grant)
+    })
+
+    cancelChan := workflow.GetSignalChannel(exec.ctx, "cancel")
+    (*exec.selector).AddReceive(cancelChan, func(c workflow.ReceiveChannel, _ bool) {
+        var canceled bool
+        c.Receive(exec.ctx, &canceled)
+        if canceled {
+            exec.errors = append(exec.errors, errors.New("received cancel signal"))
+        }
     })
 
     // Setup worker FSs.
@@ -116,7 +133,12 @@ func (exec *TemporalExecutor) Select() {
 func (exec *TemporalExecutor) Shutdown() {
     exec.cancelChild()
     for cancelIdx := range exec.cancelIdxs {
-        exec.cancelCmds[cancelIdx]()
+        exec.runningCmdActivities[cancelIdx].cancel()
+    }
+
+    // Await activities to complete cancellation.
+    for cancelIdx := range exec.cancelIdxs {
+        exec.runningCmdActivities[cancelIdx].future.Get(exec.ctx, nil)
     }
 }
 
@@ -181,6 +203,7 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
         TaskQueue:           grant.WorkerId,
         StartToCloseTimeout: 3 * time.Hour,
         HeartbeatTimeout: 1 * time.Minute,
+        WaitForCancellation: true,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 1,
         },
@@ -195,14 +218,18 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
     }
     volumes := fs.GetVolumes()
 
-    useDocker := exec.configsByNode[cmd.Id].UseDocker
+    useDocker := exec.configsByNode[cmd.NodeId].UseDocker
     aoCtx := workflow.WithActivityOptions(exec.ctx, ao)
     cmdCtx, cancel := workflow.WithCancel(aoCtx)
     cmdFuture := workflow.ExecuteActivity(
         cmdCtx, RunCmdActivity, volumes, cmd, useDocker,
     )
-    exec.cancelCmds = append(exec.cancelCmds, cancel)
-    cancelIdx := len(exec.cancelCmds) - 1
+    exec.runningCmdActivities = append(
+        exec.runningCmdActivities, RunningCmdActivity{
+            future: cmdFuture, cancel: cancel,
+        },
+    )
+    cancelIdx := len(exec.runningCmdActivities) - 1
     exec.cancelIdxs[cancelIdx] = struct{}{}
 
     (*exec.selector).AddFuture(cmdFuture, func(f workflow.Future) {

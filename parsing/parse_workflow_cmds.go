@@ -380,10 +380,16 @@ func (tp *TypedParams) AddParam(
     castErr := fmt.Errorf("var %s (%v) cannot be cast to %s", pname, propValRaw, argType.ArgType)
     if argType.ArgType == "bool" {
         pValBool, ok := propValRaw.(bool)
-        if !ok {
-            return castErr
+        if ok {
+            tp.Bools[pname] = pValBool
+        } else {
+            pValNum, ok := propValRaw.(float64)
+            if ok {
+                tp.Bools[pname] = pValNum > 0
+            } else {
+                return castErr
+            }
         }
-        tp.Bools[pname] = pValBool
     } else if argType.ArgType == "int" {
         pValDouble, ok := propValRaw.(float64)
         if !ok {
@@ -477,6 +483,10 @@ func (tp *TypedParams) AddParam(
 func performPqSubs(pq *PatternQuery, node WorkflowNode, tp TypedParams) error {
     for _, strPtr := range []*string{&pq.Root, &pq.Pattern} {
         subs := getCmdSubs(*strPtr)
+        if len(subs) == 0 {
+            continue
+        }
+
         var startLocs []int
         for startLoc := range subs {
             startLocs = append(startLocs, startLoc)
@@ -809,15 +819,17 @@ func getArgStr(pname string, argType WorkflowArgType, tp TypedParams, isFlag boo
 
 func evaluateFlags(
     node WorkflowNode, template *CmdTemplate,
-    tp TypedParams, reqParams, iterAttrs map[string]bool,
+    tp TypedParams, reqParams, iterAttrs,
+    varsToIgnore map[string]bool,
 ) error {
     for pname, argType := range node.ArgTypes {
-        if argType.Flag == nil || tp.IsNil(pname) {
+        if argType.Flag == nil || tp.IsNil(pname) || *argType.Flag == "" {
             continue
         }
 
+        shouldIgnore := varsToIgnore[pname]
         isIterable := iterAttrs[pname]
-        if isIterable {
+        if shouldIgnore || isIterable {
             continue
         }
 
@@ -841,7 +853,8 @@ func evaluateFlags(
 
 func evaluateArgs(
     node WorkflowNode, template *CmdTemplate,
-    tp TypedParams, reqParams, iterAttrs map[string]bool,
+    tp TypedParams, reqParams, iterAttrs, 
+    shouldIgnore map[string]bool,
 ) error {
     for _, pname := range node.ArgOrder {
         argType := node.ArgTypes[pname]
@@ -859,7 +872,7 @@ func evaluateArgs(
         }
 
         // Iterable attrs will be processed later
-        if iterAttrs[pname] {
+        if shouldIgnore[pname] || iterAttrs[pname] {
             continue
         }
 
@@ -1226,8 +1239,9 @@ func getCmdSubs(cmd string) map[int]CmdSub {
 }
 func performCmdSubs(
     node WorkflowNode, template *CmdTemplate, nonIterVals TypedParams, skipIters bool,
-) error {
+) (map[string]bool, error) {
     revisedCmds := make([]string, len(node.Command))
+    subbedVars := make(map[string]bool)
     for i, cmdClause := range node.Command {
         revisedCmds[i] = ""
         cmdSubs := getCmdSubs(cmdClause)
@@ -1252,6 +1266,7 @@ func performCmdSubs(
             }
 
             if argType, validPname := node.ArgTypes[pname]; validPname {
+                subbedVars[pname] = true
                 var serializedPval string
                 var serializationErr error
 
@@ -1266,11 +1281,11 @@ func performCmdSubs(
                 }
 
                 if serializationErr != nil {
-                    return fmt.Errorf("error substituting %s: %s", subIdStr, serializationErr)
+                    return nil, fmt.Errorf("error substituting %s: %s", subIdStr, serializationErr)
                 }
                 revisedCmds[i] += cmdClause[previousEnd:startLoc] + serializedPval
             } else {
-                return fmt.Errorf(
+                return nil, fmt.Errorf(
                     "%s has invalid substitution variable %s", subIdStr, pname,
                 )
             }
@@ -1282,7 +1297,7 @@ func performCmdSubs(
     }
 
     template.BaseCmd = revisedCmds
-    return nil
+    return subbedVars, nil
 }
 
 func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
@@ -1319,17 +1334,25 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
         )
     }
 
-    err := evaluateEnvVars(node, &template, tp, reqParams, iterAttrs)
+    subbedVars, err := performCmdSubs(node, &template, tp, true)
+    if err != nil {
+        return nil, fmt.Errorf(
+            "error parsing node %d substitutions: %s",
+            nodeId, err,
+        )
+    }
+
+    err = evaluateEnvVars(node, &template, tp, reqParams, iterAttrs)
     if err != nil {
         return nil, fmt.Errorf("error parsing node %d env vars: %s", nodeId, err)
     }
 
-    err = evaluateFlags(node, &template, tp, reqParams, iterAttrs)
+    err = evaluateFlags(node, &template, tp, reqParams, iterAttrs, subbedVars)
     if err != nil {
         return nil, fmt.Errorf("error parsing node %d flags: %s", nodeId, err)
     }
 
-    err = evaluateArgs(node, &template, tp, reqParams, iterAttrs)
+    err = evaluateArgs(node, &template, tp, reqParams, iterAttrs, subbedVars)
     if err != nil {
         return nil, fmt.Errorf("error parsing node %d args: %s", nodeId, err)
     }
@@ -1338,14 +1361,6 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
     if err != nil {
         return nil, fmt.Errorf(
             "error parsing node %d input / output files: %s",
-            nodeId, err,
-        )
-    }
-
-    err = performCmdSubs(node, &template, tp, true)
-    if err != nil {
-        return nil, fmt.Errorf(
-            "error parsing node %d substitutions: %s",
             nodeId, err,
         )
     }
@@ -1360,7 +1375,7 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
     }
 
     for i := range iterations {
-        err := performCmdSubs(node, &iterations[i], tp, false)
+        _, err := performCmdSubs(node, &iterations[i], tp, false)
         if err != nil {
             return nil, fmt.Errorf(
                 "error parsing node %d, iteration %d substitutions: %s",

@@ -98,6 +98,11 @@ func (exec *LocalExecutor) Select() {
             ))
         }
 
+        if res.err != nil {
+            exec.errors = append(exec.errors, res.err)
+            return
+        }
+
         if err := exec.ReleaseResourceGrant(grant); err != nil {
             exec.errors = append(exec.errors, err)
             return

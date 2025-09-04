@@ -346,8 +346,8 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
         }
     })
 
-    durationSecs := 1
-    durationSecsAsTime := time.Second * 1
+    durationSecs := 5
+    durationSecsAsTime := time.Second * 5
     var timerCallback func(workflow.Future)
     timerCallback = func(f workflow.Future) {
         responses := processRequests(&state)

@@ -1,24 +1,25 @@
 package workflow
 
 import (
-    "maps"
-    "time"
 	"bytes"
-    "crypto/rand"
-    "errors"
-    "fmt"
-    "go-scheduler/fs"
-    "go-scheduler/parsing"
-    "log/slog"
-    "os"
-    "os/exec"
-    "path/filepath"
-    "strings"
-    "context"
+	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"go-scheduler/fs"
+	"go-scheduler/parsing"
+	"log/slog"
+	"maps"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
 
-    "go.temporal.io/sdk/workflow"
-    "go.temporal.io/sdk/activity"
-    "go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/workflow"
 )
 
 const (
@@ -249,6 +250,7 @@ func runCmdDocker(
 
     var stdout, stderr bytes.Buffer
     cmd := exec.Command("sh", "-c", cmdStr)
+    cmd.SysProcAttr = &syscall.SysProcAttr{ Setpgid: true }
     cmd.Env = envs
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
@@ -570,7 +572,8 @@ func RunBwbWorkflowHelper(
                 for _, err := range execErrs {
                     errStr += fmt.Sprintf("\t%s\n", err.Error())
                 }
-                return errors.New(errStr)
+                finalErr = errors.New(errStr)
+                break
             }
 
             executor.Select()
