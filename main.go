@@ -315,7 +315,7 @@ func runWorkflowTemporal(
 func runWorkflowNoTemporal(
     bwbWorkflow parsing.Workflow, index parsing.WorkflowIndex, 
     jobConfig parsing.JobConfig, masterFS fs.LocalFS, storageId string, 
-    softFail bool,  checkptPath string, logger *slog.Logger, 
+    softFail bool, checkptPath string, logger *slog.Logger, 
     localWorker workflow.WorkerInfo,
 ) error {
     ctx, cancelCtx := context.WithCancel(context.Background())

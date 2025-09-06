@@ -32,6 +32,7 @@ type TemporalExecutor struct {
     cmdsById                    map[int]parsing.CmdTemplate
     grantsById                  map[int]ResourceGrant
     configsByNode               map[int]parsing.LocalJobConfig
+    waitForCmdCancellation      bool
     errors                      []error
 }
 
@@ -55,6 +56,16 @@ func NewTemporalExecutor(
     state.grantsById = make(map[int]ResourceGrant)
     state.errors = make([]error, 0)
     state.configsByNode = configsByNode
+
+    // Singularity commands will just be killed
+    // when the process exits, but docker ones need
+    // to receive a signal before we can kill the worker.
+    state.waitForCmdCancellation = false
+    for _, config := range configsByNode {
+        if config.UseDocker {
+            state.waitForCmdCancellation = true
+        }
+    }
     return state
 }
 
@@ -124,10 +135,6 @@ func (exec *TemporalExecutor) Setup() error {
 
 func (exec *TemporalExecutor) SetCmdHandler(handler CmdHandler) {
     exec.handleFinishedCmd = handler
-}
-
-func (exec *TemporalExecutor) Select() {
-    (*exec.selector).Select(exec.ctx)
 }
 
 func (exec *TemporalExecutor) Shutdown() {
@@ -203,7 +210,7 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
         TaskQueue:           grant.WorkerId,
         StartToCloseTimeout: 3 * time.Hour,
         HeartbeatTimeout: 1 * time.Minute,
-        WaitForCancellation: true,
+        WaitForCancellation: exec.waitForCmdCancellation,
         RetryPolicy: &temporal.RetryPolicy{
             MaximumAttempts: 1,
         },

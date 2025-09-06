@@ -39,7 +39,6 @@ type CmdHandler func(CmdOutput, error, Executor, parsing.CmdTemplate)
 type Executor interface {
     Setup() error
     SetCmdHandler(CmdHandler)
-    Select()
     Shutdown()
     GetErrors() []error
     RunCmds([]parsing.CmdTemplate)
@@ -347,16 +346,22 @@ func runCmdSingularity(
     cmdWithEnvStr := fmt.Sprintf("%s %s", strings.Join(envs, " "), cmdStr)
     fmt.Println(cmdWithEnvStr)
 
-    procErr := cmd.Run()
-    if ctx.Err() != nil {
+    errChan := make(chan error)
+    go func() {
+        errChan <- cmd.Run()
+    }()
+    select {
+    case <-ctx.Done(): {
         return CmdOutput{}, context.Canceled
     }
-
-    if procErr != nil {
-        return CmdOutput{}, fmt.Errorf(
-            "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s",
-            cmdWithEnvStr, procErr, stdout.String(), stderr.String(),
-        )
+    case procErr := <-errChan: {
+        if procErr != nil {
+            return CmdOutput{}, fmt.Errorf(
+                "error running command %s: %v\nSTDOUT: %s\nSTDERR: %s",
+                cmdWithEnvStr, procErr, stdout.String(), stderr.String(),
+            )
+        }
+    }
     }
 
     out := CmdOutput{
@@ -435,6 +440,10 @@ func HandleCompletedCmd(
 ) {
     logger.Info("Finished cmd", "cmdId", completedCmd.Id, "nodeId", completedCmd.NodeId)
     cmdSucceeded := err == nil
+    if !softFail && !cmdSucceeded {
+        *finalErr = err
+        return
+    }
     succCmds, err := cmdMan.GetSuccCmds(
         completedCmd, result.RawOutputs,
         func(nodeId int, root, pattern string, findFile, findDir bool) ([]string, error) {
@@ -447,7 +456,7 @@ func HandleCompletedCmd(
     )
 
     if err != nil {
-        *finalErr = err
+        *finalErr = fmt.Errorf("cmd manager failed: %s", err)
         return
     }
 
@@ -457,6 +466,7 @@ func HandleCompletedCmd(
 
 func setupExecutors(
     ctx workflow.Context,
+    selector workflow.Selector,
     storageId string,
     bwbWorkflow parsing.Workflow,
     cmdMan *parsing.CmdManager,
@@ -474,7 +484,6 @@ func setupExecutors(
         }
     }
 
-    selector := workflow.NewSelector(ctx)
     if len(jobConfig.TemporalConfigsByNode) > 0 {
         temporalExecutor := NewTemporalExecutor(
             ctx, &selector, cmdMan, masterFS, workers, storageId,
@@ -526,6 +535,7 @@ func RunBwbWorkflowHelper(
     executors []Executor,
     softFail bool,
     isDone func() bool,
+    selectFunc func(),
 ) error {
     if cmdMan == nil {
         return errors.New("received nil CMD manager")
@@ -564,7 +574,7 @@ func RunBwbWorkflowHelper(
     }
 
     RunCmds(executorsByNode, initialCmds)
-    for !cmdMan.IsComplete() && (!cmdMan.HasFailed() || softFail) && finalErr == nil && !isDone() {
+    for !cmdMan.IsComplete() && finalErr == nil && !isDone() {
         for _, executor := range executors {
             execErrs := executor.GetErrors()
             if len(execErrs) > 0 {
@@ -576,7 +586,7 @@ func RunBwbWorkflowHelper(
                 break
             }
 
-            executor.Select()
+            selectFunc()
         }
     }
 
@@ -602,8 +612,9 @@ func RunBwbWorkflow(
     softFail bool,
 ) error {
     cmdMan := parsing.NewCmdManager(bwbWorkflow, index, jobConfig)
+    selector := workflow.NewSelector(ctx)
     executors, executorList, err := setupExecutors(
-        ctx, storageId, bwbWorkflow, &cmdMan, workers, masterFS, jobConfig,
+        ctx, selector, storageId, bwbWorkflow, &cmdMan, workers, masterFS, jobConfig,
     )
     if err != nil {
         return fmt.Errorf("error parsing job config: %s", err)
@@ -612,7 +623,9 @@ func RunBwbWorkflow(
     return RunBwbWorkflowHelper(
         logger, &cmdMan, executors, executorList, softFail, func() bool {
             return ctx.Err() != nil
-        })
+        },
+        func () { selector.Select(ctx) },
+    )
 }
 
 func RunBwbWorkflowNoTemporal(
@@ -640,5 +653,6 @@ func RunBwbWorkflowNoTemporal(
         &logger, &cmdMan, executors, executorList, softFail, func() bool {
             return ctx.Err() != nil
         },
+        func ()  { localExecutor.Select() },
     )
 }

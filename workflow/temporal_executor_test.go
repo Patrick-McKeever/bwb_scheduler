@@ -82,7 +82,7 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
         }
         temporalExec.RunCmds([]parsing.CmdTemplate{cmdToRun})
         for i := 0; i < 10; i++ {
-            temporalExec.Select()
+            selector.Select(ctx)
         }
         return nil
     })

@@ -2439,7 +2439,7 @@
 			"ImageTag": "3.0.5__3.0.5__bookworm-slim__e3b0c4429",
 			"Title": "Utilities_fastqDump",
 			"Command": [
-				"echo SKIPPING || fastq-dump "
+				"fastq-dump "
 			],
 			"ArgTypes": {
 				"OutputDir": {

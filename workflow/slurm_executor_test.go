@@ -102,7 +102,7 @@ func TestSlurmExecutorFileDownloads(t *testing.T) {
         // I don't know of a better way to test this, but this corresponds
         // to the actual lifecycle of an executor.
         for i := 0; i < 10; i++ {
-            slurmExec.Select()
+            selector.Select(ctx)
         }
         return nil
     }
@@ -214,7 +214,7 @@ func TestSlurmExecutorFileUploads(t *testing.T) {
         // I don't know of a better way to test this, but this corresponds
         // to the actual lifecycle of an executor.
         for i := 0; i < 10; i++ {
-            slurmExec.Select()
+            selector.Select(ctx)
         }
         return nil
     }
@@ -271,7 +271,7 @@ func TestSlurmExecutorChildWorkflowFailure(t *testing.T) {
         // to the actual lifecycle of an executor.
         var errs []error = nil
         for i := 0; i < 10; i++ {
-            slurmExec.Select()
+            selector.Select(ctx)
             if errs = slurmExec.GetErrors(); len(errs) > 0 {
                 break
             }

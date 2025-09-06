@@ -246,10 +246,6 @@ func (exec *SlurmRemoteExecutor) SetCmdHandler(handler CmdHandler) {
     exec.handleFinishedCmd = handler
 }
 
-func (exec *SlurmRemoteExecutor) Select() {
-    (*exec.selector).Select(exec.ctx)
-}
-
 func (exec *SlurmRemoteExecutor) Shutdown() {
     exec.cancelChild()
 }
