@@ -335,8 +335,9 @@ func runWorkflowNoTemporal(
 
 func runWorkflow(
     wfPath string, configPath *string, workerName, temporalWfName,
-    storageId string, paramVals []string, noTemporal, softFail, useDocker bool, 
-    checkptPath string, workerRam ByteSize, workerCpus, workerGpus int,
+    storageId string, paramVals []string, noTemporal, softFail, useDocker, 
+    verbose bool, checkptPath string, workerRam ByteSize, workerCpus, 
+    workerGpus int,
 ) error {
     data, err := os.ReadFile(wfPath)
     if err != nil {
@@ -387,10 +388,12 @@ func runWorkflow(
         },
     }
 
+    slogLevel := slog.LevelInfo
+    if verbose {
+        slogLevel = slog.LevelDebug
+    }
     logger := slog.New(slog.NewTextHandler(os.Stdout,
-        &slog.HandlerOptions{
-            Level: slog.LevelDebug,
-        },
+        &slog.HandlerOptions{ Level: slogLevel },
     ))
 
     var jobConfig parsing.JobConfig
@@ -431,6 +434,7 @@ func main() {
 
     var noTemporal bool
     var useDocker bool
+    var verbose bool
     var softFail bool
     var workerName string
     var storageId string
@@ -500,7 +504,7 @@ func main() {
 
             return runWorkflow(
                 args[0], configPath, workerName, temporalWfName, storageId,
-                paramOverrides, noTemporal, softFail, useDocker, checkptPath,
+                paramOverrides, noTemporal, softFail, useDocker, verbose, checkptPath,
                 workerRam, workerCpus, workerGpus,
             )
         },
@@ -524,6 +528,9 @@ func main() {
     runCmd.Flags().BoolVar(
         &useDocker, "docker", false, "Use docker for locally run containers "+
         "rather than singularity. Overrides values in job config.",
+    )
+    runCmd.Flags().BoolVarP(
+        &verbose, "verbose", "v", false, "Output verbosity.",
     )
     runCmd.Flags().BoolVar(
         &softFail, "softFail", false,

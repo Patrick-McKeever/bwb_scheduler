@@ -511,7 +511,7 @@ func ProcessSacctResult(
         job, jobExists := state.RunningJobs[jobId]
         if !jobExists {
             logger.Warn(
-                "job ID %d (returned by sacct) is not a running job", jobId,
+                "job ID (returned by sacct) is not a running job", "jobId", jobId,
             )
             return
         }

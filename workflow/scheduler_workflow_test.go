@@ -244,7 +244,7 @@ func TestWorkerHeartbeatFailureBlocksRequests(t *testing.T) {
 
             if heartbeatCount < 3 {
                 heartbeatCount++
-                logger.Info("Returning error")
+                logger.Warn("Worker heartbeat timeout", "workerId", workerQueue)
                 return temporal.NewTimeoutError(3, fmt.Errorf("heartbeat timeout"))
             }
             activity.RecordHeartbeat(ctx, workerID)

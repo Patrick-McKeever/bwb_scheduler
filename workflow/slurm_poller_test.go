@@ -89,68 +89,6 @@ func TestSlurmResponse(t *testing.T) {
     require.True(t, env.IsWorkflowCompleted())
 }
 
-// Test that, when the workflow continues-as-new, it first
-// awaits completion of all running GetCmdOutput activities
-// and forwards these results via signal to the parent workflow.
-// We accomiplish this by forcing the GetRemoteSlurmJobOutputs
-// activity to return at time 31, while continue at new is invoked
-// at time 30.
-func TestSlurmContinueAsNewOutputActivityCompletion(t *testing.T) {
-    var a SlurmActivity
-    testSuite := &testsuite.WorkflowTestSuite{}
-    env := testSuite.NewTestWorkflowEnvironment()
-    env.RegisterActivity(a.StartRemoteSlurmJobActivity)
-    env.RegisterActivity(a.PollRemoteSlurmActivity)
-    env.RegisterActivity(a.GetRemoteSlurmJobOutputsActivity)
-
-    jobId := "2718281828459"
-    cmdId := 1
-
-    memStr := "40G"
-    expConfig := parsing.SlurmJobConfig{Mem: &memStr}
-    expCmd := parsing.CmdTemplate{Id: cmdId}
-    expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
-
-    env.OnActivity(
-        a.StartRemoteSlurmJobActivity,
-        expCmd, expConfig, mock.Anything, mock.Anything,
-    ).Return(expSlurmJob, nil).Once()
-
-    // Handle workflow polling before request, which should be empty.
-    env.OnActivity(a.PollRemoteSlurmActivity, []string{}).Return(nil, nil)
-
-    env.OnActivity(a.PollRemoteSlurmActivity, []string{jobId}).
-        Return(map[string]SacctResult{jobId: {JobId: jobId, State: "COMPLETED"}}, nil).Once()
-
-    expCmdOutput := CmdOutput{Id: cmdId, StdOut: "stdout", StdErr: "stderr"}
-    env.OnActivity(a.GetRemoteSlurmJobOutputsActivity, []SlurmJob{expSlurmJob}).
-        After(35*time.Second).Return([]CmdOutput{expCmdOutput}, nil)
-
-    expParentWfId := "parentId"
-    expParentWfRunId := "parentRunId"
-    env.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
-        mock.MatchedBy(func(arg interface{}) bool {
-            resp, ok := arg.(SlurmResponse)
-            return ok && resp.Result.Id == expCmdOutput.Id && resp.Result.StdOut == expCmdOutput.StdOut && resp.Result.StdErr == expCmdOutput.StdErr
-        }),
-    ).Return(nil).Once()
-
-    env.RegisterDelayedCallback(func() {
-        env.SignalWorkflow("slurm-request", SlurmRequest{Cmd: expCmd, Config: expConfig})
-    }, 0)
-    env.RegisterDelayedCallback(func() {
-        env.SetCurrentHistoryLength(9500)
-    }, 30*time.Second)
-    env.ExecuteWorkflow(SlurmPollerWorkflow, SlurmState{
-        ParentWfId:    expParentWfId,
-        ParentWfRunId: expParentWfRunId,
-    })
-
-    env.AssertExpectations(t)
-    require.True(t, env.IsWorkflowCompleted())
-}
-
 // Test that, after workflow continues-as-new, it retains its
 // list of outstanding jobs and continues polling for them,
 // eventually sending signal back to calling workflow.

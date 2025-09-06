@@ -3,7 +3,6 @@ package workflow
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go-scheduler/parsing"
 	"math"
 	"sort"
@@ -69,7 +68,6 @@ func registerHeartbeatActivity(
     state *SchedWorkflowState, queueId string,
 ) func() {
     logger := workflow.GetLogger(ctx)
-    logger.Info(fmt.Sprintf("Starting heartbeat on worker %s", queueId))
     ao := workflow.ActivityOptions{
         TaskQueue:              queueId,
         HeartbeatTimeout:       time.Minute,
@@ -82,13 +80,12 @@ func registerHeartbeatActivity(
     heartbeatCtx, cancelFunc := workflow.WithCancel(
         workflow.WithActivityOptions(ctx, ao),
     )
-    logger.Info("Registering heartbeat")
+    logger.Info("Registering heartbeat", "workerId", queueId)
     heartbeatFuture := workflow.ExecuteActivity(heartbeatCtx, WorkerHeartbeatActivity, queueId)
     selector.AddFuture(heartbeatFuture, func(f workflow.Future) {
         err := f.Get(ctx, nil)
-        //logger.Info(fmt.Sprintf("Got future %#v", err))
         if err != nil {
-            logger.Info(fmt.Sprintf("Err: %s\n", err))
+            logger.Error("Worker heartbeat error", "workerId", queueId, "error", err)
             var timeoutErr *temporal.TimeoutError
             if errors.As(err, &timeoutErr) {
                 workerRecord := state.Workers[queueId]
@@ -143,7 +140,10 @@ func retryHeartbeats(
     for queueId := range state.SecondsUntilHeartbeatRetry {
         state.SecondsUntilHeartbeatRetry[queueId] -= secondsElapsed
         if state.SecondsUntilHeartbeatRetry[queueId] <= 0 {
-            logger.Info("Retrying heartbeat")
+            logger.Info(
+                "Retrying heartbeat", "workerId", queueId, "secondsSinceLastRetry", 
+                state.SecondsUntilHeartbeatRetry[queueId],
+            )
             registerHeartbeatActivity(ctx, selector, state, queueId)
             state.SecondsSinceHeartbeatSched[queueId] = 0
             retriedWorkers = append(retriedWorkers, queueId)
@@ -205,7 +205,6 @@ func processRequests(state *SchedWorkflowState) []ResourceGrant {
                 }
                 state.ActiveGrants[req.Id] = true
 
-                //logger.Debug(fmt.Sprintf("Servicing resource request %d (%#v)\n", req.Id, req))
                 responses = append(responses, response)
 
                 state.PendingRequests = append(state.PendingRequests[:i], state.PendingRequests[i+1:]...)
@@ -259,21 +258,17 @@ func LocalResourceScheduler(
     for !workflowComplete {
         select {
         case req := <- reqChan: {
-            logger.Info(fmt.Sprintf("Received new resource request %#v\n", req))
+            logger.Debug("Received new resource request", "request", req)
             state.PendingRequests = append(state.PendingRequests, req)
         }
         case grantToRelease := <- releaseChan: {
-            logger.Info(fmt.Sprintf(
-                "Freeing resource grant %d\n", grantToRelease.RequestId,
-            ))
+            logger.Debug("Freeing resource grant", "grant", grantToRelease)
             freeResourceGrant(&state, grantToRelease)
         }
         case <- ticker.C: {
             grants := processRequests(&state)
             for _, grant := range grants {
-                logger.Info(fmt.Sprintf(
-                    "Returning allocation %#v\n", grant,
-                ))
+                logger.Debug("Allocating resource grant", "grant", grant)
                 respChan <- grant
             }
         }
@@ -286,7 +281,7 @@ func LocalResourceScheduler(
 
 func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) error {
     logger := workflow.GetLogger(ctx)
-    logger.Info("Starting sched workflow")
+    logger.Debug("(Re-) Starting sched workflow", "state", state)
     if state.PendingRequests == nil {
         state.PendingRequests = make([]ResourceRequest, 0)
     }
@@ -322,14 +317,14 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
         var req ResourceRequest
         c.Receive(ctx, &req)
         state.PendingRequests = append(state.PendingRequests, req)
-        logger.Info(fmt.Sprintf("Received new resource request %#v\n", req))
+        logger.Debug("Received new resource request", "request", req)
     })
 
     selector.AddReceive(workflow.GetSignalChannel(ctx, "release-allocation"), func(c workflow.ReceiveChannel, _ bool) {
         var grant ResourceGrant
         c.Receive(ctx, &grant)
         freeResourceGrant(&state, grant)
-        logger.Info(fmt.Sprintf("Freeing resource grant %d\n", grant.RequestId))
+        logger.Debug("Freeing resource grant", "grant", grant)
     })
 
     selector.AddReceive(workflow.GetSignalChannel(ctx, "worker-register"), func(c workflow.ReceiveChannel, _ bool) {
@@ -342,7 +337,7 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
                 ctx, selector, &state, worker.QueueId,
             )
             heartbeatCancelFuncs = append(heartbeatCancelFuncs, heartbeatFuture)
-            logger.Info("Registered new worker", "QueueId", worker.QueueId)
+            logger.Info("Registered new worker", "workerId", worker.QueueId)
         }
     })
 
@@ -352,16 +347,14 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
     timerCallback = func(f workflow.Future) {
         responses := processRequests(&state)
         for _, response := range responses {
-            logger.Info(fmt.Sprintf(
-                "Returning allocation %#v\n", response,
-            ))
+            logger.Debug("Allocating resource grant", "grant", response)
 
             err := workflow.SignalExternalWorkflow(
                 ctx, response.RecipientWorkflowId, "", 
                 "allocation-response", response,
             ).Get(ctx, nil)
             if err != nil {
-                logger.Error("Failed to signal requesting workflow", "Error", err)
+                logger.Error("Failed to signal requesting workflow", "error", err)
             }
         }
         retryHeartbeats(ctx, selector, &state, durationSecs)
@@ -381,7 +374,9 @@ func ResourceSchedulerWorkflow(ctx workflow.Context, state SchedWorkflowState) e
         }
 
         if workflow.GetInfo(ctx).GetCurrentHistoryLength() > 9000 {
-            logger.Info("History approaching limit, continuing as new")
+            logger.Debug(
+                "Sched workflow history approaching limit, continuing as new",
+            )
             break
         }
     }

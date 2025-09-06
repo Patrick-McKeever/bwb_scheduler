@@ -2,7 +2,6 @@ package workflow
 
 import (
 	"context"
-	"fmt"
 	"go-scheduler/fs"
 	"go-scheduler/parsing"
 	"log/slog"
@@ -93,9 +92,9 @@ func (exec *LocalExecutor) Select() {
         cmd, cmdOk := exec.cmdsById[res.result.Id]
         grant, grantOk := exec.grantsById[res.result.Id]
         if !cmdOk || !grantOk {
-            exec.logger.Warn(fmt.Sprintf(
-                "Received result for non-existent CMD ID %d", res.result.Id,
-            ))
+            exec.logger.Warn(
+                "Received result for non-existent CMD ID", "cmdId", res.result.Id,
+            )
         }
 
         if res.err != nil {
@@ -149,7 +148,7 @@ func (exec *LocalExecutor) ReleaseResourceGrant(
 
 func (exec *LocalExecutor) BuildImages(imageNames []string) error {
     for _, imageName := range imageNames {
-        exec.logger.Info(fmt.Sprintf("Building image %s\n", imageName))
+        exec.logger.Info("Building image", "imageName", imageName)
         if _, err := BuildSingularitySIF(imageName); err != nil {
             return err
         }
