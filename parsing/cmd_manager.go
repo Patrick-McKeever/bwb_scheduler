@@ -65,10 +65,7 @@ func (cmdMan *CmdManager) GetSuccCmds(
     for k, v := range rawOutputs {
         argType, argTypeExists := node.ArgTypes[k]
         if !argTypeExists {
-            return nil, fmt.Errorf(
-                "node %d output argtype %s does not exist",
-                nodeId, k,
-            )
+            continue
         }
         outputTp.AddSerializedParam(v, k, argType)
     }

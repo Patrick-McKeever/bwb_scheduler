@@ -124,7 +124,7 @@ func TestScalarCmdSubBasic(t *testing.T) {
     }
 
     var template CmdTemplate
-    _, err = performCmdSubs(node, &template, tp, false)
+    _, err = performCmdSubs(node, &template, tp, nil, false)
     if err != nil {
         t.Fatalf("input error: %s", err)
     }
@@ -142,9 +142,9 @@ func TestCmdSubArgOmission(t *testing.T) {
     lValForFlag := "--flag"
     node.ArgTypes = map[string]WorkflowArgType{
         "scalarParam": {
-            ArgType: "text",
+            ArgType:    "text",
             IsArgument: &lValForTrue,
-            Flag: &lValForFlag,
+            Flag:       &lValForFlag,
         },
     }
 
@@ -177,14 +177,14 @@ func TestCmdSubArgOmission(t *testing.T) {
 
     if len(cmds[0].Args) > 0 {
         t.Fatalf(
-            "incorrectly added argument %s for cmd-subbed var scalarParam", 
+            "incorrectly added argument %s for cmd-subbed var scalarParam",
             cmds[0].Args[0],
         )
     }
 
     if len(cmds[0].Flags) > 0 {
         t.Fatalf(
-            "incorrectly added flag %s for cmd-subbed var scalarParam", 
+            "incorrectly added flag %s for cmd-subbed var scalarParam",
             cmds[0].Flags[0],
         )
     }
@@ -209,7 +209,7 @@ func TestScalarCmdSubTypeErr(t *testing.T) {
     }
 
     var template CmdTemplate
-    _, err = performCmdSubs(node, &template, tp, false)
+    _, err = performCmdSubs(node, &template, tp, nil, false)
     if err == nil {
         t.Fatalf(
             "expected type error when trying to substitute null variable 'scalarParam'",
@@ -236,7 +236,7 @@ func TestScalarCmdSubMissingErr(t *testing.T) {
     }
 
     var template CmdTemplate
-    _, err = performCmdSubs(node, &template, tp, false)
+    _, err = performCmdSubs(node, &template, tp, nil, false)
     if err == nil {
         t.Fatalf(
             "expected type error when trying to substitute missing variable `nonExistentParam`",
@@ -263,7 +263,7 @@ func TestScalarInFile(t *testing.T) {
     }
 
     var template CmdTemplate
-    iterAttrs := getIterAttrs(node)
+    iterAttrs := getIterAttrs(node, map[string]bool{"scalarInParam": true})
     err = evaluateInOutFiles(node, &template, tp, iterAttrs)
     if err != nil {
         t.Fatalf("error parsing in files: %s", err)
@@ -309,7 +309,7 @@ func TestScalarOutFile(t *testing.T) {
     }
 
     var template CmdTemplate
-    iterAttrs := getIterAttrs(node)
+    iterAttrs := getIterAttrs(node, map[string]bool{"scalarOutParamPresent": false, "scalarOutParamAbsent": false})
     err = evaluateInOutFiles(node, &template, tp, iterAttrs)
     if err != nil {
         t.Fatalf("error parsing in files: %s", err)
@@ -416,6 +416,8 @@ func TestIterValBasic(t *testing.T) {
             IsArgument: &isArg,
         },
     }
+    // This is a BWB-ism; iteration is only applied over required params.
+    node.RequiredParams = []string{"listParam"}
 
     baseProps := map[string]any{
         "listParam": []any{"1", "2", "3", "4"},
@@ -456,6 +458,7 @@ func TestNonOneGroupSize(t *testing.T) {
             IsArgument: &isArg,
         },
     }
+    node.RequiredParams = []string{"listParam"}
 
     baseProps := map[string]any{
         "listParam": []any{"1", "2", "3", "4"},
@@ -498,6 +501,7 @@ func TestIterValPadding(t *testing.T) {
             IsArgument: &isArg,
         },
     }
+    node.RequiredParams = []string{"listParam"}
 
     baseProps := map[string]any{
         "listParam": []any{"1", "2", "3", "4", "5"},
@@ -623,6 +627,7 @@ func TestMultipleIterVals(t *testing.T) {
                         ArgType: "text list",
                     },
                 },
+                RequiredParams: []string{"listParam1", "listParam2"},
                 Iterate:   true,
                 IterAttrs: []string{"listParam1", "listParam2"},
                 IterGroupSize: map[string]int{
@@ -689,6 +694,7 @@ func TestIterSubstitutions(t *testing.T) {
                 ArgType: "text list",
             },
         },
+        RequiredParams: []string{"listParam"},
         Iterate:   true,
         IterAttrs: []string{"listParam"},
         IterGroupSize: map[string]int{
@@ -720,7 +726,7 @@ func TestIterSubstitutions(t *testing.T) {
     }
 
     for i := range iters {
-        performCmdSubs(node, &iters[i], tp, false)
+        performCmdSubs(node, &iters[i], tp, map[string]bool{"listParam": true}, false)
         actual := iters[i].BaseCmd[0]
         expected := iters[i].IterVals.StrLists["listParam"][0]
         if actual != expected {
@@ -741,6 +747,7 @@ func TestIterInputFiles(t *testing.T) {
                 InputFile: &lvalForTrue,
             },
         },
+        RequiredParams: []string{"fListParam"},
         Iterate: true,
         IterGroupSize: map[string]int{
             "fListParam": 1,
@@ -792,6 +799,7 @@ func TestIterValNonListErr(t *testing.T) {
             ArgType: "text",
         },
     }
+    node.RequiredParams = []string{"listParam"}
 
     baseProps := map[string]any{
         "listParam": "1",
@@ -838,7 +846,7 @@ func TestDryRun(t *testing.T) {
     }
 }
 
-func TestDryRun2(t *testing.T) {
+func TestDryRunDashboard(t *testing.T) {
     data, err := os.ReadFile("/home/patrick/go-scheduler/test_workflows/dashboard.json")
     if err != nil {
         t.Fatalf("failed to read JSON file: %v", err)

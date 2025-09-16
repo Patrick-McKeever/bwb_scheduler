@@ -107,13 +107,6 @@ func getInAndOutLinks(
             )
         }
 
-        if _, validSrcChan := workflow.Nodes[srcNode].ArgTypes[srcChan]; !validSrcChan {
-            return nil, nil, fmt.Errorf(
-                "link from %d.%s -> %d.%s has invalid source channel %s",
-                srcNode, srcChan, sinkNode, sinkChan, srcChan,
-            )
-        }
-
         if inLinks[link.SinkNodeId] == nil {
             inLinks[link.SinkNodeId] = make(map[string]WorkflowLink)
         }
@@ -196,42 +189,6 @@ func topSort(workflow Workflow) ([]int, error) {
     }
 
     return topSort, nil
-}
-
-func propagateArgTypes(
-    workflow *Workflow,
-    layeredTopSort [][]int,
-    inLinks map[int]map[string]WorkflowLink,
-) error {
-    for _, layer := range layeredTopSort {
-        for _, nodeId := range layer {
-            nodeCopy := workflow.Nodes[nodeId]
-            for pname, inLink := range inLinks[nodeId] {
-                srcNode, srcNodeExists := workflow.Nodes[inLink.SourceNodeId]
-                if !srcNodeExists {
-                    return fmt.Errorf("src node %d does not exist", inLink.SourceNodeId)
-                }
-
-                if _, sinkHasArgType := nodeCopy.ArgTypes[pname]; sinkHasArgType {
-                    continue
-                }
-
-                if _, pnameHasArgtype := nodeCopy.ArgTypes[pname]; !pnameHasArgtype {
-                    srcArgType, srcArgTypeExists := srcNode.ArgTypes[inLink.SourceChannel]
-                    if !srcArgTypeExists {
-                        return fmt.Errorf(
-                            "src node %d channel %s does not exist",
-                            inLink.SourceNodeId, inLink.SourceChannel,
-                        )
-                    }
-
-                    nodeCopy.ArgTypes[pname] = srcArgType
-                }
-            }
-            workflow.Nodes[nodeId] = nodeCopy
-        }
-    }
-    return nil
 }
 
 func getAncestorsAndDescendants(
@@ -514,17 +471,17 @@ func getMaxSinkDists(preds map[int][]int, succs map[int][]int) map[int]int {
 //
 // Outputs:
 //   - A workflow index giving data structures to facilitate easy lookup.
-func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
+func ParseAndValidateWorkflow(workflow Workflow) (WorkflowIndex, error) {
     var index WorkflowIndex
-    index.Preds, index.Succs = getPredsAndSuccs(*workflow)
-    topSort, err := layeredTopSort(*workflow)
+    index.Preds, index.Succs = getPredsAndSuccs(workflow)
+    topSort, err := layeredTopSort(workflow)
     if err != nil {
         return WorkflowIndex{}, fmt.Errorf("error in top sort: %s", err)
     }
     index.LayeredTopSort = topSort
     index.MaxDistanceFromSink = getMaxSinkDists(index.Preds, index.Succs)
 
-    inLinks, outLinks, err := getInAndOutLinks(*workflow)
+    inLinks, outLinks, err := getInAndOutLinks(workflow)
     if err != nil {
         return WorkflowIndex{}, fmt.Errorf("error parsing links: %s", err)
     }
@@ -532,22 +489,17 @@ func ParseAndValidateWorkflow(workflow *Workflow) (WorkflowIndex, error) {
     index.InLinks = inLinks
     index.OutLinks = outLinks
 
-    err = propagateArgTypes(workflow, topSort, inLinks)
-    if err != nil {
-        return WorkflowIndex{}, fmt.Errorf("error propagating arg types: %s", err)
-    }
-
     index.Ancestors, index.Descendants = getAncestorsAndDescendants(
         topSort, inLinks, outLinks,
     )
     index.AsyncAncestors, index.AsyncDescendants, index.BarrierFor, err = parseAsyncAndBarriers(
-        *workflow, topSort, index.Descendants,
+        workflow, topSort, index.Descendants,
     )
     if err != nil {
         return WorkflowIndex{}, err
     }
 
-    index.BaseParams, err = getBaseParams(*workflow)
+    index.BaseParams, err = getBaseParams(workflow)
     if err != nil {
         return WorkflowIndex{}, err
     }

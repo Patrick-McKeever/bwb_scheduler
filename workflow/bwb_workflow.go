@@ -62,6 +62,40 @@ func randomString(length int) string {
     return fmt.Sprintf("%x", b)[2 : length+2]
 }
 
+func saveDockerToTar(dockerImage string, tarName string) error {
+    var stdout, stderr bytes.Buffer
+    dockerInspectCmd := exec.Command("docker", "inspect", dockerImage)
+    err := dockerInspectCmd.Run()
+    imageNotFound := err != nil
+    
+    if imageNotFound {
+        dockerPullCmd := exec.Command("docker", "pull", dockerImage)
+        dockerPullCmd.Stdout = &stdout
+        dockerPullCmd.Stderr = &stderr
+        if err := dockerPullCmd.Run(); err != nil {
+            return fmt.Errorf(
+                "failed to pull docker image %s: %v\nSTDOUT: %s\nSTDERR: %s",
+                dockerImage, err, stdout.String(), stderr.String(),
+            )
+        }
+        stdout.Reset()
+        stderr.Reset()
+    }
+
+
+    saveOciCmd := exec.Command("docker", "save", dockerImage, "-o", tarName)
+    saveOciCmd.Stdout = &stdout
+    saveOciCmd.Stderr = &stderr
+    if err := saveOciCmd.Run(); err != nil {
+        return fmt.Errorf(
+            "failed to save image %s to OCI TAR: %v\nSTDOUT: %s\nSTDERR: %s",
+            dockerImage, err, stdout.String(), stderr.String(),
+        )
+    }
+
+    return nil
+}
+
 func BuildSingularitySIF(dockerImage string) (string, error) {
     if _, err := exec.LookPath("singularity"); err != nil {
         return "", fmt.Errorf("singularity not found in PATH: %v", err)
@@ -78,24 +112,25 @@ func BuildSingularitySIF(dockerImage string) (string, error) {
 
     sifBasename := getSifName(dockerImage)
     outputPath := filepath.Join(imageDir, sifBasename)
-
     // Do not rebuild existing image.
     if _, err := os.Stat(outputPath); err == nil {
         return outputPath, nil
     }
 
-    cmd := exec.Command(
-        "singularity",
-        "build",
-        outputPath,
-        "docker://"+dockerImage,
-    )
+
+    tarName := filepath.Join(imageDir, fmt.Sprintf("%s.tar", randomString(16)))
+    if err := saveDockerToTar(dockerImage, tarName); err != nil {
+        return "", err
+    }
+    defer os.RemoveAll(tarName)
 
     var stdout, stderr bytes.Buffer
-    cmd.Stdout = &stdout
-    cmd.Stderr = &stderr
-
-    if err := cmd.Run(); err != nil {
+    buildCmd := exec.Command(
+        "singularity", "build", outputPath, "docker-archive://"+tarName,
+    )
+    buildCmd.Stdout = &stdout
+    buildCmd.Stderr = &stderr
+    if err := buildCmd.Run(); err != nil {
         return "", fmt.Errorf(
             "failed to build singularity image %s: %v\nSTDOUT: %s\nSTDERR: %s",
             dockerImage, err, stdout.String(), stderr.String(),
@@ -438,7 +473,7 @@ func HandleCompletedCmd(
     cmdMan *parsing.CmdManager, executors map[int]Executor,
     completedCmd parsing.CmdTemplate, finalErr *error,
 ) {
-    logger.Info("Finished cmd", "cmdId", completedCmd.Id, "nodeId", completedCmd.NodeId)
+    logger.Debug("Finished cmd", "cmdId", completedCmd.Id, "nodeId", completedCmd.NodeId)
     cmdSucceeded := err == nil
     if !softFail && !cmdSucceeded {
         *finalErr = err

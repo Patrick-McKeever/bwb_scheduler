@@ -158,14 +158,16 @@ func getRequiredParams(node WorkflowNode) map[string]bool {
     return reqParams
 }
 
-func getIterAttrs(node WorkflowNode) map[string]bool {
+func getIterAttrs(node WorkflowNode, reqParams map[string]bool) map[string]bool {
     if !node.Iterate {
         return map[string]bool{}
     }
 
     iterAttrs := make(map[string]bool)
     for _, pname := range node.IterAttrs {
-        iterAttrs[pname] = true
+        if reqParams[pname] {
+            iterAttrs[pname] = true
+        }
     }
     return iterAttrs
 }
@@ -583,7 +585,7 @@ func getEnvValStrFromList[T any](list []T) string {
     // from multi-element lists is annoying, but this behavior
     // is a holdover from BWB.
     if len(list) == 1 {
-        return fmt.Sprintf("\"%v\"", list[0])
+        return fmt.Sprintf("%v", list[0])
     }
 
     out := "["
@@ -853,7 +855,7 @@ func evaluateFlags(
 
 func evaluateArgs(
     node WorkflowNode, template *CmdTemplate,
-    tp TypedParams, reqParams, iterAttrs, 
+    tp TypedParams, reqParams, iterAttrs,
     shouldIgnore map[string]bool,
 ) error {
     for _, pname := range node.ArgOrder {
@@ -869,6 +871,9 @@ func evaluateArgs(
                     pname, argType.ArgType,
                 )
             }
+
+            // CAREFUL: You need to test to verify this doesn't cause issues.
+            continue
         }
 
         // Iterable attrs will be processed later
@@ -1100,11 +1105,12 @@ func evaluateIterables(
     maxSize := 0
     groupsPerPname := make(map[string]int)
     for _, pname := range node.IterAttrs {
-        if tp.IsNil(pname) {
-            if reqParams[pname] {
-                return nil, fmt.Errorf("required param %s is nil", pname)
-            }
+        // Another weird BWB-ism is that non-required params are not iterated.
+        if !reqParams[pname] {
             continue
+        }
+        if tp.IsNil(pname) {
+            return nil, fmt.Errorf("required param %s is nil", pname)
         }
 
         groupSize, groupSizeExists := node.IterGroupSize[pname]
@@ -1152,6 +1158,10 @@ func evaluateIterables(
         }
 
         maxSize = max(groupsPerPname[pname], maxSize)
+    }
+
+    if maxSize == 0 {
+        return []CmdTemplate{template}, nil
     }
 
     ret := make([]CmdTemplate, 0, maxSize)
@@ -1238,7 +1248,8 @@ func getCmdSubs(cmd string) map[int]CmdSub {
     return ret
 }
 func performCmdSubs(
-    node WorkflowNode, template *CmdTemplate, nonIterVals TypedParams, skipIters bool,
+    node WorkflowNode, template *CmdTemplate, nonIterVals TypedParams,
+    iterAttrs map[string]bool, skipIters bool,
 ) (map[string]bool, error) {
     revisedCmds := make([]string, len(node.Command))
     subbedVars := make(map[string]bool)
@@ -1260,7 +1271,7 @@ func performCmdSubs(
                 node.Id, i, startLoc, cmdSubs[startLoc].End,
             )
 
-            _, pnameIsIterable := node.IterGroupSize[pname]
+            pnameIsIterable := iterAttrs[pname]
             if pnameIsIterable && skipIters {
                 continue
             }
@@ -1325,7 +1336,7 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
     template.ResourceReqs = node.ResourceReqs
 
     reqParams := getRequiredParams(node)
-    iterAttrs := getIterAttrs(node)
+    iterAttrs := getIterAttrs(node, reqParams)
 
     if err := resolvePqs(node, &tp, glob); err != nil {
         return nil, fmt.Errorf(
@@ -1334,7 +1345,7 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
         )
     }
 
-    subbedVars, err := performCmdSubs(node, &template, tp, true)
+    subbedVars, err := performCmdSubs(node, &template, tp, iterAttrs, true)
     if err != nil {
         return nil, fmt.Errorf(
             "error parsing node %d substitutions: %s",
@@ -1375,7 +1386,7 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
     }
 
     for i := range iterations {
-        _, err := performCmdSubs(node, &iterations[i], tp, false)
+        _, err := performCmdSubs(node, &iterations[i], tp, iterAttrs, false)
         if err != nil {
             return nil, fmt.Errorf(
                 "error parsing node %d, iteration %d substitutions: %s",
@@ -1401,8 +1412,8 @@ func CmdToStr(template CmdTemplate) string {
 }
 
 func FormSingularityCmdPrefix(
-    template CmdTemplate, 
-    volumes map[string]string, 
+    template CmdTemplate,
+    volumes map[string]string,
     useGpu bool,
     sifPath string,
 ) string {
@@ -1468,7 +1479,7 @@ func FormDockerCmdPrefix(
 
     return fmt.Sprintf(
         "docker run --rm --name %s %s %s %s %s ",
-        cntName, gpuFlag, envStr, volumesStr, template.ImageName, 
+        cntName, gpuFlag, envStr, volumesStr, template.ImageName,
     )
 }
 
@@ -1500,6 +1511,10 @@ func DryRun(workflow Workflow) ([]string, error) {
     topSort, err := topSort(workflow)
     if err != nil {
         return nil, fmt.Errorf("failed top sort: %s", err)
+    }
+
+    if _, err := ParseAndValidateWorkflow(workflow); err != nil {
+        return nil, fmt.Errorf("failed building index: %s", err)
     }
 
     for _, nodeId := range topSort {
@@ -1539,6 +1554,7 @@ func DryRun(workflow Workflow) ([]string, error) {
                 argTypeEntry.ArgType = "dryRunStr"
                 revisedNode.ArgTypes[pname] = argTypeEntry
             }
+            revisedNode.IterAttrs = make([]string, 0)
 
             if node.ArgTypes[pname].ArgType == "patternQuery" {
                 pq, pqErr := parsePatternQuery(baseProps[pname])

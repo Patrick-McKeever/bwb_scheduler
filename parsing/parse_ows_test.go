@@ -37,3 +37,20 @@ func TestDashboardWorkflowConversion(t *testing.T) {
         t.Fatalf("error running star salmon dashboard workflow: %s", err)
     }
 }
+
+func TestSCRNAWorkflowConversion(t *testing.T) {
+    // NOTE: The version of this workflow on the MORPHIC github as of 09/10/2025
+    // has an error with the assign cell type nodes (essentially a dummy node rn)
+    // where the command tries to substitute a non-existent parameter. The scheduler
+    // will (correctly) fail this version of the workflow in the dry run, so I edited
+    // the copy in test data to correct this error.
+    wf, err := ParseWorkflow("testdata/scRNA_seq_features")
+    if err != nil {
+        t.Fatalf("error parsing star salmon dashboard workflow: %s", err)
+    }
+
+    _, err = DryRun(wf)
+    if err != nil {
+        t.Fatalf("error running star salmon dashboard workflow: %s", err)
+    }
+}

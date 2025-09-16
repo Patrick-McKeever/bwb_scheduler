@@ -227,7 +227,7 @@ func dryRunWorkflow(
         return fmt.Errorf("failed to unmarshal JSON file %s: %v", wfPath, err)
     }
 
-    index, err := parsing.ParseAndValidateWorkflow(&bwbWorkflow)
+    index, err := parsing.ParseAndValidateWorkflow(bwbWorkflow)
     if err != nil {
         return fmt.Errorf("workflow validation error: %s", err)
     }
@@ -349,7 +349,10 @@ func runWorkflow(
         return fmt.Errorf("failed to unmarshal JSON file %s: %v", wfPath, err)
     }
 
-    index, err := parsing.ParseAndValidateWorkflow(&bwbWorkflow)
+    if err := parsing.PropagateArgTypes(&bwbWorkflow); err != nil {
+        return fmt.Errorf("error propagating arg types: %s", err)
+    }
+    index, err := parsing.ParseAndValidateWorkflow(bwbWorkflow)
     if err != nil {
         return fmt.Errorf("workflow validation error: %s", err)
     }

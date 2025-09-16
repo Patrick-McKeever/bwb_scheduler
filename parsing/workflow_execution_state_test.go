@@ -196,9 +196,12 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -300,9 +303,12 @@ func TestMultipleAsyncTransfer(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -447,9 +453,12 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -582,9 +591,12 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -677,9 +689,12 @@ func TestSimpleBarrier(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -766,9 +781,12 @@ func TestBarrierReduction(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -926,9 +944,12 @@ func TestMultipleBarrier(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -1062,9 +1083,12 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -1142,9 +1166,12 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -1248,9 +1275,12 @@ func TestAsyncWorkflowFailure(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
@@ -1379,9 +1409,12 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
         },
     }
 
-    index, err := ParseAndValidateWorkflow(&workflow)
+    index, err := ParseAndValidateWorkflow(workflow)
     if err != nil {
         t.Fatalf("could not build index: %s", err)
+    }
+    if err := PropagateArgTypes(&workflow); err != nil {
+        t.Fatalf("error propagating arg types: %s", err)
     }
 
     state := NewWorkflowExecutionState(workflow, index)
