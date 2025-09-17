@@ -54,3 +54,27 @@ func TestSCRNAWorkflowConversion(t *testing.T) {
         t.Fatalf("error running star salmon dashboard workflow: %s", err)
     }
 }
+
+func TestNanoporeWorkflowConversion(t *testing.T) {
+    wf, err := ParseWorkflow("testdata/nanopore_dorado")
+    if err != nil {
+        t.Fatalf("error parsing star salmon dashboard workflow: %s", err)
+    }
+
+    _, err = DryRun(wf)
+    if err != nil {
+        t.Fatalf("error running star salmon dashboard workflow: %s", err)
+    }
+}
+
+func TestFusionFinderWorkflowConversion(t *testing.T) {
+    wf, err := ParseWorkflow("testdata/fast_fusion_finder")
+    if err != nil {
+        t.Fatalf("error parsing star salmon dashboard workflow: %s", err)
+    }
+
+    _, err = DryRun(wf)
+    if err != nil {
+        t.Fatalf("error running star salmon dashboard workflow: %s", err)
+    }
+}

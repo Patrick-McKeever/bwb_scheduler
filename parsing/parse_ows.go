@@ -229,6 +229,10 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
         node.ArgTypes[trimmedKey] = val
     }
 
+    if len(raw.Outputs.PyReduce) == 0 {
+        return nil
+    }
+
     if len(raw.Outputs.PyReduce) < 5 {
         return fmt.Errorf("unexpected format: too few elements in py/reduce")
     }

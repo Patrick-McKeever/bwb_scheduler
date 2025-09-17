@@ -159,10 +159,7 @@ func TestCmdSubArgOmission(t *testing.T) {
         t.Fatalf("failed to parse typed params: %s", err)
     }
 
-    cmds, err := ParseNodeCmd(node, tp, func(_ int, _, _ string, _, _ bool) ([]string, error) {
-        t.Fatalf("shouldn't be calling glob in this test")
-        return nil, nil
-    })
+    cmds, err := ParseNodeCmd(node, tp)
     if err != nil {
         t.Fatalf("cmd parsing: %s", err)
     }

@@ -111,6 +111,22 @@ func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, 
     return cmdMan.getCmdsFromParams(initialParams, glob)
 }
 
+func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
+    for pname, argType := range node.ArgTypes {
+        if argType.ArgType == "patternQuery" {
+            shouldEval := (argType.Flag != nil || argType.Env != nil ||
+                (argType.IsArgument != nil && *argType.IsArgument))
+            if shouldEval {
+                err := tp.ResolvePq(pname, node, glob)
+                if err != nil {
+                    return err
+                }
+            }
+        }
+    }
+    return nil
+}
+
 func (cmdMan *CmdManager) getCmdsFromParams(
     nodeParams map[int][]NodeParams, glob GlobFunc,
 ) (map[int][]CmdTemplate, error) {
@@ -118,7 +134,14 @@ func (cmdMan *CmdManager) getCmdsFromParams(
     for nodeId, paramSets := range nodeParams {
         node := cmdMan.state.workflow.Nodes[nodeId]
         for _, paramSet := range paramSets {
-            nodeCmds, err := ParseNodeCmd(node, paramSet.Params, glob)
+            if err := resolvePqs(node, &paramSet.Params, glob); err != nil {
+                return nil, fmt.Errorf(
+                    "error parsing node %d pattern queries: %s",
+                    nodeId, err,
+                )
+            }
+
+            nodeCmds, err := ParseNodeCmd(node, paramSet.Params)
             if err != nil {
                 return nil, err
             }

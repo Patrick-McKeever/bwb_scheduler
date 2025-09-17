@@ -1,0 +1,2366 @@
+{
+	"Nodes": {
+		"0": {
+			"Id": 0,
+			"ImageName": "biodepot/fast-dorado",
+			"ImageTag": "latest",
+			"Title": "fast_dorado",
+			"Command": [
+                "echo $doradocmd",
+                "echo \"_bwb{outputDir}/_bwb{fastqfilename}\" > /tmp/output/fastqOut",
+				"runDorado.sh"
+			],
+			"ArgTypes": {
+				"fastqOut": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"chunksize": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": "chunksize",
+					"label": "Chunk size",
+					"default": 2000,
+					"input_file": null,
+					"output_file": null
+				},
+				"device": {
+					"type": "str",
+					"argument": null,
+					"flag": "--device ",
+					"env": null,
+					"label": "Base calling device (e.g. auto, cuda:0)",
+					"default": "cuda:all",
+					"input_file": null,
+					"output_file": null
+				},
+				"doradocmd": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "doradocmd",
+					"label": "Dorado command",
+					"default": "dorado",
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqfilename": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "fastqfilename",
+					"label": "Fastq filename",
+					"default": "output.fastq",
+					"input_file": null,
+					"output_file": null
+				},
+				"filterlist": {
+					"type": "file",
+					"argument": null,
+					"flag": "-l ",
+					"env": "filterlist",
+					"label": "Filter list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "inputDir",
+					"label": "Input fast5/pod5 directory or file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"modeldir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "modeldir",
+					"label": "Dorado model",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nameSort": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "nameSort",
+					"label": "Generate additional name sorted bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputDir",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"reference": {
+					"type": "file",
+					"argument": null,
+					"flag": "--reference",
+					"env": null,
+					"label": "Genome reference file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"usecpu": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-x cpu ",
+					"env": "usecpu",
+					"label": "Use cpu",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"asyncmode": false,
+				"chunksize": true,
+				"device": false,
+				"fastqfilename": true,
+				"filterlist": false,
+				"nameSort": false,
+				"reference": false,
+				"usecpu": true
+			},
+			"RequiredParams": [
+				"inputFile",
+				"outputDir",
+				"modeldir",
+				"doradocmd"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"1": {
+			"Id": 1,
+			"ImageName": "biodepot/minimap2-append",
+			"ImageTag": "latest",
+			"Title": "minimap2_samtools",
+			"Command": [
+                "base=$(basename _bwb{inputFile})",
+                "echo \"_bwb{outputdir}/${base%.*}.sam\" > /tmp/output/bamFile",
+				"runMiniMap2.sh "
+			],
+			"ArgTypes": {
+				"bamFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing alignments",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "inputfiles",
+					"label": "Input fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"indexfile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "indexfile",
+					"label": "Enter Path to Index",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"mergesam": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "mergesam",
+					"label": "Merge into one sam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nthreads": {
+					"type": "int",
+					"argument": null,
+					"flag": "-t  ",
+					"env": "nthreads",
+					"label": "Number of threads",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"optionalflags": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "optionalflags",
+					"label": "Optional minimap flags ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"saveassam": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "saveassam",
+					"label": "Save as sam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"splitprefix": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--split-prefix ",
+					"env": "splitprefix",
+					"label": "Split prefix directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"asyncmode": false,
+				"mergesam": false,
+				"optionalflags": false,
+				"saveassam": false,
+				"splitprefix": true
+			},
+			"RequiredParams": [
+                "pod5OutDir",
+				"outputdir",
+				"indexfile",
+				"inputFile"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"9": {
+			"Id": 9,
+			"ImageName": "alpine",
+			"ImageTag": "latest",
+			"Title": "Start 1",
+			"Command": [
+                "mkdir -p \"_bwb{outputDir}/final_breakpoint_files\"",
+				"echo \"_bwb{outputDir}/final_breakpoint_files\" > /tmp/output/finalBreakpointDir",
+				"echo \"_bwb{outputDir}/_bwb{mergedSamBasename}\" > /tmp/output/mergedSam"
+			],
+			"ArgTypes": {
+                "finalBreakpointDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Directory for merged breakpoints",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+                },
+				"mergedSam": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing all merged sam reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"mergedSamBasename": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing all merged sam reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bpsFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "BPS_FILE",
+					"label": "File containing breakpoints (see docs)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"minimapIdx": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "IDX",
+					"label": "Minimap genome idx path (e.g. hg38.idx)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"pod5InDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "POD5_DIR",
+					"label": "Direcotyr containing pod5 files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "OUT_DIR",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"maxFiles": true,
+				"nthreads": false
+			},
+			"RequiredParams": [
+                "outputDir",
+                "pod5Files",
+				"bpsFile",
+                "outputDir",
+				"minimapIdx",
+				"pod5InDir"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"10": {
+			"Id": 10,
+			"ImageName": "alpine",
+			"ImageTag": "latest",
+			"Title": "Start",
+			"Command": [
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/_bwb{mergedSamBasename}\" > /tmp/output/mergedSam",
+                "mkdir -p \"_bwb{outputDir}/$(basename _bwb{pod5Files})/bam\"",
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/bam\" > /tmp/output/pod5OutDir",
+                "mkdir -p \"_bwb{outputDir}/$(basename _bwb{pod5Files})/refinedFilterDir\"",
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/refinedFilterDir/readnames\" > /tmp/output/filteredReadsList",
+                "mkdir -p \"_bwb{outputDir}/$(basename _bwb{pod5Files})/breakpoint_files\"",
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/breakpoint_files\" > /tmp/output/bpsOutDir",
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/firstFilterFile\" > /tmp/output/firstFilterFile",
+				"echo \"_bwb{outputDir}/$(basename _bwb{pod5Files})/refinedFilterDir\" > /tmp/output/refinedFilterDir",
+				"echo \"_bwb{pod5Files}\" > /tmp/output/pod5File"
+			],
+			"ArgTypes": {
+				"mergedSamBasename": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing all merged sam reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"mergedSam": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing all merged sam reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"filteredReadsList": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Filtered reads list inside refinedFilterDir",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"firstFilterFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "First breakpoint file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"refinedFilterDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Second breakpoint directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bpsFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "BPS_FILE",
+					"label": "File containing breakpoints (see docs)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"minimapIdx": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "IDX",
+					"label": "Minimap genome idx path (e.g. hg38.idx)",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bpsOutDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Out dir to store breakpoint info",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"pod5OutDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Out dir to store pod5 specific files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "OUT_DIR",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"pod5InDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "POD5_DIR",
+					"label": "Direcotyr containing pod5 files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"pod5Files": {
+					"type": "patternQuery",
+					"argument": null,
+					"flag": null,
+					"env": "inputfiles",
+					"label": "Pattern query for pod5 files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"pod5File": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"maxFiles": true,
+				"nthreads": false
+			},
+			"RequiredParams": [
+                "pod5Files",
+				"bpsFile",
+                "outputDir",
+				"minimapIdx",
+				"pod5InDir"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": true,
+			"BarrierFor": null,
+			"Iterate": true,
+			"IterGroupSize": {
+				"pod5Files": 1
+			},
+			"IterAttrs": ["pod5Files"]
+		},
+		"2": {
+			"Id": 2,
+			"ImageName": "biodepot/fusionfinder",
+			"ImageTag": "latest",
+			"Title": "BiodepotFusionFinder",
+			"Command": [
+				"runBFF.sh"
+			],
+			"ArgTypes": {
+				"Trigger": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bamfile": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--bam ",
+					"env": null,
+					"label": "Input file format is bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpointfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-b ",
+					"env": null,
+					"label": "Breakpoints file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpoints": {
+					"type": "text list",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Breakpoints (eg 'chr15::;chr17::')",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"enrichment": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--enrichment ",
+					"env": null,
+					"label": "Calculate enrichment",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterconsensus": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": null,
+					"label": "Nearby breakpoint distance",
+					"default": 100,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterends": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "filterends",
+					"label": "Save filter of partial matches",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"first": {
+					"type": "file",
+					"argument": null,
+					"flag": "--first ",
+					"env": "first",
+					"label": "Filter based on first reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guidefile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-G ",
+					"env": null,
+					"label": "Guides file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guiderange": {
+					"type": "int",
+					"argument": null,
+					"flag": "-R ",
+					"env": null,
+					"label": "Max dist guide can be from read end ",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-i ",
+					"env": null,
+					"label": "Input sam/bam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"isunsorted": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--isUnsorted ",
+					"env": null,
+					"label": "File is unsorted",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keepfirst": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepFirst ",
+					"env": "keepfirst",
+					"label": "Keep left unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keeplast": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepLast",
+					"env": "keeplast",
+					"label": "Keep right unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"last": {
+					"type": "file",
+					"argument": null,
+					"flag": "--last ",
+					"env": "last",
+					"label": "Filter based on last reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxgap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-g ",
+					"env": null,
+					"label": "Max length of fusion gap",
+					"default": 80,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxoverlap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-o ",
+					"env": null,
+					"label": "Max length of fusion overlap",
+					"default": 20,
+					"input_file": null,
+					"output_file": null
+				},
+				"minalignqual": {
+					"type": "int",
+					"argument": null,
+					"flag": "-q ",
+					"env": "bam",
+					"label": "Minimum mapq score",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-d ",
+					"env": "OUTPUT",
+					"label": "Output directory",
+					"default": "/data/breakpoint_files",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputpoorreads": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputpoorreads",
+					"label": "Output poor reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputreadslist": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputreadslist",
+					"label": "Output reads list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"support": {
+					"type": "int",
+					"argument": null,
+					"flag": "--support ",
+					"env": null,
+					"label": "Minimum supporting reads",
+					"default": 3,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"breakpoints"
+			],
+			"OptionsChecked": {
+				"bamfile": false,
+				"breakpointfile": true,
+				"breakpoints": false,
+				"enrichment": false,
+				"filterconsensus": false,
+				"filterends": true,
+				"first": true,
+				"guidefile": false,
+				"guiderange": false,
+				"inputfile": false,
+				"isunsorted": false,
+				"keepfirst": false,
+				"keeplast": false,
+				"last": false,
+				"maxgap": false,
+				"maxoverlap": false,
+				"minalignqual": false,
+				"outputdir": false,
+				"outputpoorreads": false,
+				"outputreadslist": false,
+				"support": false
+			},
+			"RequiredParams": [],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {
+				"breakpoints": 1
+			},
+			"IterAttrs": []
+		},
+		"3": {
+			"Id": 3,
+			"ImageName": "biodepot/fast-dorado",
+			"ImageTag": "latest",
+			"Title": "fast_dorado",
+			"Command": [
+                "echo \"_bwb{outputDir}/_bwb{fastqfilename}\" > /tmp/output/fastqOut",
+				"runDorado.sh"
+			],
+			"ArgTypes": {
+				"fastqOut": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"chunksize": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": "chunksize",
+					"label": "Chunk size",
+					"default": 2000,
+					"input_file": null,
+					"output_file": null
+				},
+				"device": {
+					"type": "str",
+					"argument": null,
+					"flag": "--device ",
+					"env": null,
+					"label": "Base calling device (e.g. auto, cuda:0)",
+					"default": "cuda:all",
+					"input_file": null,
+					"output_file": null
+				},
+				"doradocmd": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "doradocmd",
+					"label": "Dorado command",
+					"default": "dorado",
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqfilename": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "fastqfilename",
+					"label": "Fastq filename",
+					"default": "output.fastq",
+					"input_file": null,
+					"output_file": null
+				},
+				"filterlist": {
+					"type": "file",
+					"argument": null,
+					"flag": "-l ",
+					"env": "filterlist",
+					"label": "Filter list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "inputDir",
+					"label": "Input fast5/pod5 directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"modeldir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "modeldir",
+					"label": "Dorado model",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nameSort": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "nameSort",
+					"label": "Generate additional name sorted bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputDir",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"reference": {
+					"type": "file",
+					"argument": null,
+					"flag": "--reference",
+					"env": null,
+					"label": "Genome reference file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"trigger": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-d ",
+					"env": "OUTPUT",
+					"label": "Output directory",
+					"default": "/data/breakpoint_files",
+					"input_file": null,
+					"output_file": null
+				},
+				"usecpu": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-x cpu ",
+					"env": "usecpu",
+					"label": "Use cpu",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"chunksize": true,
+				"device": false,
+				"fastqfilename": true,
+				"filterlist": true,
+				"nameSort": false,
+				"reference": false,
+				"usecpu": true
+			},
+			"RequiredParams": [
+				"inputFile",
+				"outputDir",
+				"modeldir",
+				"doradocmd"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"4": {
+			"Id": 4,
+			"ImageName": "biodepot/minimap2-append",
+			"ImageTag": "latest",
+			"Title": "minimap2_samtools",
+			"Command": [
+                "base=$(basename _bwb{inputFile})",
+                "echo \"_bwb{outputdir}/${base%.*}.sam\" > /tmp/output/bamFile",
+				"runMiniMap2.sh "
+			],
+			"ArgTypes": {
+				"bamFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing alignments",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "inputfiles",
+					"label": "Input fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"indexfile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "indexfile",
+					"label": "Enter Path to Index",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"mergesam": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "mergesam",
+					"label": "Merge into one sam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nthreads": {
+					"type": "int",
+					"argument": null,
+					"flag": "-t  ",
+					"env": "nthreads",
+					"label": "Number of threads",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"optionalflags": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "optionalflags",
+					"label": "Optional minimap flags ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"saveassam": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "saveassam",
+					"label": "Save as sam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"splitprefix": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--split-prefix ",
+					"env": "splitprefix",
+					"label": "Split prefix directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"mergesam": true,
+				"optionalflags": false,
+				"saveassam": false,
+				"splitprefix": true
+			},
+			"RequiredParams": [
+                "pod5OutDir",
+				"outputdir",
+				"indexfile",
+				"inputFile"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"5": {
+			"Id": 5,
+			"ImageName": "biodepot/fusionfinder",
+			"ImageTag": "latest",
+			"Title": "BiodepotFusionFinder",
+			"Command": [
+				"runBFF.sh"
+			],
+			"ArgTypes": {
+				"Trigger": {
+					"type": "directory list",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bamfile": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--bam ",
+					"env": null,
+					"label": "Input file format is bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpointfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-b ",
+					"env": null,
+					"label": "Breakpoints file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpoints": {
+					"type": "text list",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Breakpoints (eg 'chr15::;chr17::')",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"enrichment": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--enrichment ",
+					"env": null,
+					"label": "Calculate enrichment",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterconsensus": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": null,
+					"label": "Nearby breakpoint distance",
+					"default": 100,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterends": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "filterends",
+					"label": "Save filter of partial matches",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"first": {
+					"type": "file",
+					"argument": null,
+					"flag": "--first ",
+					"env": "first",
+					"label": "Filter based on first reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guidefile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-G ",
+					"env": null,
+					"label": "Guides file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guiderange": {
+					"type": "int",
+					"argument": null,
+					"flag": "-R ",
+					"env": null,
+					"label": "Max dist guide can be from read end ",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-i ",
+					"env": null,
+					"label": "Input sam/bam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"isunsorted": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--isUnsorted ",
+					"env": null,
+					"label": "File is unsorted",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keepfirst": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepFirst ",
+					"env": "keepfirst",
+					"label": "Keep left unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keeplast": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepLast",
+					"env": "keeplast",
+					"label": "Keep right unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"last": {
+					"type": "file",
+					"argument": null,
+					"flag": "--last ",
+					"env": "last",
+					"label": "Filter based on last reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxgap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-g ",
+					"env": null,
+					"label": "Max length of fusion gap",
+					"default": 80,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxoverlap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-o ",
+					"env": null,
+					"label": "Max length of fusion overlap",
+					"default": 20,
+					"input_file": null,
+					"output_file": null
+				},
+				"minalignqual": {
+					"type": "int",
+					"argument": null,
+					"flag": "-q ",
+					"env": "bam",
+					"label": "Minimum mapq score",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-d ",
+					"env": "OUTPUT",
+					"label": "Output directory",
+					"default": "/data/breakpoint_files",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputpoorreads": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputpoorreads",
+					"label": "Output poor reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputreadslist": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputreadslist",
+					"label": "Output reads list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"support": {
+					"type": "int",
+					"argument": null,
+					"flag": "--support ",
+					"env": null,
+					"label": "Minimum supporting reads",
+					"default": 3,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"breakpoints"
+			],
+			"OptionsChecked": {
+				"bamfile": false,
+				"breakpointfile": true,
+				"breakpoints": false,
+				"enrichment": false,
+				"filterconsensus": false,
+				"filterends": false,
+				"first": false,
+				"guidefile": false,
+				"guiderange": false,
+				"inputfile": true,
+				"isunsorted": false,
+				"keepfirst": false,
+				"keeplast": false,
+				"last": false,
+				"maxgap": false,
+				"maxoverlap": true,
+				"minalignqual": true,
+				"outputdir": true,
+				"outputpoorreads": false,
+				"outputreadslist": false,
+				"support": true
+			},
+			"RequiredParams": [],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": 10,
+			"Iterate": false,
+			"IterGroupSize": {
+				"breakpoints": 1
+			},
+			"IterAttrs": []
+		},
+		"6": {
+			"Id": 6,
+			"ImageName": "biodepot/fast-dorado",
+			"ImageTag": "latest",
+			"Title": "fast_dorado",
+			"Command": [
+                "echo \"_bwb{outputDir}/_bwb{fastqfilename}\" > /tmp/output/fastqOut",
+				"runDorado.sh"
+			],
+			"ArgTypes": {
+				"fastqOut": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"chunksize": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": "chunksize",
+					"label": "Chunk size",
+					"default": 2000,
+					"input_file": null,
+					"output_file": null
+				},
+				"device": {
+					"type": "str",
+					"argument": null,
+					"flag": "--device ",
+					"env": null,
+					"label": "Base calling device (e.g. auto, cuda:0)",
+					"default": "cuda:all",
+					"input_file": null,
+					"output_file": null
+				},
+				"doradocmd": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "doradocmd",
+					"label": "Dorado command",
+					"default": "dorado",
+					"input_file": null,
+					"output_file": null
+				},
+				"fastqfilename": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "fastqfilename",
+					"label": "Fastq filename",
+					"default": "output.fastq",
+					"input_file": null,
+					"output_file": null
+				},
+				"filterlist": {
+					"type": "file",
+					"argument": null,
+					"flag": "-l ",
+					"env": "filterlist",
+					"label": "Filter list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "inputDir",
+					"label": "Input fast5/pod5 directory / file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"modeldir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "modeldir",
+					"label": "Dorado model",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nameSort": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "nameSort",
+					"label": "Generate additional name sorted bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputDir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputDir",
+					"label": "Output directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"reference": {
+					"type": "file",
+					"argument": null,
+					"flag": "--reference",
+					"env": null,
+					"label": "Genome reference file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"trigger": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-d ",
+					"env": "OUTPUT",
+					"label": "Output directory",
+					"default": "/data/breakpoint_files",
+					"input_file": null,
+					"output_file": null
+				},
+				"usecpu": {
+					"type": "bool",
+					"argument": null,
+					"flag": "-x cpu ",
+					"env": "usecpu",
+					"label": "Use cpu",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"chunksize": true,
+				"device": false,
+				"fastqfilename": true,
+				"filterlist": true,
+				"nameSort": false,
+				"reference": false,
+				"usecpu": true
+			},
+			"RequiredParams": [
+				"inputFile",
+				"outputDir",
+				"modeldir",
+				"doradocmd"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"7": {
+			"Id": 7,
+			"ImageName": "biodepot/minimap2-append",
+			"ImageTag": "latest",
+			"Title": "minimap2_samtools",
+			"Command": [
+                "base=$(basename _bwb{inputFile})",
+                "echo \"_bwb{outputdir}/${base%.*}.sam\" > /tmp/output/bamFile",
+				"runMiniMap2.sh "
+			],
+			"ArgTypes": {
+				"bamFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "File containing alignments",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputFile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "inputfiles",
+					"label": "Input fastq files",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"indexfile": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "indexfile",
+					"label": "Enter Path to Index",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"mergesam": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "mergesam",
+					"label": "Merge into one sam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"nthreads": {
+					"type": "int",
+					"argument": null,
+					"flag": "-t  ",
+					"env": "nthreads",
+					"label": "Number of threads",
+					"default": 1,
+					"input_file": null,
+					"output_file": null
+				},
+				"optionalflags": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "optionalflags",
+					"label": "Optional minimap flags ",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"saveassam": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "saveassam",
+					"label": "Save as sam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"splitprefix": {
+					"type": "directory",
+					"argument": null,
+					"flag": "--split-prefix ",
+					"env": "splitprefix",
+					"label": "Split prefix directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"OptionsChecked": {
+				"mergesam": false,
+				"optionalflags": false,
+				"saveassam": false,
+				"splitprefix": true
+			},
+			"RequiredParams": [
+                "pod5OutDir",
+				"outputdir",
+				"indexfile",
+				"inputFile"
+			],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"8": {
+			"Id": 8,
+			"ImageName": "biodepot/fusionfinder",
+			"ImageTag": "latest",
+			"Title": "BiodepotFusionFinder",
+			"Command": [
+				"runBFF.sh"
+			],
+			"ArgTypes": {
+				"Trigger": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": "outputdir",
+					"label": "Enter Output Directory",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"bamfile": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--bam ",
+					"env": null,
+					"label": "Input file format is bam",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpointfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-b ",
+					"env": null,
+					"label": "Breakpoints file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"breakpoints": {
+					"type": "text list",
+					"argument": true,
+					"flag": null,
+					"env": null,
+					"label": "Breakpoints (eg 'chr15::;chr17::')",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"enrichment": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--enrichment ",
+					"env": null,
+					"label": "Calculate enrichment",
+					"default": true,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterconsensus": {
+					"type": "int",
+					"argument": null,
+					"flag": "-c ",
+					"env": null,
+					"label": "Nearby breakpoint distance",
+					"default": 100,
+					"input_file": null,
+					"output_file": null
+				},
+				"filterends": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "filterends",
+					"label": "Save filter of partial matches",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"first": {
+					"type": "file",
+					"argument": null,
+					"flag": "--first ",
+					"env": "first",
+					"label": "Filter based on first reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guidefile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-G ",
+					"env": null,
+					"label": "Guides file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"guiderange": {
+					"type": "int",
+					"argument": null,
+					"flag": "-R ",
+					"env": null,
+					"label": "Max dist guide can be from read end ",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"inputfile": {
+					"type": "file",
+					"argument": null,
+					"flag": "-i ",
+					"env": null,
+					"label": "Input sam/bam file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"isunsorted": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--isUnsorted ",
+					"env": null,
+					"label": "File is unsorted",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keepfirst": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepFirst ",
+					"env": "keepfirst",
+					"label": "Keep left unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"keeplast": {
+					"type": "bool",
+					"argument": null,
+					"flag": "--keepLast",
+					"env": "keeplast",
+					"label": "Keep right unmapped reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"last": {
+					"type": "file",
+					"argument": null,
+					"flag": "--last ",
+					"env": "last",
+					"label": "Filter based on last reads file",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxgap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-g ",
+					"env": null,
+					"label": "Max length of fusion gap",
+					"default": 80,
+					"input_file": null,
+					"output_file": null
+				},
+				"maxoverlap": {
+					"type": "int",
+					"argument": null,
+					"flag": "-o ",
+					"env": null,
+					"label": "Max length of fusion overlap",
+					"default": 20,
+					"input_file": null,
+					"output_file": null
+				},
+				"minalignqual": {
+					"type": "int",
+					"argument": null,
+					"flag": "-q ",
+					"env": "bam",
+					"label": "Minimum mapq score",
+					"default": 50,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputdir": {
+					"type": "directory",
+					"argument": null,
+					"flag": "-d ",
+					"env": "OUTPUT",
+					"label": "Output directory",
+					"default": "/data/breakpoint_files",
+					"input_file": null,
+					"output_file": null
+				},
+				"outputpoorreads": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputpoorreads",
+					"label": "Output poor reads",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"outputreadslist": {
+					"type": "bool",
+					"argument": null,
+					"flag": null,
+					"env": "outputreadslist",
+					"label": "Output reads list",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+				},
+				"support": {
+					"type": "int",
+					"argument": null,
+					"flag": "--support ",
+					"env": null,
+					"label": "Minimum supporting reads",
+					"default": 3,
+					"input_file": null,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [
+				"breakpoints"
+			],
+			"OptionsChecked": {
+				"bamfile": false,
+				"breakpointfile": true,
+				"breakpoints": false,
+				"enrichment": false,
+				"filterconsensus": true,
+				"filterends": false,
+				"first": false,
+				"guidefile": false,
+				"guiderange": false,
+				"inputfile": true,
+				"isunsorted": false,
+				"keepfirst": false,
+				"keeplast": false,
+				"last": false,
+				"maxgap": false,
+				"maxoverlap": true,
+				"minalignqual": true,
+				"outputdir": true,
+				"outputpoorreads": false,
+				"outputreadslist": false,
+				"support": true
+			},
+			"RequiredParams": [],
+			"ResourceReqs": {
+				"MemMb": 64000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {
+				"breakpoints": 1
+			},
+			"IterAttrs": []
+		}	
+    },
+	"NodeBaseProps": {
+		"0": {
+			"chunksize": 2000,
+			"device": "cuda:all",
+			"doradocmd": "dorado-first  basecaller --emit-fastq",
+			"fastqfilename": "first.fastq",
+			"filterlist": "",
+			"inputFile": null,
+			"modeldir": "/data/models/dna_r9.4.1_e8_fast@v3.4",
+			"nameSort": false,
+			"outputDir": "/data/bff-test/bam",
+			"reference": "",
+			"usecpu": true
+		},
+		"1": {
+			"inputFile": null,
+			"indexfile": null,
+			"mergesam": "",
+			"optionalflags": "",
+			"outputdir": "",
+			"saveassam": true,
+			"splitprefix": "/tmp/"
+		},
+        "9": {
+			"mergedSam": null,
+			"mergedSamBasename": "merged.sam",
+			"bpsFile": null,
+			"minimapIdx": null,
+			"pod5InDir": null,
+            "outputDir": null
+        },
+		"10": {
+            "mergedSamBasename": "merged.sam",
+			"bpsFile": null,
+			"minimapIdx": null,
+			"outputDir": null,
+			"pod5InDir": null,
+			"pod5Files": {
+				"findDir": false,
+				"findFile": true,
+				"pattern": "*.pod5",
+				"root": "_bwb{pod5InDir}"
+			}
+		},
+		"2": {
+			"bamfile": false,
+			"breakpointfile": null,
+			"breakpoints": [],
+			"enrichment": false,
+			"filterconsensus": 100,
+			"filterends": "/data/bff-test/bam/firstFilter",
+			"first": null,
+			"guidefile": "",
+			"guiderange": 50,
+			"inputfile": null,
+			"isunsorted": false,
+			"keepfirst": false,
+			"keeplast": false,
+			"last": null,
+			"maxgap": 80,
+			"maxoverlap": 20,
+			"minalignqual": 50,
+			"outputdir": "/data/breakpoint_files",
+			"outputpoorreads": false,
+			"outputreadslist": false,
+			"support": 3
+		},
+		"3": {
+			"chunksize": 1000,
+			"device": "cuda:all",
+			"doradocmd": "dorado basecaller --emit-fastq ",
+			"fastqfilename": "final.fastq",
+			"filterlist": null,
+			"inputFile": null,
+			"modeldir": "/data/models/dna_r9.4.1_e8_hac@v3.3",
+			"nameSort": false,
+			"outputDir": "/data/bff-test/bam",
+			"reference": "",
+			"usecpu": true
+		},
+		"4": {
+			"inputFile": null,
+			"indexfile": null,
+			"mergesam": "final1.sam",
+			"optionalflags": "",
+			"outputdir": "",
+			"saveassam": true,
+			"splitprefix": "/tmp/"
+		},
+		"5": {
+			"bamfile": false,
+			"breakpointfile": null,
+			"breakpoints": [],
+			"enrichment": false,
+			"filterconsensus": 100,
+			"filterends": "/data/bff-test/output_bam/filterReads",
+			"first": null,
+			"guidefile": "",
+			"guiderange": 50,
+			"inputfile": null,
+			"isunsorted": false,
+			"keepfirst": false,
+			"keeplast": false,
+			"last": "/data/bff-test/output_bam/last.sam",
+			"maxgap": 80,
+			"maxoverlap": 30,
+			"minalignqual": 50,
+			"outputdir": null,
+			"outputpoorreads": false,
+			"outputreadslist": false,
+			"support": 1
+		},
+		"6": {
+			"chunksize": 1000,
+			"device": "cuda:all",
+			"doradocmd": "dorado basecaller --emit-fastq ",
+			"fastqfilename": "filtered.fastq",
+			"filterlist": null,
+			"inputFile": null,
+			"modeldir": "/data/models/dna_r9.4.1_e8_fast@v3.4",
+			"nameSort": false,
+			"outputDir": "/data/bff-test/bam",
+			"reference": "",
+			"usecpu": true
+		},
+		"7": {
+			"inputFile": null,
+			"indexfile": null,
+			"mergesam": "final1.sam",
+			"optionalflags": "",
+			"outputdir": "",
+			"saveassam": true,
+			"splitprefix": "/tmp/"
+		},
+		"8": {
+			"bamfile": false,
+			"breakpointfile": null,
+			"breakpoints": [],
+			"enrichment": false,
+			"filterconsensus": 100,
+			"filterends": "/data/bff-test/fusionFilter",
+			"first": null,
+			"guidefile": "",
+			"guiderange": 50,
+			"inputfile": null,
+			"isunsorted": true,
+			"keepfirst": false,
+			"keeplast": false,
+			"last": "",
+			"maxgap": 80,
+			"maxoverlap": 30,
+			"minalignqual": 50,
+			"outputdir": null,
+			"outputpoorreads": false,
+			"outputreadslist": false,
+			"support": 1
+		}
+	},
+	"Links": [
+		{
+			"SourceNodeId": 1,
+			"SinkNodeId": 2,
+			"SourceChannel": "bamFile",
+			"SinkChannel": "first"
+		},
+		{
+			"SourceNodeId": 1,
+			"SinkNodeId": 8,
+			"SourceChannel": "bamFile",
+			"SinkChannel": "first"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 1,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 1,
+			"SourceChannel": "fastqOut",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 7,
+			"SinkNodeId": 8,
+			"SourceChannel": "bamFile",
+			"SinkChannel": "inputfile"
+		},
+		{
+			"SourceNodeId": 6,
+			"SinkNodeId": 7,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 6,
+			"SinkNodeId": 7,
+			"SourceChannel": "fastqOut",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 2,
+			"SinkNodeId": 6,
+			"SourceChannel": "outputdir",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 8,
+			"SinkNodeId": 3,
+			"SourceChannel": "outputdir",
+			"SinkChannel": "trigger"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 4,
+			"SourceChannel": "mergedSamBasename",
+			"SinkChannel": "mergesam"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 4,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 3,
+			"SinkNodeId": 4,
+			"SourceChannel": "fastqOut",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 5,
+			"SourceChannel": "outputdir",
+			"SinkChannel": "Trigger"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 5,
+			"SourceChannel": "mergedSam",
+			"SinkChannel": "inputfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 4,
+			"SourceChannel": "minimapIdx",
+			"SinkChannel": "indexfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 1,
+			"SourceChannel": "minimapIdx",
+			"SinkChannel": "indexfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 0,
+			"SourceChannel": "pod5OutDir",
+			"SinkChannel": "outputDir"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 3,
+			"SourceChannel": "pod5OutDir",
+			"SinkChannel": "outputDir"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 6,
+			"SourceChannel": "pod5OutDir",
+			"SinkChannel": "outputDir"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 0,
+			"SourceChannel": "pod5File",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 3,
+			"SourceChannel": "pod5File",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 6,
+			"SourceChannel": "pod5File",
+			"SinkChannel": "inputFile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 7,
+			"SourceChannel": "minimapIdx",
+			"SinkChannel": "indexfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 2,
+			"SourceChannel": "bpsFile",
+			"SinkChannel": "breakpointfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 8,
+			"SourceChannel": "bpsFile",
+			"SinkChannel": "breakpointfile"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 5,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 5,
+			"SourceChannel": "bpsFile",
+			"SinkChannel": "breakpointfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 2,
+			"SourceChannel": "bpsOutDir",
+			"SinkChannel": "breakpointfile"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 8,
+			"SourceChannel": "refinedFilterDir",
+			"SinkChannel": "outputdir"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 2,
+			"SourceChannel": "firstFilterFile",
+			"SinkChannel": "filterends"
+		},
+		{
+			"SourceNodeId": 2,
+			"SinkNodeId": 6,
+			"SourceChannel": "filterends",
+			"SinkChannel": "filterlist"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 8,
+			"SourceChannel": "refinedFilterDir",
+			"SinkChannel": "filterends"
+		},
+		{
+			"SourceNodeId": 10,
+			"SinkNodeId": 3,
+			"SourceChannel": "filteredReadsList",
+			"SinkChannel": "filterlist"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 5,
+			"SourceChannel": "finalBreakpointDir",
+			"SinkChannel": "filterends"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "mergedSam",
+			"SinkChannel": "mergedSam"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "mergedSamBasename",
+			"SinkChannel": "mergedSamBasename"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "bpsFile",
+			"SinkChannel": "bpsFile"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "minimapIdx",
+			"SinkChannel": "minimapIdx"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "pod5InDir",
+			"SinkChannel": "pod5InDir"
+		},
+		{
+			"SourceNodeId": 9,
+			"SinkNodeId": 10,
+			"SourceChannel": "outputDir",
+			"SinkChannel": "outputDir"
+		}
+	]
+}

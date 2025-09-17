@@ -150,6 +150,7 @@ func overrideParamVals(
 
         argType, argTypeExists := node.ArgTypes[pname]
         if !argTypeExists {
+            parsing.PrettyPrint(node.ArgTypes)
             return fmt.Errorf(
                 "node %s has no property / no argtype for %s",
                 nodeNameStr, pname,
@@ -243,6 +244,7 @@ func dryRunWorkflow(
 
     for _, cmd := range out {
         fmt.Println(cmd)
+        fmt.Println()
     }
     return nil
 }

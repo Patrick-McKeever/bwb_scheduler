@@ -595,12 +595,12 @@ func (tree *WorkflowExecutionState) getLinkParam(
         )
     }
 
-    srcPval, srcPvalExists := srcOutputs.LookupParam(
+    srcPval, srcPvalExists := srcOutputs.LookupParamOptionallyParsed(
         srcChan, sinkArgType,
     )
 
     if !srcPvalExists {
-        srcPval, srcPvalExists = srcOutputs.LookupParam(
+        srcPval, srcPvalExists = srcOutputs.LookupParamOptionallyParsed(
             srcChan, srcArgType,
         )
     }
@@ -614,12 +614,12 @@ func (tree *WorkflowExecutionState) getLinkParam(
             )
         }
 
-        srcPval, srcPvalExists = srcInputs.LookupParam(
+        srcPval, srcPvalExists = srcInputs.LookupParamOptionallyParsed(
             srcChan, sinkArgType,
         )
 
         if !srcPvalExists {
-            srcPval, srcPvalExists = srcInputs.LookupParam(
+            srcPval, srcPvalExists = srcInputs.LookupParamOptionallyParsed(
                 srcChan, srcArgType,
             )
         }
@@ -868,8 +868,8 @@ func (tree *WorkflowExecutionState) getSuccParams(
             )
             if err != nil {
                 return nil, fmt.Errorf(
-                    "error forming inputs for node %d with anc list %#v",
-                    barrierId, succAncLists[0],
+                    "error forming inputs for node %d with anc list %#v: %s",
+                    barrierId, succAncLists[0], err,
                 )
             }
 
@@ -882,6 +882,7 @@ func (tree *WorkflowExecutionState) getSuccParams(
 
 func correctArgType(pValRaw any, srcArgType, sinkArgType WorkflowArgType) (any, error) {
     srcIsList := strings.HasSuffix(srcArgType.ArgType, "list")
+    srcIsList = srcIsList || srcArgType.ArgType == "patternQuery"
     sinkIsList := strings.HasSuffix(sinkArgType.ArgType, "list")
     srcBaseType := strings.Split(srcArgType.ArgType, " ")[0]
     sinkBaseType := strings.Split(sinkArgType.ArgType, " ")[0]
@@ -889,8 +890,8 @@ func correctArgType(pValRaw any, srcArgType, sinkArgType WorkflowArgType) (any, 
     bothStringTypes := argTypeIsStr(srcBaseType) && argTypeIsStr(sinkBaseType)
     if !bothStringTypes && srcBaseType != sinkBaseType {
         return nil, fmt.Errorf(
-            "invalid types %s and %s",
-            srcArgType.ArgType, sinkArgType.ArgType,
+            "invalid types %s and %s (val %v)",
+            srcArgType.ArgType, sinkArgType.ArgType, pValRaw,
         )
     }
 

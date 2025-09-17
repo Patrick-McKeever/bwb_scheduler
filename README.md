@@ -58,13 +58,57 @@ Flags:
 ```
 
 ## Example usage
+ ### Bulk RNA workflow
+ **Main repo**: https://github.com/morphic-bio/Bulk-RNA-seq/
 ```
 # Set BWB_SCHED_DIR and stage dependencies there.
 export BWB_SCHED_DIR=/home/user/SCHED_STORAGE
-mkdir -p /home/user/SCHED_STORAGE/storageID/fastqFiles
-mv R1.fastq R2.fastq /home/user/SCHED_STORAGE/storageID/fastqFiles
+mkdir -p $BWB_SCHED_DIR/storageID/fastqFiles
+mv R1.fastq R2.fastq $BWB_SCHED_DIR/storageID/fastqFiles
 
 
 # Run bulk RNA seq workflow on R1/R2.fastq using hybrid HPC config.
 go run main.go run --storageId storageID -p Start.fastqDir=/data/fastqFiles test_workflows/bulkrna_async.json test_workflows/bulkrna_config_hybrid.json
+```
+
+
+### Single-cell RNA workflow
+**Main repo**: https://github.com/morphic-bio/scRNA-seq
+```
+go run main.go run --storageId scRNA --cpus 24 -v -p 7.whitelist=/data/10x_version3_whitelist.txt -p 7.features_file=/data/project_14361_feature_ref_v2_202405_alt.csv -p 7.fastqdirs=[/data/experimentA,/data/experimentB] -p 7.feature_barcode_fastq_dirs=[/data/larry-barcodes/experimentA,/data/larry-barcodes/experimentB] -p 7.feature_expr_fastq_dirs=[/data/experimentA,/data/experimentB] test_workflows/scRNA.json
+```
+
+**TODO**: Document this more thoroughly.
+
+ ### Nanopore fusion detection workflow
+
+ **Main repo**: https://github.com/BioDepot/fast-bff
+```
+export BWB_SCHED_DIR=/home/user/SCHED_STORAGE
+mkdir -p $BWB_SCHED_DIR/storageID/fastqFiles
+mv hg38.idx $BWB_SCHED_DIR/storageID/hg38.idx
+mv 1.pod5 2.pod5 $BWB_SCHED_DIR/storageID/pod5
+echo "chr15:74318559:74336132;chr17:38428464:38512385" > /data/bps
+
+go run main.go run --storageId storageID -p 9.minimapIdx=/data/hg38.idx -p 9.pod5InDir=/data/pod5 -p 9.outputDir=/data/output -p 9.bpsFile=/data/bps test_workflows/fusion_finder_nanopore.json
+```
+
+`9.bpsFile` is a file in which each line specifies one candidate fusion as a pair of genomic intervals separated by a semicolon:
+
+- One fusion per line.
+- Each side is written as: chr:start:end
+- You can omit any of chr, start, or end if unknown.
+- Lines starting with “#” are treated as comments.
+
+E.g.
+```
+# Fully specified intervals
+chr15:74318559:74336132;chr17:38428464:38512385
+
+# Open-ended intervals (missing start or end)
+chr15:74318559:;chr17:38428464:38512385
+chr15::74336132;chr17::
+
+# Only the left side is provided (the right side is unconstrained)
+chr15::74336132;
 ```

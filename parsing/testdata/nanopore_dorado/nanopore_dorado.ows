@@ -1,0 +1,76 @@
+<?xml version="1.0" ?><scheme description="" title="nanopore-dorado" version="2.0">
+	<nodes>
+		<node id="0" name="Start" position="(-850.0, 62.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWStart.OWStart" title="Start" version=""/>
+		<node id="1" name="downloadURL" position="(-298.0, 180.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWdownloadURL.OWdownloadURL" title="Download pod5 files" version=""/>
+		<node id="2" name="igv" position="(-619.0, 511.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWigv.OWigv" title="View alignments" version=""/>
+		<node id="3" name="S3_download" position="(-620.0, 178.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWS3_download.OWS3_download" title="Download genome" version=""/>
+		<node id="4" name="dorado" position="(-622.0, 342.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWdorado.OWdorado" title="dorado" version=""/>
+		<node id="5" name="Utilities_downloadURL" position="(-463.0, 180.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWUtilities_downloadURL.OWUtilities_downloadURL" title="Download genome (GDrive link)" version=""/>
+		<node id="6" name="dorado" position="(-148.0, 179.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWdorado.OWdorado" title="Download dorado models" version=""/>
+		<node id="7" name="dorado" position="(-456.0, 341.0)" project_name="nanopore-dorado" qualified_name="nanopore_dorado.OWdorado.OWdorado" title="dorado methylation example" version=""/>
+	</nodes>
+	<links>
+		<link enabled="true" id="0" sink_channel="directory" sink_node_id="1" source_channel="data_dir" source_node_id="0"/>
+		<link enabled="false" id="1" sink_channel="downloadDir" sink_node_id="3" source_channel="genome_dir" source_node_id="0"/>
+		<link enabled="true" id="2" sink_channel="directory" sink_node_id="5" source_channel="genome_dir" source_node_id="0"/>
+		<link enabled="true" id="3" sink_channel="trigger" sink_node_id="4" source_channel="directory" source_node_id="5"/>
+		<link enabled="true" id="4" sink_channel="trigger2" sink_node_id="4" source_channel="directory" source_node_id="1"/>
+		<link enabled="true" id="5" sink_channel="trigger3" sink_node_id="4" source_channel="OutputDir" source_node_id="6"/>
+		<link enabled="true" id="6" sink_channel="trigger" sink_node_id="2" source_channel="OutputDir" source_node_id="4"/>
+		<link enabled="true" id="7" sink_channel="reference" sink_node_id="4" source_channel="genome_file" source_node_id="0"/>
+		<link enabled="true" id="8" sink_channel="InputDir" sink_node_id="4" source_channel="fast5_dir" source_node_id="0"/>
+		<link enabled="true" id="9" sink_channel="modelDir" sink_node_id="6" source_channel="model_dir" source_node_id="0"/>
+		<link enabled="true" id="10" sink_channel="outputfile" sink_node_id="4" source_channel="bam_file" source_node_id="0"/>
+	</links>
+	<annotations>
+		<text font-family="Helvetica" font-size="16" id="0" rect="(-903.0, 160.0, 150.0, 31.0)" type="text/plain">Download</text>
+		<text font-family="Helvetica" font-size="16" id="1" rect="(-904.0, 313.0, 166.0, 43.0)" type="text/plain">Call bases + Align</text>
+		<text font-family="Helvetica" font-size="16" id="2" rect="(-901.0, 494.0, 150.0, 31.0)" type="text/plain">Visualize</text>
+	</annotations>
+	<thumbnail/>
+	<node_properties>
+		<properties format="literal" node_id="0">{'bam_dir': '/data/nanopore-test/bam/testbam-out', 'bam_file': '/data/nanopore-test/bam/testbam-out/aligned.bam', 'controlAreaVisible': True, 'data_dir': '/data/nanopore-test/data', 'exportGraphics': False, 'fast5_dir': '/data/nanopore-test/data/dorado-0.5.3/tests/data/pod5/dna_r9.4.1_e8', 'genome_dir': '/data/nanopore-test/genome', 'genome_file': '/data/nanopore-test/genome/hg38.mmi', 'inputConnectionsStore': {}, 'iterate': False, 'iterateSettings': {'iterableAttrs': [], 'nWorkers': 1}, 'model_dir': '/data/nanopore-models', 'nWorkers': 1, 'optionsChecked': {'gdc_credentials': False, 'gdc_token': False, 'clean_files': False, 'fastq_files': False, 'fastq1_files': False, 'fastq2_files': False, 'fastqo1_files': False, 'fastqo2_files': False, 'fastqs_files': False, 'fastqc_files': False, 'paired_end': False, 'realigned_files': False, 'recalibrate_files': False, 'realigned_indels_files': False, 'pindel_filter_files': False, 'genome_dict_file': False, 'biobambam_files': False, 'mutect2_normal_files': False, 'mutect2_tumor_files': False, 'mutect2_variants_files': False, 'variant_annotation_files': False, 'maf_files': False, 'mark_dupes_outputs': False, 'mark_dupes_metrics': False, 'coclean_intervals': False, 'somatic_sniper_files': False, 'prepend_date': False, 'varscan_pileup_files': False, 'varscan_snp_files': False, 'varscan_indel_files': False, 'muse_call_files': False, 'muse_sump_input_files': False, 'muse_sump_output_files': False, 'pindel_config_files': False, 'pindel_variants_files': False, 'pindel_variants_sorted_files': False, 'pindel_variants_filtered_files': False, 'pindel_prefix_files': False, 'cpu_url': False, 'gpu_url': False, 'models_dir': False}, 'repeat': False, 'runMode': 0, 'runTriggers': [], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x03\xa5\x00\x00\x01\x97\x00\x00\x06\xcf\x00\x00\x03\x9e\x00\x00\x03\xa5\x00\x00\x01\xaf\x00\x00\x06\xcf\x00\x00\x03\x9b\x00\x00\x00\x00\x00\x00\x00\x00\t\x99', 'triggerReady': {}, 'useGpu': False, 'useScheduler': False, '__version__': 1}</properties>
+		<properties format="pickle" node_id="1">gAN9cQAoWAMAAABVUkxxAV1xAlhDAAAAaHR0cHM6Ly9naXRodWIuY29tL25hbm9wb3JldGVjaC9k
+b3JhZG8vYXJjaGl2ZS9yZWZzL3RhZ3MvdjAuNS4zLnppcHEDYVgPAAAAY29uY2F0ZW5hdGVGaWxl
+cQRYAAAAAHEFWBIAAABjb250cm9sQXJlYVZpc2libGVxBohYCgAAAGRlY29tcHJlc3NxB4hYCQAA
+AGRpcmVjdG9yeXEIWBgAAAAvZGF0YS9uYW5vcG9yZS10ZXN0L2RhdGFxCVgOAAAAZXhwb3J0R3Jh
+cGhpY3NxColYFQAAAGlucHV0Q29ubmVjdGlvbnNTdG9yZXELfXEMWAkAAABkaXJlY3RvcnlxDV1x
+DksBYXNYBwAAAGl0ZXJhdGVxD4lYDwAAAGl0ZXJhdGVTZXR0aW5nc3EQfXERKFgNAAAAaXRlcmFi
+bGVBdHRyc3ESXXETWAMAAABVUkxxFGFYCAAAAG5Xb3JrZXJzcRVLAlgEAAAAZGF0YXEWY2NvbGxl
+Y3Rpb25zCk9yZGVyZWREaWN0CnEXKVJxGChYCQAAAGRpcmVjdG9yeXEZfXEaKFgJAAAAZ3JvdXBT
+aXplcRtYAQAAADFxHFgHAAAAdGhyZWFkc3EdaBxYAwAAAHJhbXEeWAEAAAAwcR91WAMAAABVUkxx
+IH1xIShoG2gcaB1oHGgeaB91dVgNAAAAaXRlcmF0ZWRBdHRyc3EiXXEjKGgZaCBldVgIAAAAbldv
+cmtlcnNxJEsCWAkAAABub0Nsb2JiZXJxJYlYDgAAAG9wdGlvbnNDaGVja2VkcSZ9cScoWAoAAABk
+ZWNvbXByZXNzcSiJWA8AAABjb25jYXRlbmF0ZUZpbGVxKYlYCQAAAG5vQ2xvYmJlcnEqiXVYBgAA
+AHJlcGVhdHEriVgHAAAAcnVuTW9kZXEsSwJYCwAAAHJ1blRyaWdnZXJzcS1dcS5YCQAAAGRpcmVj
+dG9yeXEvYVgTAAAAc2F2ZWRXaWRnZXRHZW9tZXRyeXEwQzIB2dDLAAIAAAAAA7IAAAGaAAAG6wAA
+AyYAAAOyAAABsgAABusAAAMjAAAAAAAAAAAJmXExWAwAAAB0cmlnZ2VyUmVhZHlxMn1xM1gJAAAA
+ZGlyZWN0b3J5cTSJc1gGAAAAdXNlR3B1cTWJWAwAAAB1c2VTY2hlZHVsZXJxNolYCwAAAF9fdmVy
+c2lvbl9fcTdLAXUu
+</properties>
+		<properties format="pickle" node_id="2">gAN9cQAoWBQAAABhdXRvRGV0ZXJtaW5lUmVnaW9uc3EBiFgFAAAAYmF0Y2hxAlgAAAAAcQNYEgAA
+AGNvbnRyb2xBcmVhVmlzaWJsZXEEiFgOAAAAZXhwb3J0R3JhcGhpY3NxBYhYBgAAAGdlbm9tZXEG
+WAQAAABoZzM4cQdYFQAAAGlucHV0Q29ubmVjdGlvbnNTdG9yZXEIfXEJWAcAAAB0cmlnZ2VycQpd
+cQtLBWFzWAkAAABpbnB1dEZpbGVxDH1xDShYBAAAAHJvb3RxDlgkAAAAL2RhdGEvbmFub3BvcmUt
+dGVzdC9iYW0vdGVzdGJhbS1vdXQvcQ9YBwAAAHBhdHRlcm5xEFgMAAAAKmFsaWduZWQuYmFtcRFY
+CAAAAGZpbmRGaWxlcRKIWAcAAABmaW5kRGlycROJWAUAAAB2YWx1ZXEUXXEVWC8AAAAvZGF0YS9u
+YW5vcG9yZS10ZXN0L2JhbS90ZXN0YmFtLW91dC9hbGlnbmVkLmJhbXEWYXVYBwAAAGl0ZXJhdGVx
+F4hYDwAAAGl0ZXJhdGVTZXR0aW5nc3EYfXEZKFgNAAAAaXRlcmFibGVBdHRyc3EaXXEbWAkAAABp
+bnB1dEZpbGVxHGFYBAAAAGRhdGFxHWNjb2xsZWN0aW9ucwpPcmRlcmVkRGljdApxHilScR9YCQAA
+AGlucHV0RmlsZXEgfXEhKFgJAAAAZ3JvdXBTaXplcSJYAQAAADFxI1gHAAAAdGhyZWFkc3EkaCNY
+AwAAAHJhbXElWAEAAAAwcSZ1c1gNAAAAaXRlcmF0ZWRBdHRyc3EnXXEoaCBhWAgAAABuV29ya2Vy
+c3EpSwJ1WAgAAABuV29ya2Vyc3EqSwJYDgAAAG9wdGlvbnNDaGVja2VkcSt9cSwoWAYAAABnZW5v
+bWVxLYhYBQAAAGJhdGNocS6JWBQAAABhdXRvRGV0ZXJtaW5lUmVnaW9uc3EviXVYBgAAAHJlcGVh
+dHEwiVgHAAAAcnVuTW9kZXExSwJYCwAAAHJ1blRyaWdnZXJzcTJdcTNYBwAAAHRyaWdnZXJxNGFY
+EwAAAHNhdmVkV2lkZ2V0R2VvbWV0cnlxNUMyAdnQywACAAAAAAS2AAABVwAAB+8AAAKqAAAEtgAA
+AVcAAAfvAAACqgAAAAAAAAAACZlxNlgMAAAAdHJpZ2dlclJlYWR5cTd9cTgoWAcAAAB0cmlnZ2Vy
+cTmJWAkAAABpbnB1dEZpbGVxOol1WAYAAAB1c2VHcHVxO4lYDAAAAHVzZVNjaGVkdWxlcnE8iVgL
+AAAAX192ZXJzaW9uX19xPUsBdS4=
+</properties>
+		<properties format="literal" node_id="3">{'awsdir': '/data/.aws', 'bucket': 'nanopore-fusion-uw', 'controlAreaVisible': True, 'dirs': ['genome/hg38.mmi'], 'downloadDir': '', 'exportGraphics': False, 'inputConnectionsStore': {'downloadDir': [1]}, 'iterate': False, 'iterateSettings': {'iterableAttrs': ['dirs'], 'nWorkers': 1}, 'key': '', 'nWorkers': 1, 'nthreads': 0, 'optionsChecked': {'nthreads': False, 'key': False, 'secret': False, 'region': False}, 'region': 'us-east-2', 'repeat': False, 'runMode': 2, 'runTriggers': ['downloadDir'], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x03 \x00\x00\x00\x00\x00\x00\x06Y\x00\x00\x01\xc7\x00\x00\x03 \x00\x00\x00\x18\x00\x00\x06Y\x00\x00\x01\xc4\x00\x00\x00\x00\x00\x00\x00\x00\x07\x80', 'secret': '', 'triggerReady': {'downloadDir': False}, 'useGpu': False, 'useScheduler': False, '__version__': 1}</properties>
+		<properties format="literal" node_id="4">{'InputDir': '/data/nanopore-test/data/dorado-0.5.3/tests/data/pod5/dna_r9.4.1_e8', 'Inputfile': '', 'OutputDir': '', 'chunksize': '1000', 'command': '&quot;dorado basecaller &quot;', 'controlAreaVisible': True, 'device': '', 'emitfastq': False, 'emitsam': False, 'exportGraphics': False, 'inputConnectionsStore': {'trigger': [4], 'trigger2': [2], 'trigger3': [6], 'reference': [1], 'InputDir': [1], 'outputfile': [1]}, 'iterate': False, 'iterateSettings': {'iterableAttrs': [], 'nWorkers': 1}, 'kitname': '', 'modelDir': '', 'modelFile': '/data/nanopore-models/dna_r9.4.1_e8_fast@v3.4', 'modelstring': 'fast', 'nWorkers': 1, 'nameSort': False, 'noclassify': False, 'optionsChecked': {'configfile': False, 'device': False, 'flowcell': False, 'kitname': False, 'compressfastq': False, 'chunksPerRunner': False, 'numCallers': False, 'gpuRunnersPerDevice': False, 'nameSort': False, 'InputDir': True, 'OutputDir': False, 'Inputfile': False, 'outputfile': True, 'modelFile': False, 'reference': True, 'resumefrom': False, 'trim': False, 'noclassify': False, 'sortandindex': False, 'modelstring': True, 'emitfastq': False, 'emitsam': False, 'chunksize': False, 'modelDir': False}, 'outputfile': '/data/nanopore-test/bam/testbam-out/aligned.bam', 'reference': '/data/nanopore-test/genome/hg38.mmi', 'repeat': False, 'resumefrom': '', 'runMode': 2, 'runTriggers': ['trigger', 'trigger2', 'trigger3', 'reference', 'InputDir'], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x04\xa5\x00\x00\x00\xbc\x00\x00\x07\xde\x00\x00\x03V\x00\x00\x04\xa5\x00\x00\x00\xd4\x00\x00\x07\xde\x00\x00\x03S\x00\x00\x00\x00\x00\x00\x00\x00\t\x99', 'sortandindex': True, 'triggerReady': {'trigger': False, 'trigger2': False, 'trigger3': False, 'reference': False, 'InputDir': False}, 'trim': '', 'useGpu': True, 'useScheduler': False, '__version__': 1}</properties>
+		<properties format="literal" node_id="5">{'URL': ['https://drive.google.com/file/d/1Di7IWV0OYrR24KQzOszF9rymGDJcySRX/view?usp=drive_link'], 'concatenateFile': '', 'controlAreaVisible': True, 'decompress': True, 'directory': '/data/nanopore-test/genome', 'exportGraphics': False, 'inputConnectionsStore': {'directory': [1]}, 'iterate': False, 'iterateSettings': {'iterableAttrs': ['URL'], 'nWorkers': 1}, 'nWorkers': 1, 'optionsChecked': {'decompress': False, 'concatenateFile': False}, 'repeat': False, 'runMode': 2, 'runTriggers': ['directory'], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x04\xab\x00\x00\x01X\x00\x00\x07\xe4\x00\x00\x02\xe4\x00\x00\x04\xab\x00\x00\x01p\x00\x00\x07\xe4\x00\x00\x02\xe1\x00\x00\x00\x00\x00\x00\x00\x00\t\x99', 'triggerReady': {'directory': False}, 'useGpu': False, 'useScheduler': False, '__version__': 1}</properties>
+		<properties format="literal" node_id="6">{'InputDir': '', 'Inputfile': '', 'OutputDir': '', 'chunksize': '', 'command': '&quot;dorado download &quot;', 'controlAreaVisible': True, 'device': 'cuda:all', 'emitfastq': False, 'emitsam': False, 'exportGraphics': False, 'inputConnectionsStore': {'modelDir': [1]}, 'iterate': False, 'iterateSettings': {'iterableAttrs': [], 'nWorkers': 1}, 'kitname': '', 'modelDir': '/data/nanopore-models', 'modelFile': '', 'modelstring': '', 'nWorkers': 1, 'nameSort': False, 'noclassify': False, 'optionsChecked': {'InputDir': False, 'OutputDir': False, 'modelFile': False, 'reference': False, 'device': False, 'nameSort': False, 'Inputfile': False, 'outputfile': False, 'kitname': False, 'resumefrom': False, 'trim': False, 'noclassify': False, 'sortandindex': False, 'modelstring': False, 'emitfastq': False, 'emitsam': False, 'chunksize': False, 'modelDir': True}, 'outputfile': '', 'reference': '', 'repeat': False, 'resumefrom': '', 'runMode': 2, 'runTriggers': ['modelDir'], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x04\xd3\x00\x00\x01E\x00\x00\x08\x0c\x00\x00\x03Q\x00\x00\x04\xd3\x00\x00\x01E\x00\x00\x08\x0c\x00\x00\x03Q\x00\x00\x00\x00\x00\x00\x00\x00\t\x99', 'sortandindex': False, 'triggerReady': {'modelDir': False}, 'trim': '', 'useGpu': True, 'useScheduler': False, '__version__': 1}</properties>
+		<properties format="literal" node_id="7">{'InputDir': '/data/rhino_transfer/20240229_molm14l1_20perc_cp/20240301_0100_MC-111664_FAY48292_755bc890/pod5', 'Inputfile': '', 'OutputDir': '', 'chunksize': '', 'command': '&quot;dorado basecaller &quot;', 'controlAreaVisible': True, 'device': 'cuda:all', 'emitfastq': False, 'emitsam': False, 'exportGraphics': False, 'inputConnectionsStore': {}, 'iterate': False, 'iterateSettings': {'iterableAttrs': [], 'nWorkers': 1}, 'kitname': '', 'modelDir': '', 'modelFile': '', 'modelstring': 'hac,5mCG_5hmCG', 'nWorkers': 1, 'nameSort': False, 'noclassify': False, 'optionsChecked': {'InputDir': True, 'OutputDir': False, 'modelFile': False, 'reference': True, 'device': False, 'nameSort': False, 'Inputfile': False, 'outputfile': True, 'kitname': False, 'resumefrom': False, 'trim': False, 'noclassify': False, 'sortandindex': False, 'modelstring': True, 'emitfastq': False, 'emitsam': False, 'chunksize': False, 'modelDir': False}, 'outputfile': '/data/nanopore-cellphone-outputs/20240229_molm14l1_20perc_cp/nonmethylated-basecalling/calls-sorted.bam', 'reference': '/data/nanopore-test/genome/hg38.mmi', 'repeat': False, 'resumefrom': '', 'runMode': 0, 'runTriggers': [], 'savedWidgetGeometry': b'\x01\xd9\xd0\xcb\x00\x02\x00\x00\x00\x00\x02\xae\x00\x00\x02\x8e\x00\x00\x06\xcf\x00\x00\x04z\x00\x00\x02\xae\x00\x00\x02\xa6\x00\x00\x06\xcf\x00\x00\x04w\x00\x00\x00\x00\x00\x00\x00\x00\t\x99', 'sortandindex': True, 'triggerReady': {}, 'trim': '', 'useGpu': True, 'useScheduler': False, '__version__': 1}</properties>
+	</node_properties>
+</scheme>

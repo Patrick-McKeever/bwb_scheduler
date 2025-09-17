@@ -231,6 +231,24 @@ func (tp *TypedParams) LookupParamParsed(
     return tp.LookupParam(pname, argType)
 }
 
+// Lookup param. If it's a pattern query and has been
+// resolved, return the resolved version. If it's
+// a pattern query that hasn't been resolved, return
+// the unresolved version. If it's anything else, return
+// the normal value.
+func (tp *TypedParams) LookupParamOptionallyParsed(
+    pname string, argType WorkflowArgType,
+) (any, bool) {
+    if argType.ArgType == "patternQuery" {
+        val, ok := tp.StrLists[pname]
+        if ok {
+            return any(val), ok
+        }
+    }
+
+    return tp.LookupParam(pname, argType)
+}
+
 func (tp *TypedParams) LookupParam(
     pname string, argType WorkflowArgType,
 ) (any, bool) {
@@ -1194,7 +1212,8 @@ func evaluateIterables(
             if numGroups > 0 {
                 argType := node.ArgTypes[pname]
                 listType := strings.Split(argType.ArgType, " ")[0]
-                if argTypeIsStr(listType) {
+                isPq := argType.ArgType == "patternQuery"
+                if argTypeIsStr(listType) || isPq {
                     ithIteration.IterVals.StrLists[pname] = strGroups[pname][i%numGroups]
                 } else if node.ArgTypes[pname].ArgType == "int" {
                     ithIteration.IterVals.IntLists[pname] = intGroups[pname][i%numGroups]
@@ -1311,23 +1330,7 @@ func performCmdSubs(
     return subbedVars, nil
 }
 
-func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
-    for pname, argType := range node.ArgTypes {
-        if argType.ArgType == "patternQuery" {
-            shouldEval := (argType.Flag != nil || argType.Env != nil ||
-                (argType.IsArgument != nil && *argType.IsArgument))
-            if shouldEval {
-                err := tp.ResolvePq(pname, node, glob)
-                if err != nil {
-                    return err
-                }
-            }
-        }
-    }
-    return nil
-}
-
-func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTemplate, error) {
+func ParseNodeCmd(node WorkflowNode, tp TypedParams) ([]CmdTemplate, error) {
     nodeId := node.Id
     var template CmdTemplate
     template.NodeId = node.Id
@@ -1337,13 +1340,6 @@ func ParseNodeCmd(node WorkflowNode, tp TypedParams, glob GlobFunc) ([]CmdTempla
 
     reqParams := getRequiredParams(node)
     iterAttrs := getIterAttrs(node, reqParams)
-
-    if err := resolvePqs(node, &tp, glob); err != nil {
-        return nil, fmt.Errorf(
-            "error parsing node %d pattern queries: %s",
-            nodeId, err,
-        )
-    }
 
     subbedVars, err := performCmdSubs(node, &template, tp, iterAttrs, true)
     if err != nil {
@@ -1464,7 +1460,12 @@ func FormDockerCmdPrefix(
 ) string {
     envStr := ""
     for envK, envV := range template.Envs {
-        envStr += fmt.Sprintf("-e %s=%s ", envK, envV)
+        trimmedVal := strings.TrimSpace(envV)
+        if strings.Contains(trimmedVal, " ") {
+            envStr += fmt.Sprintf("-e %s=\"%s\" ", envK, envV)
+        } else {
+            envStr += fmt.Sprintf("-e %s=%s ", envK, envV)
+        }
     }
 
     gpuFlag := ""
@@ -1604,11 +1605,7 @@ func DryRun(workflow Workflow) ([]string, error) {
         // There are no pattern queries to parse (we converted all PQ argtypes
         // to str lists), so we can safely pass a DummyFS which returns nothing
         // when queried.
-        cmdTemplates, cmdErrs := ParseNodeCmd(
-            revisedNode, tp, func(_ int, _, _ string, _, _ bool) ([]string, error) {
-                return nil, nil
-            },
-        )
+        cmdTemplates, cmdErrs := ParseNodeCmd(revisedNode, tp)
         if cmdErrs != nil {
             return nil, fmt.Errorf("error parsing cmds: %s", cmdErrs)
         }
