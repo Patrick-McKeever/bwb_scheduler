@@ -1525,15 +1525,7 @@ func DryRun(workflow Workflow) ([]string, error) {
         revisedProps := copyMapOfScalars(baseProps)
         reqParams := getRequiredParams(node)
 
-        // Verify that all properties have corresponding argTypes.
-        for pname := range baseProps {
-            if _, pnameHasArgType := node.ArgTypes[pname]; !pnameHasArgType {
-                return nil, fmt.Errorf(
-                    "error parsing node %d parameters: attr %s has no arg type entry",
-                    nodeId, pname,
-                )
-            }
-
+        for pname := range workflow.Nodes[nodeId].ArgTypes {
             _, pnameIsIterable := node.IterGroupSize[pname]
 
             // Replace all incoming links with strings indicating their origin
@@ -1556,6 +1548,17 @@ func DryRun(workflow Workflow) ([]string, error) {
                 revisedNode.ArgTypes[pname] = argTypeEntry
             }
             revisedNode.IterAttrs = make([]string, 0)
+
+        }
+
+        // Verify that all properties have corresponding argTypes.
+        for pname := range baseProps {
+            if _, pnameHasArgType := node.ArgTypes[pname]; !pnameHasArgType {
+                return nil, fmt.Errorf(
+                    "error parsing node %d parameters: attr %s has no arg type entry",
+                    nodeId, pname,
+                )
+            }
 
             if node.ArgTypes[pname].ArgType == "patternQuery" {
                 pq, pqErr := parsePatternQuery(baseProps[pname])

@@ -1,0 +1,445 @@
+{
+	"Nodes": {
+		"0": {
+			"Id": 0,
+			"ImageName": "alpine",
+			"ImageTag": "latest",
+			"Title": "Start",
+			"Command": [
+                "echo STARTING"
+			],
+			"ArgTypes": {
+				"dorado_ext": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": "DORADO_EXTENSION",
+					"label": "Dorado extension (pod5 or fast5)",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"reference": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "REF_PATH",
+					"label": "Path to reference FASTA",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"params_json": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "params JSON outfile",
+					"default": null,
+					"input_file": null,
+					"output_file": true
+				},
+                "model": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Dorado basecalling model",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+                },
+                "mbm_model": {
+					"type": "str",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Dorado MB basecalling model",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+                },
+                "pod5Dir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Directory containing pod5s",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+                }
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "dorado_ext",
+                "reference",
+                "remora_cfg",
+                "basecaller_cfg",
+                "model",
+                "mbm_model",
+                "pod5Dir"
+			],
+			"ResourceReqs": {
+				"MemMb": 500,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"1": {
+			"Id": 1,
+			"ImageName": "ontresearch/wf-common",
+			"ImageTag": "sha72f3517dd994984e0e2da0b97cb3f23f8540be4b",
+			"Title": "prepareReferenceFAIDX",
+			"Command": [
+                "samtools faidx _bwb{ref}",
+                "echo \"$(basename _bwb{ref}).fai\" > /tmp/output/indexed_ref"
+			],
+			"ArgTypes": {
+				"ref": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "REF_PATH",
+					"label": "Reference path (*.fa)",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"indexed_ref": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Output indexed ref path (*.fai)",
+					"default": null,
+					"input_file": null,
+					"output_file": true
+				}
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "ref"
+			],
+			"ResourceReqs": {
+				"MemMb": 4000,
+				"Cpus": 1,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"2": {
+			"Id": 2,
+			"ImageName": "ontresearch/dorado",
+			"ImageTag": "shaae1d5e75f94041e4fd7af4a7ed6e6432b0eaea29",
+			"Title": "prepareReferenceMMI",
+			"Command": [
+                "minimap2 -t 4 -x lr:hq -d /data/ref.mmi _bwb{ref}",
+                "echo \"/data/ref.mmi\" > /tmp/output/mmi"
+			],
+			"ArgTypes": {
+				"ref": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "REF_PATH",
+					"label": "Reference path (*.fa)",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"mmi": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "MMI from indexed ref",
+					"default": null,
+					"input_file": null,
+					"output_file": true
+				}
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "ref"
+			],
+			"ResourceReqs": {
+				"MemMb": 16000,
+				"Cpus": 4,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"3": {
+			"Id": 3,
+			"ImageName": "ontresearch/wf-common",
+			"ImageTag": "sha72f3517dd994984e0e2da0b97cb3f23f8540be4b",
+			"Title": "Cram Cache",
+			"Command": [
+                "seq_cache_populate.pl -root /data/ref_cache/ _bwb{ref}",
+                "echo \"/data/ref_cache/%2s/%2s/%s\" /tmp/output/ref_path",
+                "echo \"/data/ref_cache\" > /tmp/output/ref_cache"
+			],
+			"ArgTypes": {
+				"ref": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "REF_PATH",
+					"label": "Reference path (*.fa)",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				},
+				"ref_path": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "REF_PATH env var",
+					"default": null,
+					"input_file": null,
+					"output_file": true
+				},
+				"ref_cache": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Ref cache path",
+					"default": null,
+					"input_file": null,
+					"output_file": true
+				}
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "ref"
+			],
+			"ResourceReqs": {
+				"MemMb": 16000,
+				"Cpus": 4,
+				"Gpus": 0
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"4": {
+			"Id": 4,
+			"ImageName": "ontresearch/dorado",
+			"ImageTag": "shaae1d5e75f94041e4fd7af4a7ed6e6432b0eaea29",
+			"Title": "Dorado",
+			"Command": [
+                "[ \"_bwb{dorado_ext}\" = \"fast5\" ] && pod5 convert fast5 ./*.fast5 --output . --threads 8 --one-to-one ./ || echo \"Skipping conversion\"",
+                "dorado basecaller \"${DRD_MODELS_PATH}/_bwb{model}\" _bwb{pod5Dir} --modified-bases-models \"${DRD_MODELS_PATH}/_bwb{mbm_model}\" --device cuda:all | samtools view --no-PG -b -o /data/0.ubam -",
+                "echo /data/0.ubam > /tmp/output/out_bam"
+			],
+			"ArgTypes": {
+                "pod5Dir": {
+					"type": "directory",
+					"argument": null,
+					"flag": null,
+					"env": null,
+					"label": "Directory containing pod5s",
+					"default": null,
+					"input_file": null,
+					"output_file": null
+                },
+                "dorado_ext": {
+                    "type": "str",
+                    "argument": null,
+                    "flag": null,
+                    "env": "DORADO_EXT",
+                    "label": "FAST5 or POD5",
+                    "default": null,
+                    "input_file": null,
+                    "output_file": null
+                },
+                "model": {
+                    "type": "file",
+                    "argument": null,
+                    "flag": null,
+                    "env": "MODEL_PATH",
+                    "label": "Model path",
+                    "default": null,
+                    "input_file": true,
+                    "output_file": null
+                },
+                "mbm_model": {
+                    "type": "file",
+                    "argument": null,
+                    "flag": null,
+                    "env": "MBM_MODEL_PATH",
+                    "label": "Modified bases model path",
+                    "default": null,
+                    "input_file": true,
+                    "output_file": null
+                },
+                "out_bam": {
+                    "type": "file",
+                    "argument": null,
+                    "flag": null,
+                    "env": null,
+                    "label": "Out ubam",
+                    "default": null,
+                    "input_file": null,
+                    "output_file": true
+                }
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "model", "mbm_model", "dorado_ext", "pod5Dir"
+			],
+			"ResourceReqs": {
+				"MemMb": 32000,
+				"Cpus": 16,
+				"Gpus": 1
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		},
+		"5": {
+			"Id": 5,
+			"ImageName": "ontresearch/dorado",
+			"ImageTag": "shaae1d5e75f94041e4fd7af4a7ed6e6432b0eaea29",
+			"Title": "Align and QS filter",
+			"Command": [
+                "samtools view -H --no-PG _bwb{reads} > /data/reads.header",
+                "samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl --no-PG _bwb{reads} -o - | samtools fastq -T 1 -@ 1 - | minimap2 -y -t 8 -a -x lr:hq --cap-kalloc 100m --cap-sw-mem 50m _bwb{mmi_reference} | /data/workflow-glue reheader_samstream reads.header insert $'@PG\tID:reset\tPN:samtools\tCL:samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl' --insert $'@PG\tID:fastq\tPN:samtools\tCL:samtools fastq -T 1' | | samtools sort -@ 3 | samtools view -e '[qs] >= 10' --output 0.pass.cram --unoutput 0.fail.cram -O CRAM --reference _bwb{reference}"
+			],
+			"ArgTypes": {
+                "reads": {
+                    "type": "file",
+                    "argument": null,
+                    "flag": null,
+                    "env": "READS",
+                    "label": "FAST5 or POD5",
+                    "default": null,
+                    "input_file": true,
+                    "output_file": null
+                },
+                "mmi_reference": {
+                    "type": "file",
+                    "argument": null,
+                    "flag": null,
+                    "env": "MMI_REF",
+                    "label": "MMI_REF",
+                    "default": null,
+                    "input_file": true,
+                    "output_file": null
+                },
+				"reference": {
+					"type": "file",
+					"argument": null,
+					"flag": null,
+					"env": "REF_PATH",
+					"label": "Path to reference FASTA",
+					"default": null,
+					"input_file": true,
+					"output_file": null
+				}
+			},
+			"ArgOrder": [],
+			"RequiredParams": [
+                "reads", "mmi_reference", "reference"
+			],
+			"ResourceReqs": {
+				"MemMb": 32000,
+				"Cpus": 16,
+				"Gpus": 1
+			},
+			"Async": false,
+			"BarrierFor": null,
+			"Iterate": false,
+			"IterGroupSize": {},
+			"IterAttrs": []
+		}
+    },
+	"NodeBaseProps": {
+        "0": {
+            "model": "dna_r10.4.1_e8.2_400bps_hac@v5.0.0",
+            "mbm_model": "dna_r10.4.1_e8.2_400bps_hac@v5.0.0_5mCG_5hmCG@v2"
+        }, "1": {}, "2": {}, "3": {}, "4": {}, "5": {}
+	},
+	"Links": [
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 1,
+			"SourceChannel": "reference",
+			"SinkChannel": "ref"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 2,
+			"SourceChannel": "reference",
+			"SinkChannel": "ref"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 3,
+			"SourceChannel": "reference",
+			"SinkChannel": "ref"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 4,
+			"SourceChannel": "model",
+			"SinkChannel": "model"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 4,
+			"SourceChannel": "mbm_model",
+			"SinkChannel": "mbm_model"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 4,
+			"SourceChannel": "dorado_ext",
+			"SinkChannel": "dorado_ext"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 4,
+			"SourceChannel": "pod5Dir",
+			"SinkChannel": "pod5Dir"
+		},
+		{
+			"SourceNodeId": 0,
+			"SinkNodeId": 5,
+			"SourceChannel": "reference",
+			"SinkChannel": "reference"
+		},
+		{
+			"SourceNodeId": 4,
+			"SinkNodeId": 5,
+			"SourceChannel": "out_bam",
+			"SinkChannel": "reads"
+		},
+		{
+			"SourceNodeId": 2,
+			"SinkNodeId": 5,
+			"SourceChannel": "mmi",
+			"SinkChannel": "mmi_reference"
+		}
+	]
+}
