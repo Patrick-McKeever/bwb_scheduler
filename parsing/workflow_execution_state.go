@@ -913,6 +913,11 @@ func correctArgType(pValRaw any, srcArgType, sinkArgType WorkflowArgType) (any, 
             {
                 return (pValRaw.([]float64))[0], nil
             }
+        case  PatternQuery:
+            {
+                cast, _ := pValRaw.(PatternQuery)
+                return cast, nil
+            }
         default:
             {
                 return nil, fmt.Errorf("unrecognized type %v", v)
