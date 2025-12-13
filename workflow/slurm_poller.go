@@ -590,12 +590,12 @@ func NotifyCmdCompletion(
         if JOB_CODES[result.State].failed {
             jobErr := fmt.Errorf("job failed with err %s", output.StdErr)
             workflow.SignalExternalWorkflow(
-                ctx, state.ParentWfId, state.ParentWfRunId, "slurm-response", 
+                ctx, state.ParentWfId, "", "slurm-response", 
                 SlurmResponse{ Result: output, Error:  jobErr },
             )
         } else {
             workflow.SignalExternalWorkflow(
-                ctx, state.ParentWfId, state.ParentWfRunId, "slurm-response", 
+                ctx, state.ParentWfId, "", "slurm-response", 
                 SlurmResponse{ Result: output, Error: err },
             )
         }

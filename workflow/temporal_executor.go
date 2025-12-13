@@ -167,7 +167,7 @@ func (exec *TemporalExecutor) RunCmds(
         }
 
         workflow.SignalExternalWorkflow(
-            exec.ctx, exec.schedulerWE.ID, exec.schedulerWE.RunID,
+            exec.ctx, exec.schedulerWE.ID, "",
             "new-request", req,
         )
     }
@@ -177,7 +177,7 @@ func (exec *TemporalExecutor) ReleaseResourceGrant(
     grant ResourceGrant,
 ) error {
     workflow.SignalExternalWorkflow(
-        exec.ctx, exec.schedulerWE.ID, exec.schedulerWE.RunID,
+        exec.ctx, exec.schedulerWE.ID, "",
         "release-allocation", grant,
     )
     return nil

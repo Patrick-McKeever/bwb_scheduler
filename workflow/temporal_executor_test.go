@@ -136,14 +136,14 @@ func TestParentChildSignalExchange(t *testing.T) {
             return err
         }
 
-        workflow.SignalExternalWorkflow(ctx, childWE.ID, childWE.RunID, SignalA, "payload-A")
+        workflow.SignalExternalWorkflow(ctx, childWE.ID, "", SignalA, "payload-A")
         fmt.Println("Parent sent signal A")
         var bVal string
         s := workflow.NewSelector(ctx)
         s.AddReceive(workflow.GetSignalChannel(ctx, SignalB), func(c workflow.ReceiveChannel, _ bool) {
             c.Receive(ctx, &bVal)
             fmt.Println("Parent received signal B")
-            _ = workflow.SignalExternalWorkflow(ctx, childWE.ID, childWE.RunID, SignalC, "payload-C").Get(ctx, nil)
+            _ = workflow.SignalExternalWorkflow(ctx, childWE.ID, "", SignalC, "payload-C").Get(ctx, nil)
             fmt.Println("Parent sent signal C")
         })
         s.Select(ctx)

@@ -66,7 +66,7 @@ func TestSlurmResponse(t *testing.T) {
     expParentWfId := "parentId"
     expParentWfRunId := "parentRunId"
     env.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
+        mock.Anything, expParentWfId, "", "slurm-response",
         mock.MatchedBy(func(arg interface{}) bool {
             require.True(t, stateBeforePoll == "COMPLETED")
             resp, ok := arg.(SlurmResponse)
@@ -122,7 +122,6 @@ func TestSlurmContinueAsNewStateMaintenance(t *testing.T) {
         })
 
     expParentWfId := "parentId"
-    expParentWfRunId := "parentRunId"
 
     env.RegisterDelayedCallback(func() {
         env.SignalWorkflow("slurm-request", SlurmRequest{Cmd: expCmd, Config: expConfig})
@@ -132,7 +131,7 @@ func TestSlurmContinueAsNewStateMaintenance(t *testing.T) {
     }, 30*time.Second)
     env.ExecuteWorkflow(SlurmPollerWorkflow, SlurmState{
         ParentWfId:    expParentWfId,
-        ParentWfRunId: expParentWfRunId,
+        ParentWfRunId: "",
     })
     env.AssertExpectations(t)
     err := env.GetWorkflowError()
@@ -159,7 +158,7 @@ func TestSlurmContinueAsNewStateMaintenance(t *testing.T) {
         Return([]CmdOutput{expCmdOutput}, nil)
 
     contEnv.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
+        mock.Anything, expParentWfId, "", "slurm-response",
         mock.MatchedBy(func(arg interface{}) bool {
             resp, ok := arg.(SlurmResponse)
             return ok && resp.Result.Id == expCmdOutput.Id && resp.Result.StdOut == expCmdOutput.StdOut && resp.Result.StdErr == expCmdOutput.StdErr
@@ -212,7 +211,7 @@ func TestSlurmJobFatalFailure(t *testing.T) {
     expParentWfId := "parentId"
     expParentWfRunId := "parentRunId"
     env.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
+        mock.Anything, expParentWfId, "", "slurm-response",
         mock.MatchedBy(func(arg interface{}) bool {
             resp, ok := arg.(SlurmResponse)
             return ok && resp.Error != nil && resp.Result.Id == expCmdOutput.Id &&
@@ -274,7 +273,7 @@ func TestSlurmJobNonFatalFailure(t *testing.T) {
     expParentWfId := "parentId"
     expParentWfRunId := "parentRunId"
     env.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
+        mock.Anything, expParentWfId, "", "slurm-response",
         mock.MatchedBy(func(arg interface{}) bool {
             resp, ok := arg.(SlurmResponse)
             return ok && resp.Error != nil && resp.Result.Id == expCmdOutput.Id &&
@@ -343,7 +342,7 @@ func TestSlurmJobRetryOnNonFatalErr(t *testing.T) {
     expParentWfId := "parentId"
     expParentWfRunId := "parentRunId"
     env.OnSignalExternalWorkflow(
-        mock.Anything, expParentWfId, expParentWfRunId, "slurm-response",
+        mock.Anything, expParentWfId, "", "slurm-response",
         mock.MatchedBy(func(arg interface{}) bool {
             resp, ok := arg.(SlurmResponse)
             return ok && resp.Error == nil && resp.Result.Id == expCmdOutput.Id &&

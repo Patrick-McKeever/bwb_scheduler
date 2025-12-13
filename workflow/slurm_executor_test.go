@@ -162,7 +162,7 @@ func TestSlurmExecutorFileUploads(t *testing.T) {
                     t.Fatalf("could not convert signal contents to slurm req")
                 }
                 workflow.SignalExternalWorkflow(
-                    ctx, state.ParentWfId, state.ParentWfRunId, "slurm-response",
+                    ctx, state.ParentWfId, "", "slurm-response",
                     SlurmResponse{
                         Result: CmdOutput{
                             Id: req.Cmd.Id, 

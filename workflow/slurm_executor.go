@@ -235,7 +235,7 @@ func (exec *SlurmRemoteExecutor) RunCmds(cmds []parsing.CmdTemplate) {
                 Config: slurmConfig,
             }
             workflow.SignalExternalWorkflow(
-                exec.ctx, exec.slurmPollerWE.ID, exec.slurmPollerWE.RunID,
+                exec.ctx, exec.slurmPollerWE.ID, "",
                 "slurm-request", req,
             )
         })
