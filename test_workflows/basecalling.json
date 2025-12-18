@@ -323,8 +323,8 @@
 			"ImageTag": "shaae1d5e75f94041e4fd7af4a7ed6e6432b0eaea29",
 			"Title": "Align and QS filter",
 			"Command": [
-                "samtools view -H --no-PG _bwb{reads} > /data/reads.header",
-                "samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl --no-PG _bwb{reads} -o - | samtools fastq -T 1 -@ 1 - | minimap2 -y -t 8 -a -x lr:hq --cap-kalloc 100m --cap-sw-mem 50m _bwb{mmi_reference} | /data/workflow-glue reheader_samstream reads.header insert $'@PG\tID:reset\tPN:samtools\tCL:samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl' --insert $'@PG\tID:fastq\tPN:samtools\tCL:samtools fastq -T 1' | | samtools sort -@ 3 | samtools view -e '[qs] >= 10' --output 0.pass.cram --unoutput 0.fail.cram -O CRAM --reference _bwb{reference}"
+                "T=$(printf \"\\t\"); samtools view -H --no-PG _bwb{reads} > /data/reads.header",
+                "samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl --no-PG /data/0.ubam -o - | samtools fastq -T 1 -@ 1 - | minimap2 -y -t 8 -a -x lr:hq --cap-kalloc 100m --cap-sw-mem 50m /data/ref.mmi - | /data/wf-basecalling/bin/workflow-glue reheader_samstream /data/reads.header --insert \"@PG${T}ID:reset${T}PN:samtools${T}CL:samtools reset -x tp,cm,s1,s2,NM,MD,AS,SA,ms,nn,ts,cg,cs,dv,de,rl\" --insert \"@PG${T}ID:fastq${T}PN:samtools${T}CL:samtools fastq -T 1\""
 			],
 			"ArgTypes": {
                 "reads": {

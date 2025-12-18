@@ -237,6 +237,10 @@ func dryRunWorkflow(
         return err
     }
 
+    if err := parsing.PropagateArgTypes(&bwbWorkflow); err != nil {
+        return fmt.Errorf("error propagating arg types: %s", err)
+    }
+
     out, err := parsing.DryRun(bwbWorkflow)
     if err != nil {
         return err
