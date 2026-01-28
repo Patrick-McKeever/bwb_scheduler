@@ -852,10 +852,11 @@ func (tree *WorkflowExecutionState) getSuccParams(
 	barrierId, barrierAncList, err := tree.getEligibleBarriers(
 		inputs.NodeId, inputs.AncList,
 	)
+    _, barrierAlreadyGenerated := out[barrierId]
 	if err != nil {
 		return nil, fmt.Errorf("error getting eligible barriers: %s", err)
 	}
-	if barrierAncList != nil {
+	if barrierAncList != nil && !barrierAlreadyGenerated {
 		succAncLists, predInps, predOuts, err := tree.triggerSuccs(
 			barrierId, [][]int{barrierAncList},
 		)

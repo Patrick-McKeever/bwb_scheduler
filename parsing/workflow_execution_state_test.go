@@ -876,7 +876,7 @@ func TestBarrierReduction(t *testing.T) {
 
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)
 	for i, inputSet := range inputsFor2 {
-		p2Vals := genArbitraryOutputs(t, "p2", 1, 0, 2, workflow)
+		p2Vals := genArbitraryOutputs(t, "p2", 1, i, 2, workflow)
 		succsOf1, err := state.getSuccParams(inputSet, p2Vals, true)
 		if err != nil {
 			t.Fatalf("error generating succs of 1: %s", err)
@@ -899,7 +899,7 @@ func TestBarrierReduction(t *testing.T) {
 				)
 			}
 
-			expP2 := []string{"0", "0", "0"}
+			expP2 := []string{"0", "1", "2"}
 			if !slices.Equal(p2Strs, expP2) {
 				t.Fatalf(
 					"expected node 3 to have p2 values %#v, got %#v",

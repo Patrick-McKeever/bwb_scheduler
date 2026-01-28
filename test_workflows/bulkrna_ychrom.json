@@ -2517,7 +2517,7 @@
         "9": {
             "Id": 9,
             "ImageName": "patrickmckeever/gather_cnts",
-            "ImageTag": "0.1",
+            "ImageTag": "0.4",
             "Title": "gatherCounts",
             "Command": [
                 "makeCountsMatrix.sh "
