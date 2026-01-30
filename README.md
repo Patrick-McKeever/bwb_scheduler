@@ -112,3 +112,32 @@ chr15::74336132;chr17::
 # Only the left side is provided (the right side is unconstrained)
 chr15::74336132;
 ```
+
+
+# Code structure
+The following section describes the code in each source file. Any file `name.go` has corresponding unit tests in the file `name_test.go`.
+
+## Parsing Code
+
+- `parsing/cmd_manager.go` - Essentially a public-facing wrapper around `parsing/workflow_execution_state.go` which also handles pattern query evaluation. (For various reasons, it is advisable to keep this separate from the rest of command parsing.)
+- `parsing/job_config.go` - Contains formal definitions of the job config files which can be used to customize execution location (this is the config file passed as the second argument to the `run` CLI command).
+- `parsing/loose_json.go` - Defines a superset of JSON  where strings can be unquoted. This is used for CLI in parameter substitution, for strings like `-p Start.fastqDir=/path1/path2/path3`. In general, we expect everything following the "=" token in such strings to be a JSON-parsable value, but having to quote everything would be cumbersome.
+- `parsing/parse_ows.go` - Contains code for parsing BWB's OWS file format, along with a formal definition of the OWS format's structure.
+- `parsing/parse_workflow_cmds.go` - Contains the source for parsing a set of `TypedParams` and a `WorkflowNode` into a set of concrete commands; the `TypedParams` contains the values of all inputs for that node from predecessor nodes or from the workflow definition. The `WorkflowNode` contains info on node iteration, which can cause one command to be produced for each value of the iterable variable; node command structure, including the base command, arguments, flags, and env variables; and substitutions which must be evaluated, if the user includes a `_bwb{VAR}` substitution in the base command.
+- `parsing/pickle_to_json.py` - Used only during OWS to JSON conversion in order to read BWB pickle files.
+- `parsing/workflow_execution_state.go` - Contains a `WorkflowExecutionState` struct which manages the inputs, outputs, and async behavior of each workflow. If the workflow includes no async behavior, this is all very simple. If it includes async behavior, the workflow is modeled as a tree of async nodes; the "async descendant" nodes, which will execute once for each iteration of their "async ancestor" are subordinate to those async ancestors in the tree. The main purpose of this file is to create the sets of `TypedParams` that are fed as inputs to the code in `parse_workflow_cmds.go` by evaluating links between nodes.
+- `parsing/workflow_index.go` - Contains some static information about the workflow graph structure to facilitate quick lookup on which nodes are upstream or downstream of each other in the graph, what the base params of each node are, and how far nodes are from the workflow sink (which is used in scheduling). This index is built right at the start of the workflow parsing and can therefore catch some workflow structure errors before running.
+
+## Workflow code
+- `workflow/bwb_workflow.go` - Contains the top-level code for running workflows with various sets of executors. Contains implementations for running workflows both with and without temporal. The main loop here is that the workflow code uses a `CmdManager` instance to generate commands; the workflow code sends the generated commands to an `Executor` (an abstract class that can be either local execution w/ temporal, local execution w/o temporal, or SLURM) and registers a callback for completed commands w/ the executor; and upon command completion, the `Executor` invokes the callback, where the workflow code feeds command outputs to the `CmdManager`, generates successor commands, and executes those.
+- `workflow/local_executor.go` - Contains the code for executing commands locally, without temporal.
+- `workflow/scheduler_workflow.go` - Contains code for a temporal child workflow which performs scheduling. Job requests (specifying CPU, GPU, and memory consumption) are sent by the main workflow to the scheduling workflow via temporal signals. The scheduler workflow tracks available resources on temporal workers and returns resource grants to the main workflow via temporal signals, which the main workflow subsequently releases via temporal signals. The scheduling workflow also tracks worker liveliness via a heartbeat and registers workers as alive or dead. Scheduling is based on prioritizing jobs with more descendants in the DAG and on prioritizing jobs with larger resource requests.
+- `workflow/slurm_poller.go` - Contains code that periodically polls the SLURM node to check for job completion. This is implemented as a temporal child workflow which interacts with the main workflow via signals (similar to the `scheduler_workflow`). Non-temporal SLURM execution is not currently supported.
+- `workflow/slurm_executor.go` - Contains code for the SLURM executor, which handles SLURM job submission and tracking, file transfers to the SLURM node, etc. Also starts and manages the slurm polling child workflow.
+- `workflow/temporal_executor.go` - Contains code for execution with temporal. Unlike the SLURM executor, this is not a child workflow. Instead, executing a command amounts to executing a temporal activity on a given worker queue (one that was assigned by the scheduler child workflow).
+- `workflow/worker.go` - Contains code to start a temporal worker w/ particular CPU, GPU, and memory limits.
+
+## Miscellaneous
+- `main.go` - Contains the CLI.
+- `docker` directory contains a dockerfile.
+- `fs` directory contains some barebones file handling code that I wanted to make into an abstract base class. Upon further reflection, it's very hard to abstract local and remote filesystems into the same interface, so this should probably be refactored out at some point.
