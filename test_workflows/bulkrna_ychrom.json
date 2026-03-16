@@ -371,7 +371,7 @@
                     "env": null,
                     "default": null,
                     "input_file": null,
-                    "output_file": true
+                    "output_file": null
                 },
                 "txBamOut": {
                     "type": "file",
@@ -380,7 +380,7 @@
                     "env": null,
                     "default": null,
                     "input_file": null,
-                    "output_file": true
+                    "output_file": null
                 },
                 "seqOut": {
                     "type": "file list",
@@ -389,7 +389,7 @@
                     "env": null,
                     "default": null,
                     "input_file": null,
-                    "output_file": true
+                    "output_file": null
                 },
                 "nThreads": {
                     "type": "int",
@@ -2520,6 +2520,7 @@
             "ImageTag": "0.4",
             "Title": "gatherCounts",
             "Command": [
+                "mkdir -p _bwb{tablesDir}",
                 "makeCountsMatrix.sh "
             ],
             "ArgTypes": {

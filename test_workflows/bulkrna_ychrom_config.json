@@ -1,0 +1,73 @@
+{
+    "executors": {
+        "slurm": {
+            "ip_addr": "128.208.252.232:22",
+            "user": "lysander",
+            "transfer_addr": "128.208.252.232",
+            "sched_dir": "/srv/slurm_mnt",
+            "cmd_prefix": "docker exec slurmdbd"
+        }
+    },
+    "configs": {
+        "star": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "32G",
+                "cpus_per_task": 16
+            }
+        },
+        "salmon": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "8G",
+                "cpus_per_task": 5
+            }
+        },
+        "trimgalore": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "4G",
+                "cpus_per_task": 4
+            }
+        },
+        "filterY": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "8G",
+                "cpus_per_task": 4
+            }
+        },
+        "lowMem": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "500M",
+                "cpus_per_task": 1
+            }
+        },
+        "mediumMem": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "500M",
+                "cpus_per_task": 1
+            }
+        }
+    },
+    "node_configs": {
+        "0": "lowMem",
+        "1": "star",
+        "2": "star",
+        "3": "mediumMem",
+        "4": "lowMem",
+        "5": "mediumMem",
+        "6": "salmon",
+        "7": "trimgalore",
+        "9": "lowMem",
+        "13": "filterY"
+    }
+}

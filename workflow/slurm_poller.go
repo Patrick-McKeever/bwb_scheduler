@@ -52,18 +52,19 @@ type GetOutputsFuture struct {
 }
 
 type SlurmState struct {
-    ParentWfId       string
-    ParentWfRunId    string
-    SlurmConfig      parsing.SshConfig
-    SlurmFS          fs.SshFS
-    RunningJobs      map[string]SlurmJob
-    Requests         map[int]SlurmRequest
-    NumRetries       map[int]int
-    GetOutputFutures map[int]GetOutputsFuture
-    SchedDir         string
-    StorageId        string
-    MaxSlurmBatchId  int
-    FinalErr         error
+    ParentWfId              string
+    ParentWfRunId           string
+    SlurmConfig             parsing.SshConfig
+    SlurmFS                 fs.SshFS
+    RunningJobs             map[string]SlurmJob
+    PossiblyCompletedJobs   map[string]struct{}
+    Requests                map[int]SlurmRequest
+    NumRetries              map[int]int
+    GetOutputFutures        map[int]GetOutputsFuture
+    SchedDir                string
+    StorageId               string
+    MaxSlurmBatchId         int
+    FinalErr                error
 }
 
 type SlurmActivity struct {
@@ -517,22 +518,40 @@ func ProcessSacctResult(
         }
 
         if JOB_CODES[result.State].done {
-            delete(state.RunningJobs, jobId)
-            if JOB_CODES[result.State].failed && !JOB_CODES[result.State].fatal {
-                req := state.Requests[job.CmdId]
-                maxJobRetries := 0
-                if req.Config.MaxRetries != nil {
-                    maxJobRetries = *req.Config.MaxRetries
-                }
-                if state.NumRetries[job.CmdId] < maxJobRetries {
-                    state.NumRetries[job.CmdId] += 1
-                    StartSlurmJob(req, ctx, state)
-                } else {
+            if JOB_CODES[result.State].failed {
+                delete(state.RunningJobs, jobId)
+                if JOB_CODES[result.State].fatal {
                     finishedJobs = append(finishedJobs, job)
+                } else {
+                    req := state.Requests[job.CmdId]
+                    maxJobRetries := 0
+                    if req.Config.MaxRetries != nil {
+                        maxJobRetries = *req.Config.MaxRetries
+                    }
+                    if state.NumRetries[job.CmdId] < maxJobRetries {
+                        state.NumRetries[job.CmdId] += 1
+                        StartSlurmJob(req, ctx, state)
+                    } else {
+                        finishedJobs = append(finishedJobs, job)
+                    }
                 }
             } else {
-                finishedJobs = append(finishedJobs, job)
+                // There is a weird bug in SLURM (possibly unique to the slurm docker
+                // setup I use for testing) where a job will register as complete 
+                // immediately after submission, switch to PENDING/RUNNING, and then
+                // show as complete later. We prevent that by registering a job as
+                // possibly complete once it has shown up as COMPLETED once in sacct
+                // and treating it as truly complete the next time it shows as 
+                // COMPLETED.
+                _, possiblyCompleted := state.PossiblyCompletedJobs[jobId]
+                if possiblyCompleted {
+                    finishedJobs = append(finishedJobs, job)
+                    delete(state.RunningJobs, jobId)
+                } else {
+                    state.PossiblyCompletedJobs[jobId] = struct{}{}
+                }
             }
+        } else {
         }
         resultsByCmdId[job.CmdId] = result
     }
@@ -665,6 +684,9 @@ func SlurmPollerWorkflow(ctx workflow.Context, state SlurmState) error {
     // These will be emtpy in initial incarnation but full after continue-as-new.
     if state.RunningJobs == nil {
         state.RunningJobs = make(map[string]SlurmJob)
+    }
+    if state.PossiblyCompletedJobs == nil {
+        state.PossiblyCompletedJobs = make(map[string]struct{})
     }
     if state.NumRetries == nil {
         state.NumRetries = make(map[int]int)

@@ -19,7 +19,10 @@ import (
 //  3. The child poller WF polls SLURM.
 //  4. The child poller WF gets the job outputs *only after* the job
 //     registers as COMPLETED (not when it is RUNNING or PENDING).
-//  5. The child poller WF signals the outputs to the caller WF.
+//  5. The child poller waits 1 cycle to verify the job still lists as
+//     COMPLETED; this is a bug in some SLURM systems where a job briefly
+//     lists as COMPLETED right after starting before showing up as RUNNING.
+//  6. The child poller WF signals the outputs to the caller WF.
 func TestSlurmResponse(t *testing.T) {
     var a SlurmActivity
     testSuite := &testsuite.WorkflowTestSuite{}
@@ -48,12 +51,13 @@ func TestSlurmResponse(t *testing.T) {
     stateAfterPoll := "PENDING"
     env.OnActivity(a.PollRemoteSlurmActivity, []string{jobId}).
         Return(func(jobIds []string) (map[string]SacctResult, error) {
-            require.NotEqual(t, stateBeforePoll, "COMPLETED")
             stateBeforePoll = stateAfterPoll
             switch stateAfterPoll {
             case "PENDING":
                 stateAfterPoll = "RUNNING"
             case "RUNNING":
+                stateAfterPoll = "COMPLETED"
+            case "COMPLETED":
                 stateAfterPoll = "COMPLETED"
             }
             return map[string]SacctResult{jobId: {JobId: jobId, State: stateBeforePoll}}, nil
