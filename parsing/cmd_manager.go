@@ -5,7 +5,17 @@ import (
 	"fmt"
 )
 
-type CmdManager struct {
+type CmdManager interface {
+	GetImageNames() []string
+	GetSuccCmds(
+		CmdTemplate, map[string]string, GlobFunc, bool,
+	) (map[int][]CmdTemplate, error)
+	IsComplete() bool
+	HasFailed() bool
+	GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, error)
+}
+
+type CmdManagerV0 struct {
 	state           *WorkflowExecutionState
 	jobConfig       JobConfig
 	currentMaxCmdId int
@@ -15,9 +25,9 @@ type CmdManager struct {
 }
 
 func NewCmdManager(
-	workflow Workflow, index WorkflowIndex, config JobConfig,
-) CmdManager {
-	var cmdMan CmdManager
+	workflow WorkflowV0, index WorkflowIndex, config JobConfig,
+) CmdManagerV0 {
+	var cmdMan CmdManagerV0
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
 	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
 	cmdMan.completedCmds = make(map[int]struct{})
@@ -30,15 +40,16 @@ func NewCmdManager(
 	return cmdMan
 }
 
-func (cmdMan *CmdManager) GetImageNames() []string {
+func (cmdMan *CmdManagerV0) GetImageNames() []string {
 	imageNames := make([]string, 0)
-	for _, node := range cmdMan.state.workflow.Nodes {
-		imageName := fmt.Sprintf("%s:%s", node.ImageName, node.ImageTag)
+	nodes := cmdMan.state.workflow.GetNodes()
+	for _, node := range nodes {
+		imageName := fmt.Sprintf("%s:%s", node.GetImageName(), node.GetImageTag())
 		imageNames = append(imageNames, imageName)
 	}
 	return imageNames
 }
-func (cmdMan *CmdManager) GetSuccCmds(
+func (cmdMan *CmdManagerV0) GetSuccCmds(
 	completedCmd CmdTemplate,
 	rawOutputs map[string]string,
 	glob GlobFunc,
@@ -57,20 +68,12 @@ func (cmdMan *CmdManager) GetSuccCmds(
 
 	cmdMan.completedCmds[completedCmd.Id] = struct{}{}
 	nodeId := inputParams.NodeId
-	node := cmdMan.state.workflow.Nodes[nodeId]
+	node, _ := cmdMan.state.workflow.GetNode(nodeId)
 	nodeRunId := fmt.Sprintf("%#v", inputParams.AncList)
 	delete(cmdMan.remainingIters[nodeId][nodeRunId], completedCmd.Id)
 
-	var outputTp TypedParams
-	for k, v := range rawOutputs {
-		argType, argTypeExists := node.ArgTypes[k]
-		if !argTypeExists {
-			continue
-		}
-		outputTp.AddSerializedParam(v, k, argType)
-	}
-
-	if !node.Async && len(cmdMan.remainingIters[nodeId][nodeRunId]) > 0 {
+	outputTp := node.ParseOutputs(rawOutputs)
+	if !node.IsAsync() && len(cmdMan.remainingIters[nodeId][nodeRunId]) > 0 {
 		return nil, nil
 	}
 
@@ -99,15 +102,15 @@ func (cmdMan *CmdManager) GetSuccCmds(
 	return cmds, err
 }
 
-func (cmdMan *CmdManager) IsComplete() bool {
+func (cmdMan *CmdManagerV0) IsComplete() bool {
 	return cmdMan.state.IsComplete()
 }
 
-func (cmdMan *CmdManager) HasFailed() bool {
+func (cmdMan *CmdManagerV0) HasFailed() bool {
 	return cmdMan.state.HasFailed()
 }
 
-func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, error) {
+func (cmdMan *CmdManagerV0) GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, error) {
 	initialParams, err := cmdMan.state.getInitialNodeParams()
 	if err != nil {
 		return nil, err
@@ -116,7 +119,7 @@ func (cmdMan *CmdManager) GetInitialCmds(glob GlobFunc) (map[int][]CmdTemplate, 
 	return cmdMan.getCmdsFromParams(initialParams, glob)
 }
 
-func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
+func resolvePqs(node WorkflowNodeV0, tp *TypedParams, glob GlobFunc) error {
 	for pname, argType := range node.ArgTypes {
 		if argType.ArgType == "patternQuery" {
 			shouldEval := (argType.Flag != nil || argType.Env != nil ||
@@ -132,21 +135,21 @@ func resolvePqs(node WorkflowNode, tp *TypedParams, glob GlobFunc) error {
 	return nil
 }
 
-func (cmdMan *CmdManager) getCmdsFromParams(
+func (cmdMan *CmdManagerV0) getCmdsFromParams(
 	nodeParams map[int][]NodeParams, glob GlobFunc,
 ) (map[int][]CmdTemplate, error) {
 	ret := make(map[int][]CmdTemplate, 0)
 	for nodeId, paramSets := range nodeParams {
-		node := cmdMan.state.workflow.Nodes[nodeId]
+		node, _ := cmdMan.state.workflow.GetNode(nodeId)
 		for _, paramSet := range paramSets {
-			if err := resolvePqs(node, &paramSet.Params, glob); err != nil {
+			if err := node.ResolveGlob(&paramSet.Params, glob); err != nil {
 				return nil, fmt.Errorf(
 					"error parsing node %d pattern queries: %s",
 					nodeId, err,
 				)
 			}
 
-			nodeCmds, err := ParseNodeCmd(node, paramSet.Params)
+			nodeCmds, err := node.ParseCmd(paramSet.Params)
 			if err != nil {
 				return nil, err
 			}

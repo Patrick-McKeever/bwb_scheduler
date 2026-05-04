@@ -1,27 +1,28 @@
 package parsing
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"os"
-	"regexp"
-	"strings"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "os"
+    "regexp"
+    "strings"
 )
 
 type ExecType int
+
 const (
-    EXEC_SLURM = iota
-    EXEC_LOCAL = iota
+    EXEC_SLURM    = iota
+    EXEC_LOCAL    = iota
     EXEC_TEMPORAL = iota
 )
 
 type SshConfig struct {
-    IpAddr       string     `json:"ip_addr"`
-    User         string     `json:"user"`
-    TransferAddr string     `json:"transfer_addr"`
-    SchedDir     string     `json:"sched_dir"`
-    CmdPrefix    *string    `json:"cmd_prefix"`
+    IpAddr       string  `json:"ip_addr"`
+    User         string  `json:"user"`
+    TransferAddr string  `json:"transfer_addr"`
+    SchedDir     string  `json:"sched_dir"`
+    CmdPrefix    *string `json:"cmd_prefix"`
 }
 
 type SlurmJobConfig struct {
@@ -37,12 +38,12 @@ type SlurmJobConfig struct {
 }
 
 type LocalJobConfig struct {
-    UseDocker   bool
+    UseDocker bool
 }
 
 type ConfigValue struct {
-    Executor    string                 `json:"executor"`
-    Annotations map[string]any         `json:"annotations,omitempty"`
+    Executor    string         `json:"executor"`
+    Annotations map[string]any `json:"annotations,omitempty"`
 }
 
 type RawJobConfig struct {
@@ -53,37 +54,37 @@ type RawJobConfig struct {
 }
 
 type JobConfig struct {
-    ExecTypeByNode          map[int]ExecType
-    SlurmExecutor           SshConfig
-    SlurmConfigsByNode      map[int]SlurmJobConfig
-    SlurmConfigsByName      map[string]SlurmJobConfig
+    ExecTypeByNode     map[int]ExecType
+    SlurmExecutor      SshConfig
+    SlurmConfigsByNode map[int]SlurmJobConfig
+    SlurmConfigsByName map[string]SlurmJobConfig
     // Currently, these executors take no user arguments, but
     // we mark them anyway in case we ever want to add any.
-    LocalExecutor           struct{}
-    LocalConfigsByNode      map[int]LocalJobConfig
-    LocalConfigsByName      map[string]LocalJobConfig
-    TemporalExecutor        struct{}
-    TemporalConfigsByNode   map[int]LocalJobConfig
-    TemporalConfigsByName   map[string]LocalJobConfig
+    LocalExecutor         struct{}
+    LocalConfigsByNode    map[int]LocalJobConfig
+    LocalConfigsByName    map[string]LocalJobConfig
+    TemporalExecutor      struct{}
+    TemporalConfigsByNode map[int]LocalJobConfig
+    TemporalConfigsByName map[string]LocalJobConfig
 }
 
 func ParseJobConfig(data []byte, jc *JobConfig) error {
     var jd RawJobConfig
     jd.originalJSON = data
-    
+
     var temp struct {
         Executors   map[string]interface{} `json:"executors"`
         Configs     map[string]interface{} `json:"configs"`
         NodeConfigs map[int]string         `json:"node_configs"`
     }
-    
+
     if err := json.Unmarshal(data, &temp); err != nil {
         return fmt.Errorf("failed to parse JSON structure: %w", err)
     }
-    
+
     jd.Executors = temp.Executors
     jd.NodeConfigs = temp.NodeConfigs
-    
+
     // Parse configs with proper type handling
     jd.Configs = make(map[string]ConfigValue)
     for key, rawValue := range temp.Configs {
@@ -91,14 +92,14 @@ func ParseJobConfig(data []byte, jc *JobConfig) error {
         if err != nil {
             return fmt.Errorf("failed to marshal config '%s': %w", key, err)
         }
-        
+
         var config ConfigValue
         if err := json.Unmarshal(configBytes, &config); err != nil {
             return fmt.Errorf("failed to parse config '%s': %w", key, err)
         }
         jd.Configs[key] = config
     }
-    
+
     jc.ExecTypeByNode = make(map[int]ExecType)
     jc.SlurmConfigsByName = make(map[string]SlurmJobConfig)
     jc.SlurmConfigsByNode = make(map[int]SlurmJobConfig)
@@ -113,19 +114,19 @@ func (jd *RawJobConfig) MarshalJSON() ([]byte, error) {
     if len(jd.originalJSON) > 0 {
         return jd.originalJSON, nil
     }
-    
+
     type MarshalDocument struct {
         Executors   map[string]interface{} `json:"executors"`
         Configs     map[string]ConfigValue `json:"configs"`
         NodeConfigs map[int]string         `json:"node_configs"`
     }
-    
+
     doc := MarshalDocument{
         Executors:   jd.Executors,
         Configs:     jd.Configs,
         NodeConfigs: jd.NodeConfigs,
     }
-    
+
     return json.MarshalIndent(doc, "", "  ")
 }
 
@@ -159,27 +160,29 @@ func (jd *RawJobConfig) validateExecutors(jc *JobConfig) error {
     for executorName, executorConfig := range jd.Executors {
         if !validExecutors[executorName] {
             errorMessages = append(errorMessages, fmt.Sprintf(
-                "invalid executor '%s': must be one of 'local', 'slurm', or 'temporal'", 
+                "invalid executor '%s': must be one of 'local', 'slurm', or 'temporal'",
                 executorName,
             ))
             continue
         }
 
         switch executorName {
-        case "slurm": {
-            if err := jd.validateSshConfig(jc, executorConfig, executorName); err != nil {
-                errorMessages = append(errorMessages, err.Error())
+        case "slurm":
+            {
+                if err := jd.validateSshConfig(jc, executorConfig, executorName); err != nil {
+                    errorMessages = append(errorMessages, err.Error())
+                }
             }
-        }
-        case "local", "temporal": {
-            configMap, ok := executorConfig.(map[string]any)
-            if !ok || (ok && len(configMap) > 0) {
-                errorMessages = append(errorMessages, fmt.Sprintf(
-                    "executor '%s' must be an empty dictionary, got: %v", 
-                    executorName, executorConfig,
-                ))
+        case "local", "temporal":
+            {
+                configMap, ok := executorConfig.(map[string]any)
+                if !ok || (ok && len(configMap) > 0) {
+                    errorMessages = append(errorMessages, fmt.Sprintf(
+                        "executor '%s' must be an empty dictionary, got: %v",
+                        executorName, executorConfig,
+                    ))
+                }
             }
-        }
         }
     }
 
@@ -195,7 +198,7 @@ func (jd *RawJobConfig) validateSshConfig(
     configBytes, err := json.Marshal(config)
     if err != nil {
         return fmt.Errorf(
-            "failed to marshal SSH config for executor '%s': %w", 
+            "failed to marshal SSH config for executor '%s': %w",
             executorName, err,
         )
     }
@@ -210,25 +213,25 @@ func (jd *RawJobConfig) validateSshConfig(
     // Validate required fields
     if sshConfig.IpAddr == "" {
         return fmt.Errorf(
-            "SSH config for executor '%s' missing required field 'ip_addr'", 
+            "SSH config for executor '%s' missing required field 'ip_addr'",
             executorName,
         )
     }
     if sshConfig.User == "" {
         return fmt.Errorf(
-            "SSH config for executor '%s' missing required field 'user'", 
+            "SSH config for executor '%s' missing required field 'user'",
             executorName,
         )
     }
     if sshConfig.TransferAddr == "" {
         return fmt.Errorf(
-            "SSH config for executor '%s' missing required field 'transfer_addr'", 
+            "SSH config for executor '%s' missing required field 'transfer_addr'",
             executorName,
         )
     }
     if sshConfig.SchedDir == "" {
         return fmt.Errorf(
-            "SSH config for executor '%s' missing required field 'sched_dir'", 
+            "SSH config for executor '%s' missing required field 'sched_dir'",
             executorName,
         )
     }
@@ -244,7 +247,7 @@ func (jd *RawJobConfig) validateConfigs(jc *JobConfig) error {
         // Validate executor reference
         if _, exists := jd.Executors[configValue.Executor]; !exists {
             errorMessages = append(errorMessages, fmt.Sprintf(
-                "config '%s' references non-existent executor '%s'", 
+                "config '%s' references non-existent executor '%s'",
                 configName, configValue.Executor,
             ))
             continue
@@ -279,9 +282,9 @@ func validateWalltimeStr(walltime string) error {
     }
     return fmt.Errorf(
         "invalid time format: %q (expected Slurm walltime); "+
-        "acceptable time formats include 'minutes', 'minutes:seconds', " +
-        "'hours:minutes:seconds', 'days-hours', 'days-hours:minutes', " +
-        "and 'days-hours:minutes:seconds'", walltime,
+            "acceptable time formats include 'minutes', 'minutes:seconds', "+
+            "'hours:minutes:seconds', 'days-hours', 'days-hours:minutes', "+
+            "and 'days-hours:minutes:seconds'", walltime,
     )
 }
 
@@ -289,9 +292,9 @@ func validateMemStr(memStr string) error {
     memoryRegex := regexp.MustCompile(`^\d+([KMGTP])?$`)
     if !memoryRegex.MatchString(memStr) {
         return fmt.Errorf(
-            "invalid memory string %q; expected number followed by optional " +
-            "K, M, G, or T suffix (if suffix omitted, units are read " +
-            "as MB)", memStr,
+            "invalid memory string %q; expected number followed by optional "+
+                "K, M, G, or T suffix (if suffix omitted, units are read "+
+                "as MB)", memStr,
         )
     }
     return nil
@@ -310,7 +313,7 @@ func (jd *RawJobConfig) validateAnnotations(
             return nil
         }
         return fmt.Errorf(
-            "config '%s' with slurm executor requires annotations", 
+            "config '%s' with slurm executor requires annotations",
             configName,
         )
     }
@@ -319,7 +322,7 @@ func (jd *RawJobConfig) validateAnnotations(
     annotationsBytes, err := json.Marshal(configValue.Annotations)
     if err != nil {
         return fmt.Errorf(
-            "failed to marshal annotations for config '%s': %w", 
+            "failed to marshal annotations for config '%s': %w",
             configName, err,
         )
     }
@@ -329,7 +332,7 @@ func (jd *RawJobConfig) validateAnnotations(
         var localConfig LocalJobConfig
         if err := json.Unmarshal(annotationsBytes, &localConfig); err != nil {
             return fmt.Errorf(
-                "invalid LocalJobConfig annotations for config '%s': %w", 
+                "invalid LocalJobConfig annotations for config '%s': %w",
                 configName, err,
             )
         }
@@ -344,15 +347,15 @@ func (jd *RawJobConfig) validateAnnotations(
     var slurmConfig SlurmJobConfig
     if err := json.Unmarshal(annotationsBytes, &slurmConfig); err != nil {
         return fmt.Errorf(
-            "invalid SlurmJobConfig annotations for config '%s': %w", 
+            "invalid SlurmJobConfig annotations for config '%s': %w",
             configName, err,
         )
     }
 
     if slurmConfig.Partition == nil {
         return fmt.Errorf(
-            "invalid SlurmJobConfig annotatins for config '%s'; " +
-            "must have 'partition' key", configName,
+            "invalid SlurmJobConfig annotatins for config '%s'; "+
+                "must have 'partition' key", configName,
         )
     }
 
@@ -378,7 +381,7 @@ func (jd *RawJobConfig) validateNodeConfigs(jc *JobConfig) error {
     for nodeID, configName := range jd.NodeConfigs {
         if _, exists := jd.Configs[configName]; !exists {
             errorMessages = append(errorMessages, fmt.Sprintf(
-                "node_configs references non-existent config '%s' for node %d", 
+                "node_configs references non-existent config '%s' for node %d",
                 configName, nodeID,
             ))
         }
@@ -395,8 +398,8 @@ func (jd *RawJobConfig) validateNodeConfigs(jc *JobConfig) error {
             jc.TemporalConfigsByNode[nodeID] = config
         } else {
             return fmt.Errorf(
-                "config name %s exists in raw document but has not been parsed " +
-                "into JobConfig struct", configName,
+                "config name %s exists in raw document but has not been parsed "+
+                    "into JobConfig struct", configName,
             )
         }
     }
@@ -424,7 +427,7 @@ func ParseAndValidateJobConfigFile(file string) (JobConfig, error) {
     return ParseAndValidateJobConfig(fileStream)
 }
 
-func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
+func GetDefaultConfig(wf WorkflowV0, noTemporal bool) JobConfig {
     var jc JobConfig
     if noTemporal {
         jc.LocalConfigsByName = map[string]LocalJobConfig{
@@ -455,10 +458,10 @@ func GetElideableDownloads(
 ) map[string]struct{} {
     elideableXfers := make(map[string]struct{})
     for _, inLink := range idx.InLinks[nodeId] {
-        inPname := inLink.SinkChannel
-        srcNode := inLink.SourceNodeId
-        argType := wf.Nodes[nodeId].ArgTypes[inPname]
-        if argType.InputFile != nil && *argType.InputFile {
+        inPname := inLink.GetSinkPname()
+        srcNode := inLink.GetSrcId()
+        node, _ := wf.GetNode(nodeId)
+        if node.ArgIsInputFile(inPname) {
             if config.ExecTypeByNode[nodeId] == config.ExecTypeByNode[srcNode] {
                 elideableXfers[inPname] = struct{}{}
             }
@@ -472,10 +475,10 @@ func GetElideableUploads(
 ) map[string]struct{} {
     elideableXfers := make(map[string]struct{})
     for _, outLink := range idx.OutLinks[nodeId] {
-        outPname := outLink.SourceChannel
-        sinkNode := outLink.SinkNodeId
-        argType := wf.Nodes[nodeId].ArgTypes[outPname]
-        if argType.OutputFile != nil && *argType.OutputFile {
+        outPname := outLink.GetSinkPname()
+        sinkNode := outLink.GetSinkId()
+        node, _ := wf.GetNode(nodeId)
+        if node.ArgIsOutputFile(outPname) {
             if config.ExecTypeByNode[nodeId] == config.ExecTypeByNode[sinkNode] {
                 elideableXfers[outPname] = struct{}{}
             }
@@ -489,10 +492,7 @@ func RemoveElideableFileXfers(
 ) {
     elideableDownloads := GetElideableDownloads(wf, cmd.NodeId, idx, config)
     for inFilePname := range cmd.InFiles {
-        // Pattern queries are evaluated on the same FS as the CMD is run
-        // so there is no need to stage files
-        isPquery := wf.Nodes[cmd.NodeId].ArgTypes[inFilePname].ArgType == "patternQuery"
-        if _, canElide := elideableDownloads[inFilePname]; canElide || isPquery {
+        if _, canElide := elideableDownloads[inFilePname]; canElide {
             delete(cmd.InFiles, inFilePname)
         }
     }

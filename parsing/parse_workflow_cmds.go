@@ -150,7 +150,7 @@ func copyCmdTemplate(template CmdTemplate) CmdTemplate {
     return newTemplate
 }
 
-func getRequiredParams(node WorkflowNode) map[string]bool {
+func getRequiredParams(node WorkflowNodeV0) map[string]bool {
     reqParams := make(map[string]bool)
     for _, pname := range node.RequiredParams {
         reqParams[pname] = true
@@ -158,7 +158,7 @@ func getRequiredParams(node WorkflowNode) map[string]bool {
     return reqParams
 }
 
-func getIterAttrs(node WorkflowNode, reqParams map[string]bool) map[string]bool {
+func getIterAttrs(node WorkflowNodeV0, reqParams map[string]bool) map[string]bool {
     if !node.Iterate {
         return map[string]bool{}
     }
@@ -500,7 +500,7 @@ func (tp *TypedParams) AddParam(
     return nil
 }
 
-func performPqSubs(pq *PatternQuery, node WorkflowNode, tp TypedParams) error {
+func performPqSubs(pq *PatternQuery, node WorkflowNodeV0, tp TypedParams) error {
     for _, strPtr := range []*string{&pq.Root, &pq.Pattern} {
         subs := getCmdSubs(*strPtr)
         if len(subs) == 0 {
@@ -539,7 +539,7 @@ func performPqSubs(pq *PatternQuery, node WorkflowNode, tp TypedParams) error {
 }
 
 func (tp *TypedParams) ResolvePq(
-    pname string, node WorkflowNode, glob GlobFunc,
+    pname string, node WorkflowNodeV0, glob GlobFunc,
 ) error {
     if _, alreadyResolved := tp.StrLists[pname]; alreadyResolved {
         return nil
@@ -565,7 +565,7 @@ func (tp *TypedParams) ResolvePq(
 }
 
 func parseTypedParams(
-    node WorkflowNode, props map[string]any,
+    node WorkflowNodeV0, props map[string]any,
 ) (TypedParams, error) {
     var tp TypedParams
     tp.Bools = make(map[string]bool)
@@ -676,7 +676,7 @@ func getEnvValStr(pname string, argType string, tp TypedParams) (string, error) 
 // Evaluate non-iterable, non-pattern query env vars, populate template.Envs with
 // serialized env var values.
 func evaluateEnvVars(
-    node WorkflowNode, template *CmdTemplate,
+    node WorkflowNodeV0, template *CmdTemplate,
     tp TypedParams, reqParams, iterAttrs map[string]bool,
 ) error {
     template.Envs = make(map[string]string)
@@ -838,7 +838,7 @@ func getArgStr(pname string, argType WorkflowArgType, tp TypedParams, isFlag boo
 }
 
 func evaluateFlags(
-    node WorkflowNode, template *CmdTemplate,
+    node WorkflowNodeV0, template *CmdTemplate,
     tp TypedParams, reqParams, iterAttrs,
     varsToIgnore map[string]bool,
 ) error {
@@ -872,7 +872,7 @@ func evaluateFlags(
 }
 
 func evaluateArgs(
-    node WorkflowNode, template *CmdTemplate,
+    node WorkflowNodeV0, template *CmdTemplate,
     tp TypedParams, reqParams, iterAttrs,
     shouldIgnore map[string]bool,
 ) error {
@@ -910,7 +910,7 @@ func evaluateArgs(
 }
 
 func evaluateInOutFiles(
-    node WorkflowNode, template *CmdTemplate,
+    node WorkflowNodeV0, template *CmdTemplate,
     tp TypedParams, iterAttrs map[string]bool,
 ) error {
     template.InFiles = make(map[string][]string)
@@ -1058,7 +1058,7 @@ func getIterableGroupStr[T any](groups [][]T, isEnv bool) []string {
 *
 **/
 func processIterableAttr[T any](
-    typedProps map[string][]T, node WorkflowNode, reqParams map[string]bool,
+    typedProps map[string][]T, node WorkflowNodeV0, reqParams map[string]bool,
     argType WorkflowArgType, pname string, groupSize int,
     envStrs, argStrs, flagStrs map[string][]string,
 ) ([][]T, error) {
@@ -1105,7 +1105,7 @@ func processIterableAttr[T any](
 }
 
 func evaluateIterables(
-    node WorkflowNode, template CmdTemplate,
+    node WorkflowNodeV0, template CmdTemplate,
     tp TypedParams, reqParams map[string]bool,
 ) ([]CmdTemplate, error) {
     if !node.Iterate || len(node.IterAttrs) == 0 {
@@ -1267,7 +1267,7 @@ func getCmdSubs(cmd string) map[int]CmdSub {
     return ret
 }
 func performCmdSubs(
-    node WorkflowNode, template *CmdTemplate, nonIterVals TypedParams,
+    node WorkflowNodeV0, template *CmdTemplate, nonIterVals TypedParams,
     iterAttrs map[string]bool, skipIters bool,
 ) (map[string]bool, error) {
     revisedCmds := make([]string, len(node.Command))
@@ -1330,7 +1330,7 @@ func performCmdSubs(
     return subbedVars, nil
 }
 
-func ParseNodeCmd(node WorkflowNode, tp TypedParams) ([]CmdTemplate, error) {
+func ParseNodeCmdV0(node WorkflowNodeV0, tp TypedParams) ([]CmdTemplate, error) {
     nodeId := node.Id
     var template CmdTemplate
     template.NodeId = node.Id
@@ -1502,19 +1502,19 @@ func FormDockerCmd(
     return fullCmd, []string{}
 }
 
-func DryRun(workflow Workflow) ([]string, error) {
-    inLinks, _, err := getInAndOutLinks(workflow)
+func DryRun(workflow WorkflowV0) ([]string, error) {
+    inLinks, _, err := getInAndOutLinks(&workflow)
     if err != nil {
         return nil, err
     }
 
     var cmdStrs []string
-    topSort, err := topSort(workflow)
+    topSort, err := topSort(&workflow)
     if err != nil {
         return nil, fmt.Errorf("failed top sort: %s", err)
     }
 
-    if _, err := ParseAndValidateWorkflow(workflow); err != nil {
+    if _, err := ParseAndValidateWorkflow(&workflow); err != nil {
         return nil, fmt.Errorf("failed building index: %s", err)
     }
 
@@ -1536,11 +1536,11 @@ func DryRun(workflow Workflow) ([]string, error) {
             if hasIncomingLink {
                 if pnameIsIterable {
                     revisedProps[pname] = fmt.Sprintf(
-                        "ITERABLE{%d.%s}", inLink.SourceNodeId, inLink.SourceChannel,
+                        "ITERABLE{%d.%s}", inLink.GetSrcId(), inLink.GetSrcPname(),
                     )
                 } else {
                     revisedProps[pname] = fmt.Sprintf(
-                        "{%d.%s}", inLink.SourceNodeId, inLink.SourceChannel,
+                        "{%d.%s}", inLink.GetSrcId(), inLink.GetSrcPname(),
                     )
                 }
                 argTypeEntry := revisedNode.ArgTypes[pname]
@@ -1608,7 +1608,7 @@ func DryRun(workflow Workflow) ([]string, error) {
         // There are no pattern queries to parse (we converted all PQ argtypes
         // to str lists), so we can safely pass a DummyFS which returns nothing
         // when queried.
-        cmdTemplates, cmdErrs := ParseNodeCmd(revisedNode, tp)
+        cmdTemplates, cmdErrs := ParseNodeCmdV0(revisedNode, tp)
         if cmdErrs != nil {
             return nil, fmt.Errorf("error parsing cmds: %s", cmdErrs)
         }
@@ -1621,16 +1621,16 @@ func DryRun(workflow Workflow) ([]string, error) {
     return cmdStrs, nil
 }
 
-func validateWorkflow(workflow Workflow) error {
+func validateWorkflow(workflow WorkflowV0) error {
     // dstNode -> dstPname -> srcNode
-    idToNode := make(map[int]WorkflowNode)
+    idToNode := make(map[int]WorkflowNodeV0)
     for _, node := range workflow.Nodes {
         idToNode[node.Id] = node
     }
 
     // Verify that link values names correspond to actual nodes parameters.
     // Populate inLinks map for easy lookup of incoming links.
-    inLinks, _, err := getInAndOutLinks(workflow)
+    inLinks, _, err := getInAndOutLinks(&workflow)
     if err != nil {
         return err
     }

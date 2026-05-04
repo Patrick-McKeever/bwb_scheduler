@@ -38,7 +38,7 @@ func getSuccInputsOrFail(
 }
 
 func getArgTypesOrFail(
-	t *testing.T, pname string, nodeId int, workflow Workflow,
+	t *testing.T, pname string, nodeId int, workflow WorkflowV0,
 ) WorkflowArgType {
 	// Panic on misformed inputs, since this indicates bad test setup.
 	node, nodeExists := workflow.Nodes[nodeId]
@@ -62,7 +62,7 @@ func getArgTypesOrFail(
 
 func getKeyOrFail(
 	t *testing.T, pname string, nodeId int,
-	params TypedParams, workflow Workflow,
+	params TypedParams, workflow WorkflowV0,
 ) any {
 	pnameArgTypes := getArgTypesOrFail(t, pname, nodeId, workflow)
 	val, ok := params.LookupParam(pname, pnameArgTypes)
@@ -77,7 +77,7 @@ func getKeyOrFail(
 
 func genArbitraryOutputs(
 	t *testing.T, pname string, numVals int,
-	startVal int, nodeId int, workflow Workflow,
+	startVal int, nodeId int, workflow WorkflowV0,
 ) []TypedParams {
 	pnameArgTypes := getArgTypesOrFail(t, pname, nodeId, workflow)
 
@@ -151,8 +151,8 @@ func getEligibleSuccessors(
 // it only returns new jobs once. This is relevant, because an async job can
 // call this twice for multiple commands generated from the same ancestor list.
 func TestNonRedundancy(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: false,
 				ArgTypes: map[string]WorkflowArgType{
@@ -170,7 +170,7 @@ func TestNonRedundancy(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -180,7 +180,7 @@ func TestNonRedundancy(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -218,8 +218,8 @@ func TestNonRedundancy(t *testing.T) {
 // node 2, then the values received from async node 1 should
 // be constant, even though the values of 2 vary.
 func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: false,
 				ArgTypes: map[string]WorkflowArgType{
@@ -248,7 +248,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    3,
@@ -264,7 +264,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -319,8 +319,8 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 // generate a set of inputs for each combination of outputs of
 // 2 and 3.
 func TestMultipleAsyncTransfer(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -349,7 +349,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    3,
@@ -371,7 +371,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -443,8 +443,8 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 }
 
 func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -487,7 +487,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -521,7 +521,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -616,8 +616,8 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 // have one input set for each iteration of its async ancestor 1, even though
 // it does not share a link with it.
 func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -643,7 +643,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -659,7 +659,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -710,8 +710,8 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 
 func TestSimpleBarrier(t *testing.T) {
 	lvalFor1 := 1
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -741,7 +741,7 @@ func TestSimpleBarrier(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -757,7 +757,7 @@ func TestSimpleBarrier(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -802,8 +802,8 @@ func TestSimpleBarrier(t *testing.T) {
 
 func TestBarrierReduction(t *testing.T) {
 	lvalFor1 := 1
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -833,7 +833,7 @@ func TestBarrierReduction(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -849,7 +849,7 @@ func TestBarrierReduction(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -915,8 +915,8 @@ func TestBarrierReduction(t *testing.T) {
 func TestMultipleBarrier(t *testing.T) {
 	lvalFor0 := 0
 	lvalFor1 := 1
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			0: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -972,7 +972,7 @@ func TestMultipleBarrier(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  0,
 				SinkNodeId:    1,
@@ -1012,7 +1012,7 @@ func TestMultipleBarrier(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -1122,8 +1122,8 @@ func TestMultipleBarrier(t *testing.T) {
 }
 
 func TestSimpleWorkflowCompletion(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: false,
 				ArgTypes: map[string]WorkflowArgType{
@@ -1141,7 +1141,7 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -1151,7 +1151,7 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -1182,8 +1182,8 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 }
 
 func TestAsyncWorkflowCompletion(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -1212,7 +1212,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    3,
@@ -1234,7 +1234,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -1291,8 +1291,8 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 }
 
 func TestAsyncWorkflowFailure(t *testing.T) {
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -1321,7 +1321,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    3,
@@ -1343,7 +1343,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}
@@ -1419,8 +1419,8 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 // registers as failed from the moment of the first failure.
 func TestWorkflowFailureWithBarrier(t *testing.T) {
 	lvalFor1 := 1
-	workflow := Workflow{
-		Nodes: map[int]WorkflowNode{
+	workflow := WorkflowV0{
+		Nodes: map[int]WorkflowNodeV0{
 			1: {
 				Async: true,
 				ArgTypes: map[string]WorkflowArgType{
@@ -1455,7 +1455,7 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 				},
 			},
 		},
-		Links: []WorkflowLink{
+		Links: []WorkflowLinkV0{
 			{
 				SourceNodeId:  1,
 				SinkNodeId:    2,
@@ -1477,7 +1477,7 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 		},
 	}
 
-	index, err := ParseAndValidateWorkflow(workflow)
+	index, err := ParseAndValidateWorkflow(&workflow)
 	if err != nil {
 		t.Fatalf("could not build index: %s", err)
 	}

@@ -62,13 +62,6 @@ type OwsRawNodeProps struct {
     RawStr  []byte   `xml:",chardata"`
 }
 
-type WorkflowLink struct {
-    SourceNodeId  int
-    SinkNodeId    int
-    SourceChannel string
-    SinkChannel   string
-}
-
 type WorkflowArgType struct {
     ArgType    string      `json:"type"`
     IsArgument *bool       `json:"argument"`
@@ -113,33 +106,8 @@ type ResourceVector struct {
     Gpus  int
 }
 
-type WorkflowNode struct {
-    Id        int
-    ImageName string
-    ImageTag  string
-    Title     string
-    Command   []string
-    ArgTypes  map[string]WorkflowArgType
-    //BaseProps      map[string]interface{}
-    ArgOrder       []string
-    OptionsChecked map[string]bool
-    RequiredParams []string
-    ResourceReqs   ResourceVector
-    Async          bool
-    BarrierFor     *int
-    Iterate        bool
-    IterGroupSize  map[string]int
-    IterAttrs      []string
-}
-
-type Workflow struct {
-    Nodes         map[int]WorkflowNode
-    NodeBaseProps map[int]map[string]any
-    Links         []WorkflowLink
-}
-
-func copyWorkflowNode(node WorkflowNode) WorkflowNode {
-    nodeCopy := WorkflowNode{
+func copyWorkflowNode(node WorkflowNodeV0) WorkflowNodeV0 {
+    nodeCopy := WorkflowNodeV0{
         Id:           node.Id,
         ImageName:    node.ImageName,
         ImageTag:     node.ImageTag,
@@ -173,7 +141,7 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
         Parameters     struct {
             PyReduce []interface{} `json:"py/reduce"`
         } `json:"parameters"`
-        Outputs        struct {
+        Outputs struct {
             PyReduce []interface{} `json:"py/reduce"`
         } `json:"outputs"`
     }
@@ -259,7 +227,7 @@ func (node *BwbJsonWorkflowNode) UnmarshalJSON(data []byte) error {
         // In all workflows I've seen, output variables are strings.
         trimmedKey := strings.TrimSpace(key)
         if _, argTypeAlreadyExists := node.ArgTypes[trimmedKey]; !argTypeAlreadyExists {
-            node.ArgTypes[trimmedKey] = WorkflowArgType{ ArgType: "string" }
+            node.ArgTypes[trimmedKey] = WorkflowArgType{ArgType: "string"}
         }
     }
 
@@ -405,9 +373,9 @@ func parseNodeProps(node_props OwsRawNodeProps) (XmlNodeInfo, error) {
 
 func parseWorkflowNode(
     jsonWorkflowNode BwbJsonWorkflowNode, props OwsRawNodeProps,
-) (WorkflowNode, map[string]any, error) {
+) (WorkflowNodeV0, map[string]any, error) {
     nodeId := props.NodeId
-    var workflowNode WorkflowNode
+    var workflowNode WorkflowNodeV0
 
     workflowNode.Id = props.NodeId
     workflowNode.Title = jsonWorkflowNode.Title
@@ -459,8 +427,8 @@ func parseWorkflowNode(
 
         if err := tp.AddParam(v, k, argType); err != nil {
             fmt.Printf(
-                "WARNING: Value %v for node %d, param %s conflicts with " +
-                "stated arg type %s; adding default value.\n", v, nodeId, k,
+                "WARNING: Value %v for node %d, param %s conflicts with "+
+                    "stated arg type %s; adding default value.\n", v, nodeId, k,
                 argType.ArgType,
             )
             baseProps[k] = nil
@@ -484,12 +452,12 @@ func parseWorkflowNode(
     return workflowNode, baseProps, nil
 }
 
-func PropagateArgTypes(workflow *Workflow) error {
-    inLinks, outLinks, err := getInAndOutLinks(*workflow)
+func PropagateArgTypes(workflow *WorkflowV0) error {
+    inLinks, outLinks, err := getInAndOutLinks(workflow)
     if err != nil {
         return err
     }
-    layeredTopSort, err := layeredTopSort(*workflow)
+    layeredTopSort, err := layeredTopSort(workflow)
     if err != nil {
         return err
     }
@@ -498,7 +466,7 @@ func PropagateArgTypes(workflow *Workflow) error {
         for _, nodeId := range layeredTopSort[i] {
             nodeCopy := workflow.Nodes[nodeId]
             for pname, inLink := range inLinks[nodeId] {
-                srcNode, srcNodeExists := workflow.Nodes[inLink.SourceNodeId]
+                srcNode, srcNodeExists := workflow.Nodes[inLink.GetSrcId()]
                 if !srcNodeExists {
                     return fmt.Errorf("src node does not exist in link %v", inLink)
                 }
@@ -508,7 +476,7 @@ func PropagateArgTypes(workflow *Workflow) error {
                 }
 
                 if _, srcHasArgType := nodeCopy.ArgTypes[pname]; !srcHasArgType {
-                    srcArgType, srcArgTypeExists := srcNode.ArgTypes[inLink.SourceChannel]
+                    srcArgType, srcArgTypeExists := srcNode.ArgTypes[inLink.GetSrcPname()]
                     if !srcArgTypeExists {
                         continue
                     }
@@ -524,7 +492,7 @@ func PropagateArgTypes(workflow *Workflow) error {
         for _, nodeId := range layeredTopSort[i] {
             nodeCopy := workflow.Nodes[nodeId]
             for pname, outLink := range outLinks[nodeId] {
-                sinkNode, sinkNodeExists := workflow.Nodes[outLink.SinkNodeId]
+                sinkNode, sinkNodeExists := workflow.Nodes[outLink.GetSinkId()]
                 if !sinkNodeExists {
                     return fmt.Errorf("sink node does not exist in link %v", outLink)
                 }
@@ -534,7 +502,7 @@ func PropagateArgTypes(workflow *Workflow) error {
                 }
 
                 if _, sinkHasArgType := nodeCopy.ArgTypes[pname]; !sinkHasArgType {
-                    sinkArgType, sinkArgTypeExists := sinkNode.ArgTypes[outLink.SinkChannel]
+                    sinkArgType, sinkArgTypeExists := sinkNode.ArgTypes[outLink.GetSinkPname()]
                     if !sinkArgTypeExists {
                         continue
                     }
@@ -546,13 +514,12 @@ func PropagateArgTypes(workflow *Workflow) error {
         }
     }
 
-
     for _, linkList := range inLinks {
         for _, link := range linkList {
-            srcNode := link.SourceNodeId
-            sinkNode := link.SinkNodeId
-            srcChan := link.SourceChannel
-            sinkChan := link.SinkChannel
+            srcNode := link.GetSrcId()
+            sinkNode := link.GetSinkId()
+            srcChan := link.GetSrcPname()
+            sinkChan := link.GetSinkPname()
             if _, validSrcChan := workflow.Nodes[srcNode].ArgTypes[srcChan]; !validSrcChan {
                 return fmt.Errorf(
                     "link from %d.%s -> %d.%s has invalid source channel %s",
@@ -564,8 +531,8 @@ func PropagateArgTypes(workflow *Workflow) error {
     return nil
 }
 
-func ParseWorkflow(workflowDir string) (Workflow, error) {
-    var workflow Workflow
+func ParseWorkflow(workflowDir string) (WorkflowV0, error) {
+    var workflow WorkflowV0
     var ows OwsScheme
 
     workflowName := filepath.Base(workflowDir)
@@ -592,7 +559,7 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
         nodeIdToName[node.Id] = node.Name
     }
 
-    workflow.Nodes = make(map[int]WorkflowNode)
+    workflow.Nodes = make(map[int]WorkflowNodeV0)
     workflow.NodeBaseProps = make(map[int]map[string]any)
     for _, nodeProps := range ows.NodeProps.NodeProps {
         nodeId := nodeProps.NodeId
@@ -627,7 +594,7 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
     }
 
     for _, owsLink := range ows.Links.Links {
-        workflow.Links = append(workflow.Links, WorkflowLink{
+        workflow.Links = append(workflow.Links, WorkflowLinkV0{
             SourceNodeId:  owsLink.SourceNodeId,
             SinkNodeId:    owsLink.SinkNodeId,
             SourceChannel: owsLink.SourceChannel,
@@ -636,12 +603,11 @@ func ParseWorkflow(workflowDir string) (Workflow, error) {
     }
 
     if err := PropagateArgTypes(&workflow); err != nil {
-        return Workflow{}, fmt.Errorf("error propagating arg types: %s", err)
+        return WorkflowV0{}, fmt.Errorf("error propagating arg types: %s", err)
     }
 
     return workflow, nil
 }
-
 
 func PrettyPrint(v interface{}) {
     b, err := json.MarshalIndent(v, "", "  ")

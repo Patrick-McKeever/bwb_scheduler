@@ -88,33 +88,34 @@ func getInAndOutLinks(
     // NOTE: There is no stipulation in BWB / OWS that a sink channel
     //       corresponds to a parameter entry or ArgType entry of the
     //       sink node, so we can't check that.
-    for _, link := range workflow.Links {
-        srcNode := link.SourceNodeId
-        srcChan := link.SourceChannel
-        sinkNode := link.SinkNodeId
-        sinkChan := link.SinkChannel
-        if _, validSrc := workflow.Nodes[srcNode]; !validSrc {
+    links := workflow.GetLinks()
+    for _, link := range links {
+        srcNode := link.GetSrcId()
+        srcChan := link.GetSrcPname()
+        sinkNode := link.GetSinkId()
+        sinkChan := link.GetSinkPname()
+        if ! workflow.NodeExists(srcNode) {
             return nil, nil, fmt.Errorf(
                 "link from %d.%s -> %d.%s has invalid source %d",
                 srcNode, srcChan, sinkNode, sinkChan, srcNode,
             )
         }
 
-        if _, validSink := workflow.Nodes[sinkNode]; !validSink {
+        if ! workflow.NodeExists(sinkNode) {
             return nil, nil, fmt.Errorf(
                 "link from %d.%s -> %d.%s has invalid sink %d",
                 srcNode, srcChan, sinkNode, sinkChan, sinkNode,
             )
         }
 
-        if inLinks[link.SinkNodeId] == nil {
-            inLinks[link.SinkNodeId] = make(map[string]WorkflowLink)
+        if inLinks[link.GetSinkId()] == nil {
+            inLinks[link.GetSinkId()] = make(map[string]WorkflowLink)
         }
-        if outLinks[link.SourceNodeId] == nil {
-            outLinks[link.SourceNodeId] = make(map[string]WorkflowLink)
+        if outLinks[link.GetSrcId()] == nil {
+            outLinks[link.GetSrcId()] = make(map[string]WorkflowLink)
         }
-        inLinks[link.SinkNodeId][link.SinkChannel] = link
-        outLinks[link.SourceNodeId][link.SourceChannel] = link
+        inLinks[link.GetSinkId()][link.GetSinkPname()] = link
+        outLinks[link.GetSrcId()][link.GetSrcPname()] = link
     }
 
     return inLinks, outLinks, nil
@@ -125,14 +126,14 @@ func layeredTopSort(workflow Workflow) ([][]int, error) {
     indegree := make(map[int]int)
     nodes := make(map[int]bool)
 
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         graph[nodeId] = make([]int, 0)
         indegree[nodeId] = 0
         nodes[nodeId] = true
     }
 
-    for _, link := range workflow.Links {
-        u, v := link.SourceNodeId, link.SinkNodeId
+    for _, link := range workflow.GetLinks() {
+        u, v := link.GetSrcId(), link.GetSinkId()
         graph[u] = append(graph[u], v)
         indegree[v]++
     }
@@ -179,12 +180,12 @@ func topSort(workflow Workflow) ([]int, error) {
         return nil, nil
     }
 
-    topSort := make([]int, 0, len(workflow.Nodes))
+    topSort := make([]int, 0, workflow.GetNumNodes())
     for _, layer := range layeredTopSort {
         topSort = append(topSort, layer...)
     }
 
-    if len(topSort) != len(workflow.Nodes) {
+    if len(topSort) != workflow.GetNumNodes() {
         return nil, fmt.Errorf("layered top sort has incorrect length")
     }
 
@@ -201,13 +202,13 @@ func getAncestorsAndDescendants(
         layer := topSort[i]
         for _, sourceNode := range layer {
             for _, outLink := range outLinks[sourceNode] {
-                if ancestorOf[outLink.SinkNodeId] == nil {
-                    ancestorOf[outLink.SinkNodeId] = make(map[int]struct{})
+                if ancestorOf[outLink.GetSinkId()] == nil {
+                    ancestorOf[outLink.GetSinkId()] = make(map[int]struct{})
                 }
 
-                ancestorOf[outLink.SinkNodeId][sourceNode] = struct{}{}
+                ancestorOf[outLink.GetSinkId()][sourceNode] = struct{}{}
                 for anc := range ancestorOf[sourceNode] {
-                    ancestorOf[outLink.SinkNodeId][anc] = struct{}{}
+                    ancestorOf[outLink.GetSinkId()][anc] = struct{}{}
                 }
             }
         }
@@ -219,13 +220,13 @@ func getAncestorsAndDescendants(
         layer := topSort[i]
         for _, sinkNode := range layer {
             for _, inLink := range inLinks[sinkNode] {
-                if descendantOf[inLink.SourceNodeId] == nil {
-                    descendantOf[inLink.SourceNodeId] = make(map[int]struct{})
+                if descendantOf[inLink.GetSrcId()] == nil {
+                    descendantOf[inLink.GetSrcId()] = make(map[int]struct{})
                 }
 
-                descendantOf[inLink.SourceNodeId][sinkNode] = struct{}{}
+                descendantOf[inLink.GetSrcId()][sinkNode] = struct{}{}
                 for desc := range descendantOf[sinkNode] {
-                    descendantOf[inLink.SourceNodeId][desc] = struct{}{}
+                    descendantOf[inLink.GetSrcId()][desc] = struct{}{}
                 }
             }
         }
@@ -239,37 +240,38 @@ func parseAsyncAndBarriers(
     descendantOf map[int]map[int]struct{},
 ) (map[int][]int, map[int]map[int]struct{}, map[int]int, error) {
     barrierFor := make(map[int]int)
-    for nodeId, node := range workflow.Nodes {
-        if node.BarrierFor != nil {
-            srcNode, srcNodeExists := workflow.Nodes[*node.BarrierFor]
+    for nodeId, node := range workflow.GetNodes() {
+        barrierSrc := node.BarrierSrc()
+        if barrierSrc != nil {
+            srcNode, srcNodeExists := workflow.GetNode(*barrierSrc)
             if !srcNodeExists {
                 return nil, nil, nil, fmt.Errorf(
                     "node %d is barrier for non-existent node %d",
-                    nodeId, *node.BarrierFor,
+                    nodeId, *barrierSrc,
                 )
             }
 
-            if !srcNode.Async {
+            if !srcNode.IsAsync() {
                 return nil, nil, nil, fmt.Errorf(
                     "node %d is barrier for non-async node %d",
-                    nodeId, *node.BarrierFor,
+                    nodeId, *barrierSrc,
                 )
             }
 
-            if barrier, barrierExists := barrierFor[*node.BarrierFor]; barrierExists {
+            if barrier, barrierExists := barrierFor[*barrierSrc]; barrierExists {
                 return nil, nil, nil, fmt.Errorf(
                     "node %d is barrier for (at least) two nodes: %d and %d",
-                    nodeId, *node.BarrierFor, barrier,
+                    nodeId, *barrierSrc, barrier,
                 )
             }
 
-            if _, ok := descendantOf[*node.BarrierFor][nodeId]; !ok {
+            if _, ok := descendantOf[*barrierSrc][nodeId]; !ok {
                 return nil, nil, nil, fmt.Errorf(
                     "node %d is barrier for node %d but is not its descendant",
-                    nodeId, *node.BarrierFor,
+                    nodeId, *barrierSrc,
                 )
             }
-            barrierFor[*node.BarrierFor] = nodeId
+            barrierFor[*barrierSrc] = nodeId
         }
     }
 
@@ -277,13 +279,14 @@ func parseAsyncAndBarriers(
     // We don't consider barriers yet, because we need this to
     // validate barrier structure in the first place.
     asyncAncestors := make(map[int][]int)
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         asyncAncestors[nodeId] = []int{-1}
     }
 
     for _, layer := range topSort {
         for _, asyncNodeId := range layer {
-            if !workflow.Nodes[asyncNodeId].Async {
+            node, _ := workflow.GetNode(asyncNodeId)
+            if !node.IsAsync() {
                 continue
             }
 
@@ -307,12 +310,13 @@ func parseAsyncAndBarriers(
     // B.
     for _, layer := range topSort {
         for _, barrierNodeId := range layer {
-            barrierNode := workflow.Nodes[barrierNodeId]
-            if barrierNode.BarrierFor == nil {
+            barrierNode, _ := workflow.GetNode(barrierNodeId)
+            asyncNodeIdPtr := barrierNode.BarrierSrc()
+            if asyncNodeIdPtr == nil {
                 continue
             }
 
-            asyncNodeId := *barrierNode.BarrierFor
+            asyncNodeId := *asyncNodeIdPtr
             nodeAsyncAncestors, hasAsyncAncestors := asyncAncestors[asyncNodeId]
             if !hasAsyncAncestors {
                 continue
@@ -337,7 +341,7 @@ func parseAsyncAndBarriers(
     }
 
     asyncAncestorsBeforeBarrier := make(map[int][]int)
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         if asyncAncestorsBeforeBarrier[nodeId] == nil {
             asyncAncestorsBeforeBarrier[nodeId] = make([]int, 0)
         }
@@ -369,7 +373,7 @@ func parseAsyncAndBarriers(
         }
     }
 
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         asyncAncestors, hasAsyncAncestors := asyncAncestorsBeforeBarrier[nodeId]
         if !hasAsyncAncestors || len(asyncAncestors) == 0 {
             continue
@@ -397,14 +401,14 @@ func getPredsAndSuccs(workflow Workflow) (map[int][]int, map[int][]int) {
     addedPred := make(map[int]map[int]bool)
     addedSucc := make(map[int]map[int]bool)
 
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         succs[nodeId] = make([]int, 0)
         preds[nodeId] = make([]int, 0)
     }
 
-    for _, link := range workflow.Links {
-        src := link.SourceNodeId
-        dst := link.SinkNodeId
+    for _, link := range workflow.GetLinks() {
+        src := link.GetSrcId()
+        dst := link.GetSinkId()
 
         if addedSucc[src] == nil {
             addedSucc[src] = make(map[int]bool)
@@ -425,22 +429,6 @@ func getPredsAndSuccs(workflow Workflow) (map[int][]int, map[int][]int) {
     return preds, succs
 }
 
-func getBaseParams(workflow Workflow) (map[int]TypedParams, error) {
-    ret := make(map[int]TypedParams)
-    for nodeId, node := range workflow.Nodes {
-        baseProps := workflow.NodeBaseProps[nodeId]
-
-        nodeTp, err := parseTypedParams(node, baseProps)
-        if err != nil {
-            return nil, fmt.Errorf(
-                "error parsing params of node %d: %s",
-                nodeId, err,
-            )
-        }
-        ret[nodeId] = nodeTp
-    }
-    return ret, nil
-}
 
 func getMaxSinkDists(preds map[int][]int, succs map[int][]int) map[int]int {
     sinkDists := make(map[int]int)
@@ -456,7 +444,7 @@ func getMaxSinkDists(preds map[int][]int, succs map[int][]int) map[int]int {
         currNodeId := nodeQueue[0]
         currNodeDist := sinkDists[currNodeId]
         for _, predId := range preds[currNodeId] {
-            sinkDists[predId] = max(sinkDists[predId], currNodeDist + 1)
+            sinkDists[predId] = max(sinkDists[predId], currNodeDist+1)
             nodeQueue = append(nodeQueue, predId)
         }
         nodeQueue = nodeQueue[1:]
@@ -499,14 +487,16 @@ func ParseAndValidateWorkflow(workflow Workflow) (WorkflowIndex, error) {
         return WorkflowIndex{}, err
     }
 
-    index.BaseParams, err = getBaseParams(workflow)
+    index.BaseParams, err = workflow.GetBaseParams()
     if err != nil {
         return WorkflowIndex{}, err
     }
 
     index.TitleToId = make(map[string]int)
-    for nodeId, node := range workflow.Nodes {
-        index.TitleToId[node.Title] = nodeId
+    nodeIds := workflow.GetNodes()
+    for nodeId := range nodeIds {
+        node, _ := workflow.GetNode(nodeId)
+        index.TitleToId[node.GetTitle()] = nodeId
     }
 
     return index, nil
