@@ -87,7 +87,7 @@ func genArbitraryOutputs(
 		output.AddParam(
 			fmt.Sprintf("%d", startVal+i),
 			pname,
-			pnameArgTypes,
+			pnameArgTypes.ArgType,
 		)
 		outputs = append(outputs, output)
 	}
@@ -188,7 +188,7 @@ func TestNonRedundancy(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -272,7 +272,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -379,7 +379,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -529,7 +529,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -667,7 +667,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -765,7 +765,7 @@ func TestSimpleBarrier(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -775,7 +775,7 @@ func TestSimpleBarrier(t *testing.T) {
 
 	numOutputsOf1 := 3
 	inputsFor1 := startNodes[1][0]
-	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
+	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
 	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
 	if err != nil {
@@ -857,7 +857,7 @@ func TestBarrierReduction(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -867,7 +867,7 @@ func TestBarrierReduction(t *testing.T) {
 
 	numOutputsOf1 := 3
 	inputsFor1 := startNodes[1][0]
-	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
+	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
 	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
 	if err != nil {
@@ -1020,7 +1020,7 @@ func TestMultipleBarrier(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -1030,7 +1030,7 @@ func TestMultipleBarrier(t *testing.T) {
 
 	numOutputsOf0 := 3
 	inputsFor0 := startNodes[0][0]
-	inputsFor0.Params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"])
+	inputsFor0.Params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"].ArgType)
 	p0Vals := genArbitraryOutputs(t, "p0", numOutputsOf0, 0, 1, workflow)
 	succsOf0, err := state.getSuccParams(inputsFor0, p0Vals, true)
 
@@ -1159,7 +1159,7 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -1242,7 +1242,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -1351,7 +1351,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -1485,7 +1485,7 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 		t.Fatalf("error propagating arg types: %s", err)
 	}
 
-	state := NewWorkflowExecutionState(workflow, index)
+	state := NewWorkflowExecutionState(&workflow, index)
 	startNodes, err := state.getInitialNodeParams()
 	if err != nil {
 		t.Fatalf("could not get start nodes: %s", err)
@@ -1495,7 +1495,7 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 
 	numOutputsOf1 := 3
 	inputsFor1 := startNodes[1][0]
-	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"])
+	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
 	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)

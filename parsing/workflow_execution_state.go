@@ -35,10 +35,10 @@ type WorkflowExecutionState struct {
 }
 
 func NewWorkflowExecutionState(
-    workflow WorkflowV0, index WorkflowIndex,
+    workflow Workflow, index WorkflowIndex,
 ) WorkflowExecutionState {
     var state WorkflowExecutionState
-    state.workflow = &workflow
+    state.workflow = workflow
     state.index = index
     state.root = &NodeExec{
         nodeId:            -1,
@@ -49,7 +49,7 @@ func NewWorkflowExecutionState(
     }
     state.runsByAncList = make(map[int]map[string]*NodeExec)
     state.allocatedAncLists = make(map[int]map[string]struct{})
-    for nodeId := range workflow.Nodes {
+    for _, nodeId := range workflow.GetNodeIds() {
         state.allocatedAncLists[nodeId] = make(map[string]struct{})
         state.runsByAncList[nodeId] = make(map[string]*NodeExec)
         state.root.succs[nodeId] = make(map[int]*NodeExec)
@@ -590,7 +590,7 @@ func (tree *WorkflowExecutionState) formInputs(
             )
         }
 
-        err = ret.Params.AddParam(srcPval, sinkChan, sinkArgType)
+        err = ret.Params.AddParam(srcPval, sinkChan, sinkArgType.ArgType)
         if err != nil {
             return NodeParams{}, err
         }

@@ -49,6 +49,10 @@ type CmdTemplate struct {
     OutFiles      map[string][]string
     OutFilePnames []string
 
+    // Meant for v1, where volume mappings are part of workflow format.
+    OverrideFsVolumes bool
+    Volumes map[string]string
+
     ResourceReqs ResourceVector
 }
 
@@ -324,23 +328,23 @@ func parseSerializedNumericList[T int | float64](
 }
 
 func (tp *TypedParams) AddSerializedParam(
-    propValStr string, pname string, argType WorkflowArgType,
+    propValStr string, pname string, argType string,
 ) error {
     var propValRaw any
     var err error
-    if argTypeIsStr(argType.ArgType) {
+    if argTypeIsStr(argType) {
         propValRaw = propValStr
-    } else if argType.ArgType == "int" {
+    } else if argType == "int" {
         propValRaw, err = parseSerializedNumeric[int](propValStr)
-    } else if argType.ArgType == "double" {
+    } else if argType == "double" {
         propValRaw, err = parseSerializedNumeric[float64](propValStr)
-    } else if strings.HasSuffix(argType.ArgType, "list") {
+    } else if strings.HasSuffix(argType, "list") {
         lines := strings.Split(propValStr, "\n")
         if len(lines) > 0 && lines[len(lines)-1] == "" {
             lines = lines[:len(lines)-1]
         }
 
-        listType := strings.Split(argType.ArgType, " ")[0]
+        listType := strings.Split(argType, " ")[0]
         if argTypeIsStr(listType) {
             propValRaw = lines
         } else if listType == "int" {
@@ -362,7 +366,7 @@ func (tp *TypedParams) AddSerializedParam(
 }
 
 func (tp *TypedParams) AddParam(
-    propValRaw any, pname string, argType WorkflowArgType,
+    propValRaw any, pname string, argType string,
 ) error {
     if tp.Bools == nil {
         tp.Bools = make(map[string]bool)
@@ -397,8 +401,8 @@ func (tp *TypedParams) AddParam(
         return nil
     }
 
-    castErr := fmt.Errorf("var %s (%v) cannot be cast to %s", pname, propValRaw, argType.ArgType)
-    if argType.ArgType == "bool" {
+    castErr := fmt.Errorf("var %s (%v) cannot be cast to %s", pname, propValRaw, argType)
+    if argType == "bool" {
         pValBool, ok := propValRaw.(bool)
         if ok {
             tp.Bools[pname] = pValBool
@@ -410,25 +414,25 @@ func (tp *TypedParams) AddParam(
                 return castErr
             }
         }
-    } else if argType.ArgType == "int" {
+    } else if argType == "int" {
         pValDouble, ok := propValRaw.(float64)
         if !ok {
             return castErr
         }
         tp.Ints[pname] = int(pValDouble)
-    } else if argType.ArgType == "double" {
+    } else if argType == "double" {
         pValDouble, ok := propValRaw.(float64)
         if !ok {
             return castErr
         }
         tp.Doubles[pname] = pValDouble
-    } else if argTypeIsStr(argType.ArgType) {
+    } else if argTypeIsStr(argType) {
         pValStr, ok := propValRaw.(string)
         if !ok {
             return castErr
         }
         tp.Strings[pname] = pValStr
-    } else if strings.HasSuffix(argType.ArgType, "list") {
+    } else if strings.HasSuffix(argType, "list") {
         var pValList []any
         // Lazy way of coping with the fact that we need to handle
         // []any and []string/float/int equally well.
@@ -453,7 +457,7 @@ func (tp *TypedParams) AddParam(
         default:
             return castErr
         }
-        listType := strings.Split(argType.ArgType, " ")[0]
+        listType := strings.Split(argType, " ")[0]
 
         if argTypeIsStr(listType) {
             tp.StrLists[pname] = make([]string, len(pValList))
@@ -483,7 +487,7 @@ func (tp *TypedParams) AddParam(
                 tp.DoubleLists[pname][i] = pValDouble
             }
         }
-    } else if argType.ArgType == "patternQuery" {
+    } else if argType == "patternQuery" {
         pq, pqError := parsePatternQuery(propValRaw)
         if pqError != nil {
             return fmt.Errorf(
@@ -493,7 +497,7 @@ func (tp *TypedParams) AddParam(
         }
         tp.PatternQueries[pname] = pq
     } else {
-        return fmt.Errorf("invalid arg type %s", argType.ArgType)
+        return fmt.Errorf("invalid arg type %s", argType)
     }
 
     delete(tp.NilVals, pname)
@@ -583,7 +587,7 @@ func parseTypedParams(
             continue
         }
 
-        if err := tp.AddParam(propValRaw, pname, argType); err != nil {
+        if err := tp.AddParam(propValRaw, pname, argType.ArgType); err != nil {
             return tp, fmt.Errorf("error parsing node %d: %s", node.Id, err)
         }
     }

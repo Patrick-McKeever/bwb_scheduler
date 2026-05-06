@@ -68,7 +68,7 @@ func (index *WorkflowIndex) getSharedAsyncAncs(id1 int, id2 int) ([]int, error) 
 }
 
 func (index *WorkflowIndex) AddParam(
-    nodeId int, pname string, argType WorkflowArgType, val any,
+    nodeId int, pname string, argType string, val any,
 ) error {
     baseParams, baseParamsExist := index.BaseParams[nodeId]
     if !baseParamsExist {

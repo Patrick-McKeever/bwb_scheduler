@@ -1,8 +1,8 @@
 package parsing
 
 import (
-    "fmt"
-    "strings"
+	"fmt"
+	"strings"
 )
 
 type WorkflowLink interface {
@@ -27,8 +27,12 @@ type WorkflowNode interface {
 }
 
 type Workflow interface {
+    GetVersion() string
     GetNumNodes() int
     GetNodeIds() []int
+    GetArgType(int, string) (string, error)
+    GetParam(int, string) (any, error)
+    SetParam(int, string, any) (error)
     GetNodes() map[int]WorkflowNode
     GetLinks() []WorkflowLink
     GetNode(int) (WorkflowNode, bool)
@@ -37,15 +41,16 @@ type Workflow interface {
     GetLinkParam(
         map[int]TypedParams, map[int]TypedParams, WorkflowLink,
     ) (any, WorkflowArgType, string, error)
+    DryRun() ([]string, error)
 }
 
 type WorkflowNodeV0 struct {
-    Id        int
-    ImageName string
-    ImageTag  string
-    Title     string
-    Command   []string
-    ArgTypes  map[string]WorkflowArgType
+    Id             int
+    ImageName      string
+    ImageTag       string
+    Title          string
+    Command        []string
+    ArgTypes       map[string]WorkflowArgType
     //BaseProps      map[string]interface{}
     ArgOrder       []string
     OptionsChecked map[string]bool
@@ -109,7 +114,7 @@ func (node *WorkflowNodeV0) ParseOutputs(
         if !argTypeExists {
             continue
         }
-        outputTp.AddSerializedParam(v, k, argType)
+        outputTp.AddSerializedParam(v, k, argType.ArgType)
     }
     return outputTp
 }
@@ -151,6 +156,10 @@ type WorkflowV0 struct {
     Links         []WorkflowLinkV0
 }
 
+func (node *WorkflowV0) GetVersion() string {
+    return "biodepot.legacy"
+}
+
 func (wf *WorkflowV0) GetNumNodes() int {
     return len(wf.Nodes)
 }
@@ -162,6 +171,26 @@ func (wf *WorkflowV0) GetNodes() map[int]WorkflowNode {
     }
     return nodeIds
 }
+func (wf *WorkflowV0) GetParam(nodeId int, pname string) (any, error) {
+    _, nodeExists := wf.NodeBaseProps[nodeId]
+    if !nodeExists {
+        return "", fmt.Errorf("node %d does not exist", nodeId)
+    }
+    val, valExists := wf.NodeBaseProps[nodeId][pname]
+    if !valExists {
+        return "", fmt.Errorf("node %d has no value of property %s", nodeId, pname)
+    }
+    return val, nil
+}
+
+func (wf *WorkflowV0) SetParam(nodeId int, pname string, val any) (error) {
+    _, nodeExists := wf.NodeBaseProps[nodeId]
+    if !nodeExists {
+        return fmt.Errorf("node %d does not exist", nodeId)
+    }
+    wf.NodeBaseProps[nodeId][pname] = val
+    return nil
+}
 
 func (wf *WorkflowV0) GetNodeIds() []int {
     nodeIds := make([]int, 0)
@@ -169,6 +198,22 @@ func (wf *WorkflowV0) GetNodeIds() []int {
         nodeIds = append(nodeIds, id)
     }
     return nodeIds
+}
+
+func (wf *WorkflowV0) DryRun() ([]string, error) {
+    return DryRun(*wf)
+}
+
+func (wf *WorkflowV0) GetArgType(nodeId int, pname string) (string, error) {
+    node, nodeExists := wf.Nodes[nodeId]
+    if !nodeExists {
+        return "", fmt.Errorf("node %d does not exist", nodeId)
+    }
+    argType, exists := node.ArgTypes[pname]
+    if !exists {
+        return "", fmt.Errorf("node %d, argtype %s does not exist", nodeId, pname)
+    }
+    return argType.ArgType, nil
 }
 
 func (wf *WorkflowV0) GetLinks() []WorkflowLink {

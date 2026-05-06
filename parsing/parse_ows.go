@@ -425,7 +425,7 @@ func parseWorkflowNode(
             continue
         }
 
-        if err := tp.AddParam(v, k, argType); err != nil {
+        if err := tp.AddParam(v, k, argType.ArgType); err != nil {
             fmt.Printf(
                 "WARNING: Value %v for node %d, param %s conflicts with "+
                     "stated arg type %s; adding default value.\n", v, nodeId, k,

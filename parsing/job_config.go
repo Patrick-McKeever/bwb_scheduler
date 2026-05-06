@@ -427,14 +427,14 @@ func ParseAndValidateJobConfigFile(file string) (JobConfig, error) {
     return ParseAndValidateJobConfig(fileStream)
 }
 
-func GetDefaultConfig(wf WorkflowV0, noTemporal bool) JobConfig {
+func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
     var jc JobConfig
     if noTemporal {
         jc.LocalConfigsByName = map[string]LocalJobConfig{
             "default": {UseDocker: false},
         }
         jc.LocalConfigsByNode = make(map[int]LocalJobConfig)
-        for nodeId := range wf.Nodes {
+        for _, nodeId := range wf.GetNodeIds() {
             jc.LocalConfigsByNode[nodeId] = LocalJobConfig{
                 UseDocker: false,
             }
@@ -444,7 +444,7 @@ func GetDefaultConfig(wf WorkflowV0, noTemporal bool) JobConfig {
             "default": {UseDocker: false},
         }
         jc.TemporalConfigsByNode = make(map[int]LocalJobConfig)
-        for nodeId := range wf.Nodes {
+        for _, nodeId := range wf.GetNodeIds() {
             jc.TemporalConfigsByNode[nodeId] = LocalJobConfig{
                 UseDocker: false,
             }

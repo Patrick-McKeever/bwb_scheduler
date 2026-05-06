@@ -25,13 +25,13 @@ type CmdManagerV0 struct {
 }
 
 func NewCmdManager(
-	workflow WorkflowV0, index WorkflowIndex, config JobConfig,
+	workflow Workflow, index WorkflowIndex, config JobConfig,
 ) CmdManagerV0 {
 	var cmdMan CmdManagerV0
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
 	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
 	cmdMan.completedCmds = make(map[int]struct{})
-	for nodeId := range workflow.Nodes {
+	for _, nodeId := range workflow.GetNodeIds() {
 		cmdMan.remainingIters[nodeId] = make(map[string]map[int]struct{})
 	}
 	wes := NewWorkflowExecutionState(workflow, index)

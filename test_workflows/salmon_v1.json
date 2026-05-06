@@ -1,0 +1,135 @@
+{
+  "schema": "biodepot.resolved_workflow/v1",
+  "resolved_workflow": {
+    "run_id": "golden-salmon-001",
+    "use_local_storage": true,
+    "nodes": {
+      "0": {
+        "id": 0,
+        "title": "SALMON_INDEX",
+        "description": "Build a salmon index from the transcript FASTA",
+        "image_name": "biodepot/salmon:latest",
+        "launch": {
+          "command": [
+            "salmon",
+            "index",
+            "-t", "/work/in/transcripts.fa",
+            "-i", "/work/out/salmon_index",
+            "-p", "4"
+          ],
+          "env": {},
+          "cwd": "/work"
+        },
+        "inputs": {
+          "transcript_fasta": {
+            "name": "transcript_fasta",
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/test/data/transcripts.fa"
+            },
+            "mount": {
+              "container_path": "/work/in/transcripts.fa",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "index": {
+            "name": "index",
+            "kind": "directory",
+            "path": "/work/out/salmon_index"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8192,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 2
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "1": {
+        "id": 1,
+        "title": "SALMON_QUANT",
+        "description": "Quantify reads against the salmon index",
+        "image_name": "biodepot/salmon:latest",
+        "launch": {
+          "command": [
+            "salmon",
+            "quant",
+            "-i", "/work/in/index",
+            "-r", "/work/in/reads.fastq",
+            "-o", "/work/out/quant",
+            "-p", "4"
+          ],
+          "env": {},
+          "cwd": "/work"
+        },
+        "inputs": {
+          "reads": {
+            "name": "reads",
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/test/data/reads.fastq"
+            },
+            "mount": {
+              "container_path": "/work/in/reads.fastq",
+              "mode": "ro"
+            }
+          },
+          "index": {
+            "name": "index",
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 0,
+              "output": "index"
+            },
+            "mount": {
+              "container_path": "/work/in/index",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "quant": {
+            "name": "quant",
+            "kind": "directory",
+            "path": "/work/out/quant"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8192,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 2
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      }
+    },
+    "links": [
+      {
+        "source": 0,
+        "sink": 1,
+        "source_output": "index",
+        "sink_input": "index"
+      }
+    ]
+  }
+}
