@@ -2,6 +2,7 @@ package parsing
 
 import (
     "fmt"
+    "encoding/json"
 )
 
 // Data structure to package all the various data structures for
@@ -500,4 +501,169 @@ func ParseAndValidateWorkflow(workflow Workflow) (WorkflowIndex, error) {
     }
 
     return index, nil
+}
+
+type workflowIndexJSON struct {
+    Preds               map[int][]int
+    Succs               map[int][]int
+    MaxDistanceFromSink map[int]int
+
+    InLinks  map[int]map[string]json.RawMessage
+    OutLinks map[int]map[string]json.RawMessage
+
+    AsyncAncestors   map[int][]int
+    AsyncDescendants map[int]map[int]struct{}
+
+    Ancestors   map[int]map[int]struct{}
+    Descendants map[int]map[int]struct{}
+
+    LayeredTopSort [][]int
+    BarrierFor     map[int]int
+
+    BaseParams map[int]TypedParams
+    TitleToId  map[string]int
+}
+
+type workflowLinkEnvelope struct {
+    LinkType string          `json:"link_type"`
+    Data     json.RawMessage `json:"data"`
+}
+
+func (w WorkflowIndex) MarshalJSON() ([]byte, error) {
+    out := workflowIndexJSON{
+        Preds:               w.Preds,
+        Succs:               w.Succs,
+        MaxDistanceFromSink: w.MaxDistanceFromSink,
+
+        InLinks:  map[int]map[string]json.RawMessage{},
+        OutLinks: map[int]map[string]json.RawMessage{},
+
+        AsyncAncestors:   w.AsyncAncestors,
+        AsyncDescendants: w.AsyncDescendants,
+
+        Ancestors:   w.Ancestors,
+        Descendants: w.Descendants,
+
+        LayeredTopSort: w.LayeredTopSort,
+        BarrierFor:     w.BarrierFor,
+
+        BaseParams: w.BaseParams,
+        TitleToId:  w.TitleToId,
+    }
+
+    encodeLinks := func(
+        src map[int]map[string]WorkflowLink,
+        dst map[int]map[string]json.RawMessage,
+    ) error {
+        for nodeID, inner := range src {
+            dst[nodeID] = map[string]json.RawMessage{}
+
+            for pname, link := range inner {
+                data, err := json.Marshal(link)
+                if err != nil {
+                    return err
+                }
+
+                envData, err := json.Marshal(workflowLinkEnvelope{
+                    LinkType: link.LinkType(),
+                    Data:     data,
+                })
+                if err != nil {
+                    return err
+                }
+
+                dst[nodeID][pname] = envData
+            }
+        }
+
+        return nil
+    }
+
+    if err := encodeLinks(w.InLinks, out.InLinks); err != nil {
+        return nil, err
+    }
+
+    if err := encodeLinks(w.OutLinks, out.OutLinks); err != nil {
+        return nil, err
+    }
+
+    return json.Marshal(out)
+}
+
+func (w *WorkflowIndex) UnmarshalJSON(data []byte) error {
+    var raw workflowIndexJSON
+
+    if err := json.Unmarshal(data, &raw); err != nil {
+        return err
+    }
+
+    w.Preds = raw.Preds
+    w.Succs = raw.Succs
+    w.MaxDistanceFromSink = raw.MaxDistanceFromSink
+
+    w.AsyncAncestors = raw.AsyncAncestors
+    w.AsyncDescendants = raw.AsyncDescendants
+
+    w.Ancestors = raw.Ancestors
+    w.Descendants = raw.Descendants
+
+    w.LayeredTopSort = raw.LayeredTopSort
+    w.BarrierFor = raw.BarrierFor
+
+    w.BaseParams = raw.BaseParams
+    w.TitleToId = raw.TitleToId
+
+    w.InLinks = map[int]map[string]WorkflowLink{}
+    w.OutLinks = map[int]map[string]WorkflowLink{}
+
+    decodeLinks := func(
+        src map[int]map[string]json.RawMessage,
+        dst map[int]map[string]WorkflowLink,
+    ) error {
+        for nodeID, inner := range src {
+            dst[nodeID] = map[string]WorkflowLink{}
+
+            for pname, rawMsg := range inner {
+                var env workflowLinkEnvelope
+
+                if err := json.Unmarshal(rawMsg, &env); err != nil {
+                    return err
+                }
+
+                switch env.LinkType {
+                case "v0":
+                    var link WorkflowLinkV0
+                    if err := json.Unmarshal(env.Data, &link); err != nil {
+                        return err
+                    }
+                    dst[nodeID][pname] = &link
+
+                case "v1":
+                    var link ResolvedLink
+                    if err := json.Unmarshal(env.Data, &link); err != nil {
+                        return err
+                    }
+                    dst[nodeID][pname] = &link
+
+                default:
+                    return fmt.Errorf(
+                        "unknown WorkflowLink type %q",
+                        env.LinkType,
+                    )
+                }
+            }
+        }
+
+        return nil
+    }
+
+    if err := decodeLinks(raw.InLinks, w.InLinks); err != nil {
+        return err
+    }
+
+    if err := decodeLinks(raw.OutLinks, w.OutLinks); err != nil {
+        return err
+    }
+
+    return nil
 }

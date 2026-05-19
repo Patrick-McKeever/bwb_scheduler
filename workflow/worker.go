@@ -62,6 +62,7 @@ func StartWorker(
 
 	if scheduler {
 		w.RegisterWorkflow(RunBwbWorkflowV0)
+		w.RegisterWorkflow(RunBwbWorkflowV1)
 		w.RegisterWorkflow(ResourceSchedulerWorkflow)
 		w.RegisterActivity(BuildSingularitySIF)
 		w.RegisterActivity(fs.GlobActivity[fs.LocalFS])

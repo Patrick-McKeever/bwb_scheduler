@@ -4,6 +4,8 @@ import (
     "fmt"
     "bytes"
     "os/exec"
+    "os"
+    "path/filepath"
 )
 
 
@@ -108,11 +110,23 @@ func (fs SshFS) Glob(
 }
 
 func (fs SshFS) Upload(src, dst string) error {
+    parent := filepath.Dir(dst)
+    mkdirCmd := fmt.Sprintf(
+        "ssh %s@%s \"mkdir -p %s\"",
+        fs.User, fs.Endpt, parent,
+    )
+    _, err := LocalRunCmd(mkdirCmd)
+    if err != nil {
+        return fmt.Errorf("\"%s\" failed: %s", mkdirCmd, err)
+    }
+
+    // NOTE: We cannot use rsync --mkpath, since some versions
+    // do not support this.
     rsyncCmdStr := fmt.Sprintf(
-        "rsync --mkpath -av -e ssh %s %s@%s:%s",
+        "rsync -av -e ssh %s %s@%s:%s",
         src, fs.User, fs.Endpt, dst,
     )
-    _, err := LocalRunCmd(rsyncCmdStr)
+    _, err = LocalRunCmd(rsyncCmdStr)
     if err != nil {
         return fmt.Errorf("\"%s\" failed: %s", rsyncCmdStr, err)
     }
@@ -120,11 +134,16 @@ func (fs SshFS) Upload(src, dst string) error {
 }
 
 func (fs SshFS) Download(src, dst string) error {
+    parent := filepath.Dir(dst)
+    err := os.MkdirAll(parent, 0755)
+    if err != nil {
+        return fmt.Errorf("failed to make parent dir %s of dst %s", parent, dst)
+    }
     rsyncCmdStr := fmt.Sprintf(
         "rsync --mkpath -av -e ssh %s@%s:%s %s",
         fs.User, fs.Endpt, src, dst,
     )
-    _, err := LocalRunCmd(rsyncCmdStr)
+    _, err = LocalRunCmd(rsyncCmdStr)
     if err != nil {
         return fmt.Errorf("\"%s\" failed: %s", rsyncCmdStr, err)
     }

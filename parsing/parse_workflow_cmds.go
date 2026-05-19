@@ -1,12 +1,12 @@
 package parsing
 
 import (
-    "fmt"
-    "regexp"
-    "slices"
-    "sort"
-    "strconv"
-    "strings"
+	"fmt"
+	"regexp"
+	"slices"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 type PatternQuery struct {
@@ -26,6 +26,7 @@ type CmdSub struct {
 }
 
 type CmdTemplate struct {
+    Version   int
     Id        int
     NodeId    int
     Priority  int
@@ -51,7 +52,8 @@ type CmdTemplate struct {
 
     // Meant for v1, where volume mappings are part of workflow format.
     OverrideFsVolumes bool
-    Volumes map[string]string
+    VolumeDirs map[string]string
+    VolumeFiles map[string]string
 
     ResourceReqs ResourceVector
 }
@@ -225,9 +227,9 @@ func (tp *TypedParams) IsNil(pname string) bool {
 // the resolved version of pattern queries rather
 // than the unresolved ones.
 func (tp *TypedParams) LookupParamParsed(
-    pname string, argType WorkflowArgType,
+    pname string, argType string,
 ) (any, bool) {
-    if argType.ArgType == "patternQuery" {
+    if argType == "patternQuery" {
         val, ok := tp.StrLists[pname]
         return any(val), ok
     }
@@ -241,9 +243,9 @@ func (tp *TypedParams) LookupParamParsed(
 // the unresolved version. If it's anything else, return
 // the normal value.
 func (tp *TypedParams) LookupParamOptionallyParsed(
-    pname string, argType WorkflowArgType,
+    pname string, argType string,
 ) (any, bool) {
-    if argType.ArgType == "patternQuery" {
+    if argType == "patternQuery" {
         val, ok := tp.StrLists[pname]
         if ok {
             return any(val), ok
@@ -254,22 +256,22 @@ func (tp *TypedParams) LookupParamOptionallyParsed(
 }
 
 func (tp *TypedParams) LookupParam(
-    pname string, argType WorkflowArgType,
+    pname string, argType string,
 ) (any, bool) {
-    if argType.ArgType == "bool" {
+    if argType == "bool" {
         val, ok := tp.Bools[pname]
         return any(val), ok
-    } else if argType.ArgType == "int" {
+    } else if argType == "int" {
         val, ok := tp.Ints[pname]
         return any(val), ok
-    } else if argType.ArgType == "double" {
+    } else if argType == "double" {
         val, ok := tp.Doubles[pname]
         return any(val), ok
-    } else if argTypeIsStr(argType.ArgType) {
+    } else if argTypeIsStr(argType) {
         val, ok := tp.Strings[pname]
         return any(val), ok
-    } else if strings.HasSuffix(argType.ArgType, "list") {
-        listType := strings.Split(argType.ArgType, " ")[0]
+    } else if strings.HasSuffix(argType, "list") {
+        listType := strings.Split(argType, " ")[0]
         if argTypeIsStr(listType) {
             val, ok := tp.StrLists[pname]
             return any(val), ok
@@ -280,7 +282,7 @@ func (tp *TypedParams) LookupParam(
             val, ok := tp.DoubleLists[pname]
             return any(val), ok
         }
-    } else if argType.ArgType == "patternQuery" {
+    } else if argType == "patternQuery" {
         val, ok := tp.PatternQueries[pname]
         return any(val), ok
     }
@@ -527,7 +529,7 @@ func performPqSubs(pq *PatternQuery, node WorkflowNodeV0, tp TypedParams) error 
                 return fmt.Errorf("pname %s has no argtype", sub.Pname)
             }
 
-            val, ok := tp.LookupParam(sub.Pname, argType)
+            val, ok := tp.LookupParam(sub.Pname, argType.ArgType)
             if !ok {
                 return fmt.Errorf("pname %s has no value", sub.Pname)
             }
@@ -690,7 +692,7 @@ func evaluateEnvVars(
         }
         envVar := *argType.Env
 
-        propValRaw, ok := tp.LookupParam(pname, argType)
+        propValRaw, ok := tp.LookupParam(pname, argType.ArgType)
         if !ok || propValRaw == nil {
             if reqParams[pname] {
                 return fmt.Errorf(
@@ -945,7 +947,7 @@ func evaluateInOutFiles(
         if isInFile || isOutFile {
             var pVal any
             var pValExists bool
-            pVal, pValExists = tp.LookupParamParsed(pname, argType)
+            pVal, pValExists = tp.LookupParamParsed(pname, argType.ArgType)
             if !pValExists {
                 if isInFile {
                     baseErr := "pname %s is listed as input file but is unset"

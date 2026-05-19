@@ -579,9 +579,12 @@ func (tree *WorkflowExecutionState) formInputs(
     }
     ret.Params = copyTypedParams(tree.index.BaseParams[nodeId])
     for _, link := range tree.index.InLinks[nodeId] {
-        srcPval, sinkArgType, sinkChan, err := tree.workflow.GetLinkParam(
-            predInputs, predOutputs, link,
+        srcPval, sinkArgType, sinkChan, err := GetLinkParam(
+            tree.workflow, predInputs, predOutputs, link,
         )
+        if err != nil {
+            return NodeParams{}, err
+        }
 
         if err != nil {
             return NodeParams{}, fmt.Errorf(
@@ -590,7 +593,7 @@ func (tree *WorkflowExecutionState) formInputs(
             )
         }
 
-        err = ret.Params.AddParam(srcPval, sinkChan, sinkArgType.ArgType)
+        err = ret.Params.AddParam(srcPval, sinkChan, sinkArgType)
         if err != nil {
             return NodeParams{}, err
         }

@@ -10,6 +10,7 @@ type WorkflowLink interface {
     GetSinkId() int
     GetSrcPname() string
     GetSinkPname() string
+    LinkType() string
 }
 
 type WorkflowNode interface {
@@ -38,9 +39,6 @@ type Workflow interface {
     GetNode(int) (WorkflowNode, bool)
     GetBaseParams() (map[int]TypedParams, error)
     NodeExists(int) bool
-    GetLinkParam(
-        map[int]TypedParams, map[int]TypedParams, WorkflowLink,
-    ) (any, WorkflowArgType, string, error)
     DryRun() ([]string, error)
 }
 
@@ -124,7 +122,14 @@ func (node *WorkflowNodeV0) ResolveGlob(tp *TypedParams, glob GlobFunc) error {
 }
 
 func (node *WorkflowNodeV0) ParseCmd(tp TypedParams) ([]CmdTemplate, error) {
-    return ParseNodeCmdV0(*node, tp)
+    res, err := ParseNodeCmdV0(*node, tp)
+    if err != nil {
+        return res, err
+    }
+    for i := range res {
+        res[i].Version = 0
+    }
+    return res, nil
 }
 
 type WorkflowLinkV0 struct {
@@ -132,6 +137,10 @@ type WorkflowLinkV0 struct {
     SinkNodeId    int
     SourceChannel string
     SinkChannel   string
+}
+
+func (link *WorkflowLinkV0) LinkType() string {
+    return "v0"
 }
 
 func (link *WorkflowLinkV0) GetSrcId() int {
@@ -251,27 +260,26 @@ func (wf *WorkflowV0) GetBaseParams() (map[int]TypedParams, error) {
     return ret, nil
 }
 
-func (wf *WorkflowV0) GetLinkParam(
-    predInputs map[int]TypedParams, predOutputs map[int]TypedParams,
-    link WorkflowLink,
-) (any, WorkflowArgType, string, error) {
+func GetLinkParam(
+    wf Workflow, predInputs map[int]TypedParams, 
+    predOutputs map[int]TypedParams, link WorkflowLink,
+) (any, string, string, error) {
     srcNode := link.GetSrcId()
     sinkNode := link.GetSinkId()
     srcChan := link.GetSrcPname()
     sinkChan := link.GetSinkPname()
 
-    srcArgType, srcArgTypeExists := wf.Nodes[srcNode].ArgTypes[srcChan]
-    if !srcArgTypeExists {
-        return nil, WorkflowArgType{}, "", fmt.Errorf(
+    srcArgType, err := wf.GetArgType(srcNode, srcChan)
+    if err != nil {
+        return nil, "", "", fmt.Errorf(
             "bad argtype: node %d has no parameter %s",
             srcNode, srcChan,
         )
     }
 
-    sinkArgType, sinkArgTypeExists :=
-        wf.Nodes[sinkNode].ArgTypes[sinkChan]
-    if !sinkArgTypeExists {
-        return nil, WorkflowArgType{}, "", fmt.Errorf(
+    sinkArgType, err := wf.GetArgType(sinkNode, sinkChan)
+    if err != nil {
+        return nil, "", "", fmt.Errorf(
             "bad argtype: node %d has no parameter %s",
             sinkNode, sinkChan,
         )
@@ -279,7 +287,7 @@ func (wf *WorkflowV0) GetLinkParam(
 
     srcOutputs, srcOutputsExist := predOutputs[srcNode]
     if !srcOutputsExist {
-        return nil, WorkflowArgType{}, "", fmt.Errorf(
+        return nil, "", "", fmt.Errorf(
             "no node outputs for predecessor node %d of %d",
             srcNode, sinkNode,
         )
@@ -298,7 +306,7 @@ func (wf *WorkflowV0) GetLinkParam(
     if !srcPvalExists {
         srcInputs, srcInputsExist := predInputs[srcNode]
         if !srcInputsExist {
-            return nil, WorkflowArgType{}, "", fmt.Errorf(
+            return nil, "", "", fmt.Errorf(
                 "no node inputs for predecessor node %d of %d",
                 srcNode, sinkNode,
             )
@@ -315,7 +323,7 @@ func (wf *WorkflowV0) GetLinkParam(
         }
 
         if !srcPvalExists {
-            return nil, WorkflowArgType{}, "", fmt.Errorf(
+            return nil, "", "", fmt.Errorf(
                 "param %s not found in node %d inputs or outputs",
                 srcChan, srcNode,
             )
@@ -324,7 +332,7 @@ func (wf *WorkflowV0) GetLinkParam(
 
     correctedSrcPval, err := correctArgType(srcPval, srcArgType, sinkArgType)
     if err != nil {
-        return nil, WorkflowArgType{}, "", fmt.Errorf(
+        return nil, "", "", fmt.Errorf(
             "error converting param %s of node %d: %s", srcChan, srcNode, err,
         )
     }
@@ -332,18 +340,18 @@ func (wf *WorkflowV0) GetLinkParam(
     return correctedSrcPval, sinkArgType, sinkChan, nil
 }
 
-func correctArgType(pValRaw any, srcArgType, sinkArgType WorkflowArgType) (any, error) {
-    srcIsList := strings.HasSuffix(srcArgType.ArgType, "list")
-    srcIsList = srcIsList || srcArgType.ArgType == "patternQuery"
-    sinkIsList := strings.HasSuffix(sinkArgType.ArgType, "list")
-    srcBaseType := strings.Split(srcArgType.ArgType, " ")[0]
-    sinkBaseType := strings.Split(sinkArgType.ArgType, " ")[0]
+func correctArgType(pValRaw any, srcArgType, sinkArgType string) (any, error) {
+    srcIsList := strings.HasSuffix(srcArgType, "list")
+    srcIsList = srcIsList || srcArgType == "patternQuery"
+    sinkIsList := strings.HasSuffix(sinkArgType, "list")
+    srcBaseType := strings.Split(srcArgType, " ")[0]
+    sinkBaseType := strings.Split(sinkArgType, " ")[0]
 
     bothStringTypes := argTypeIsStr(srcBaseType) && argTypeIsStr(sinkBaseType)
     if !bothStringTypes && srcBaseType != sinkBaseType {
         return nil, fmt.Errorf(
             "invalid types %s and %s (val %v)",
-            srcArgType.ArgType, sinkArgType.ArgType, pValRaw,
+            srcArgType, sinkArgType, pValRaw,
         )
     }
 

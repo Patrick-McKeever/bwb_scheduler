@@ -65,7 +65,7 @@ func getKeyOrFail(
 	params TypedParams, workflow WorkflowV0,
 ) any {
 	pnameArgTypes := getArgTypesOrFail(t, pname, nodeId, workflow)
-	val, ok := params.LookupParam(pname, pnameArgTypes)
+	val, ok := params.LookupParam(pname, pnameArgTypes.ArgType)
 	if !ok {
 		t.Fatalf(
 			"expected key %s in params %v from node %d",
@@ -292,7 +292,7 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 
 	p2ValsSet := make(map[string]struct{})
 	for _, valSet := range p2Vals {
-		val, _ := valSet.LookupParam("p2", workflow.Nodes[2].ArgTypes["p2"])
+		val, _ := valSet.LookupParam("p2", workflow.Nodes[2].ArgTypes["p2"].ArgType)
 		p2ValsSet[val.(string)] = struct{}{}
 	}
 
@@ -891,7 +891,7 @@ func TestBarrierReduction(t *testing.T) {
 				)
 			}
 
-			p2Out, ok := succsOf1[3][0].Params.LookupParam("p2", WorkflowArgType{ArgType: "str list"})
+			p2Out, ok := succsOf1[3][0].Params.LookupParam("p2", "str list")
 			p2Strs, convOk := p2Out.([]string)
 			if !ok || !convOk {
 				t.Fatalf(

@@ -1,0 +1,25 @@
+{
+    "executors": {
+        "slurm": {
+            "ip_addr": "128.208.252.232:22",
+            "user": "lysander",
+            "transfer_addr": "128.208.252.232",
+            "sched_dir": "/srv/slurm_mnt",
+            "cmd_prefix": "docker exec slurmdbd"
+        }
+    },
+    "configs": {
+        "salmon": {
+            "executor": "slurm",
+            "annotations": {
+                "partition": "normal",
+                "mem": "8G",
+                "cpus_per_task": 5
+            }
+        }
+    },
+    "node_configs": {
+        "0": "salmon",
+        "1": "salmon"
+    }
+}

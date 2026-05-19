@@ -257,6 +257,7 @@ func runWorkflowTemporal(
     var err error
 
     c, err := client.NewLazyClient(client.Options{
+        HostPort: "localhost:7233",
         Logger: temporalLog.NewStructuredLogger(logger),
     })
     if err != nil {
@@ -283,16 +284,26 @@ func runWorkflowTemporal(
 
     var we client.WorkflowRun
     if bwbWorkflow.GetVersion() == "biodepot.legacy" {
+        // We can't pass an interface through temporal API, so we have to
+        // make it a concrete type.
+        v0Wf, ok := (bwbWorkflow).(*parsing.WorkflowV0)
+        if !ok{
+            return fmt.Errorf("workflow incorrectly asserts type as biodepot.legacy")
+        }
         we, err = c.ExecuteWorkflow(
             context.Background(), workflowOptions,
             workflow.RunBwbWorkflowV0, storageId, jobConfig,
-            bwbWorkflow, index, workers, masterFS, softFail,
+            *v0Wf, index, workers, masterFS, softFail,
         )
     } else if bwbWorkflow.GetVersion() == "biodepot.resolved_workflow/v1" {
+        v1Wf, ok := (bwbWorkflow).(*parsing.ResolvedWorkflow)
+        if !ok{
+            return fmt.Errorf("workflow incorrectly asserts type as biodepot.resolved_workflow/v1")
+        }
         we, err = c.ExecuteWorkflow(
             context.Background(), workflowOptions,
             workflow.RunBwbWorkflowV1, storageId, jobConfig,
-            bwbWorkflow, index, workers, masterFS, softFail,
+            *v1Wf, index, workers, masterFS, softFail,
         )
     } else {
         return fmt.Errorf(

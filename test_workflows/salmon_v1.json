@@ -8,7 +8,8 @@
         "id": 0,
         "title": "SALMON_INDEX",
         "description": "Build a salmon index from the transcript FASTA",
-        "image_name": "biodepot/salmon:latest",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
         "launch": {
           "command": [
             "salmon",
@@ -26,7 +27,7 @@
             "kind": "file",
             "source": {
               "type": "path",
-              "path": "/test/data/transcripts.fa"
+              "path": "/test/data/Arabidopsis_thaliana.TAIR10.28.cdna.all.fa.gz"
             },
             "mount": {
               "container_path": "/work/in/transcripts.fa",
@@ -60,14 +61,17 @@
         "id": 1,
         "title": "SALMON_QUANT",
         "description": "Quantify reads against the salmon index",
-        "image_name": "biodepot/salmon:latest",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
         "launch": {
           "command": [
             "salmon",
             "quant",
-            "-i", "/work/in/index",
-            "-r", "/work/in/reads.fastq",
+            "-l", "A",
+            "-i", "/work/out/salmon_index",
+            "-r", "/reads.fastq",
             "-o", "/work/out/quant",
+            "--minAssignedFrags", "0",
             "-p", "4"
           ],
           "env": {},
@@ -79,10 +83,10 @@
             "kind": "file",
             "source": {
               "type": "path",
-              "path": "/test/data/reads.fastq"
+              "path": "/work/in/DRR016134_1.fastq.gz"
             },
             "mount": {
-              "container_path": "/work/in/reads.fastq",
+              "container_path": "/reads.fastq",
               "mode": "ro"
             }
           },
@@ -95,7 +99,7 @@
               "output": "index"
             },
             "mount": {
-              "container_path": "/work/in/index",
+              "container_path": "/work/out/salmon_index",
               "mode": "ro"
             }
           }
