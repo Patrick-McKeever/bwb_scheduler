@@ -57,6 +57,37 @@ Flags:
       --workerName string       Temporal queue name of local worker. Cannot be used in conjunction with --noTemporal.
 ```
 
+### Running the workflow server
+```
+Start the HTTP scheduler API server
+
+Usage:
+  bwbScheduler serve [flags]
+
+Flags:
+      --addr string   TCP address for the HTTP server to listen on (e.g. ":8080"). (default ":8080")
+  -h, --help          help for serve
+  -v, --verbose       Output verbosity.
+```
+
+### Running a worker independently
+```
+Start Temporal workers (always starts scheduler queue worker; starts additional workers based on config)
+
+Usage:
+  bwbScheduler workers [flags]
+
+Flags:
+      --config string       Path to job config JSON file. If omitted, only the scheduler queue and lcoal workers are started. Needed for SLURM. E.g. use test_workflows/salmon_v1_config.json for worker if you intend to set up necessary workers for that configuration of the WF.
+      --cpus int            Max number of CPU cores for the local worker. Defaults to 50%% of system total.
+      --gpus int            Max number of GPUs for the local worker.
+  -h, --help                help for workers
+      --ram bytes           Max amount of RAM for the local worker (e.g. "10GB", "500MB"). Defaults to 70%% of system RAM.
+  -v, --verbose             Output verbosity.
+      --workerName string   Temporal queue name for the local worker. Defaults to a random string.
+```
+
+
 ## Example usage
  ### Bulk RNA workflow
  **Main repo**: https://github.com/morphic-bio/Bulk-RNA-seq/
@@ -112,6 +143,22 @@ chr15::74336132;chr17::
 # Only the left side is provided (the right side is unconstrained)
 chr15::74336132;
 ```
+
+## API
+
+See `serverIntegrationTest.py` for a full example of setting up workers, starting the server, and starting and polling a workflow. This script assumes that temporal server is running at localhost:7233 and that `/test/data/Arabidopsis_thaliana.TAIR10.28.cdna.all.fa.gz` and `/work/in/DRR016134_1.fastq.gz` exist locally, as required by the `test_workflows/salmon_v1.json` workflow.
+
+| Method | Path | Request Body | Response (200) |
+|--------|------|-------------|----------------|
+| `POST` | `/start_workflow` | `{"schema": "biodepot.resolved_workflow/v1", "resolved_workflow": <ResolvedWorkflow>, "worker_info": {"QueueId": string, "IsAlive": bool, "TotalResources": {"MemMb": int, "Cpus": int, "Gpus": int}, "UsedResources": {"MemMb": int, "Cpus": int, "Gpus": int}}, "config": <JobConfig> \| null}` | `{"workflow_id": string, "run_id": string}` |
+| `POST` | `/stop_workflow` | `{"workflow_id": string, "run_id": string \| null}` | `{"message": string}` |
+| `POST` | `/workflow_status` | `{"workflow_id": string, "run_id": string \| null}` | `{"workflow_status": "RUNNING\|FINISHED\|FAILED\|CANCELED\|TERMINATED\|TIMED_OUT", "node_statuses": {<node_id>: "RUNNING\|FINISHED\|FAILED\|CANCELED\|TERMINATED\|TIMED_OUT"} \| null}` |
+
+### Notes
+
+- `config` in `/start_workflow` is optional; if omitted, a default config is generated from the workflow.
+- `run_id` in `/stop_workflow` and `/workflow_status` is optional; if omitted, the latest run for the given `workflow_id` is used.
+- `node_statuses` in `/workflow_status` is `null` when the workflow has reached a terminal status, since completed or failed workflows cannot be queried.
 
 
 # Code structure

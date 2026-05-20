@@ -582,9 +582,6 @@ func (tree *WorkflowExecutionState) formInputs(
         srcPval, sinkArgType, sinkChan, err := GetLinkParam(
             tree.workflow, predInputs, predOutputs, link,
         )
-        if err != nil {
-            return NodeParams{}, err
-        }
 
         if err != nil {
             return NodeParams{}, fmt.Errorf(

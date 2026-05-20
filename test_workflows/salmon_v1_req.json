@@ -1,0 +1,153 @@
+{
+  "worker_info": {
+    "QueueId": "worker-queue",
+    "IsAlive": true,
+    "TotalResources": {
+      "MemMb": 8200,
+      "Cpus": 4,
+      "Gpus": 0
+    },
+    "UsedResources": {
+      "MemMb": 0,
+      "Cpus": 0,
+      "Gpus": 0
+    }
+  },
+  "schema": "biodepot.resolved_workflow/v1",
+  "resolved_workflow": {
+    "run_id": "golden-salmon-001",
+    "use_local_storage": true,
+    "nodes": {
+      "0": {
+        "id": 0,
+        "title": "SALMON_INDEX",
+        "description": "Build a salmon index from the transcript FASTA",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "salmon",
+            "index",
+            "-t", "/work/in/transcripts.fa",
+            "-i", "/work/out/salmon_index",
+            "-p", "4"
+          ],
+          "env": {},
+          "cwd": "/work"
+        },
+        "inputs": {
+          "transcript_fasta": {
+            "name": "transcript_fasta",
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/test/data/Arabidopsis_thaliana.TAIR10.28.cdna.all.fa.gz"
+            },
+            "mount": {
+              "container_path": "/work/in/transcripts.fa",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "index": {
+            "name": "index",
+            "kind": "directory",
+            "path": "/work/out/salmon_index"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8192,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 2
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "1": {
+        "id": 1,
+        "title": "SALMON_QUANT",
+        "description": "Quantify reads against the salmon index",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "salmon",
+            "quant",
+            "-l", "A",
+            "-i", "/work/out/salmon_index",
+            "-r", "/reads.fastq",
+            "-o", "/work/out/quant",
+            "--minAssignedFrags", "0",
+            "-p", "4"
+          ],
+          "env": {},
+          "cwd": "/work"
+        },
+        "inputs": {
+          "reads": {
+            "name": "reads",
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/work/in/DRR016134_1.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/reads.fastq",
+              "mode": "ro"
+            }
+          },
+          "index": {
+            "name": "index",
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 0,
+              "output": "index"
+            },
+            "mount": {
+              "container_path": "/work/out/salmon_index",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "quant": {
+            "name": "quant",
+            "kind": "directory",
+            "path": "/work/out/quant"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8192,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 2
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      }
+    },
+    "links": [
+      {
+        "source": 0,
+        "sink": 1,
+        "source_output": "index",
+        "sink_input": "index"
+      }
+    ]
+  }
+}

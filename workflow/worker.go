@@ -37,13 +37,14 @@ func checkDeps() error {
 func StartWorkers(
 	c client.Client, config parsing.JobConfig,
 	queueName string, cancelChan chan any,
+    useTemporal bool,
 ) error {
 	if err := checkDeps(); err != nil {
 		return err
 	}
 
 	go StartWorker(c, SCHEDULER_QUEUE, true, cancelChan)
-	if len(config.TemporalConfigsByNode) > 0 {
+	if useTemporal {
 		go StartWorker(c, queueName, false, cancelChan)
 	}
 

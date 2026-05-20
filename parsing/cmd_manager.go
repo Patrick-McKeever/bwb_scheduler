@@ -22,6 +22,7 @@ type CmdManagerV0 struct {
 	cmdIdToParams   map[int]NodeParams
 	completedCmds   map[int]struct{}
 	remainingIters  map[int]map[string]map[int]struct{}
+    nodeStatus      map[int]string
 }
 
 func NewCmdManager(
@@ -31,8 +32,10 @@ func NewCmdManager(
 	cmdMan.cmdIdToParams = map[int]NodeParams{}
 	cmdMan.remainingIters = make(map[int]map[string]map[int]struct{})
 	cmdMan.completedCmds = make(map[int]struct{})
+    cmdMan.nodeStatus = make(map[int]string)
 	for _, nodeId := range workflow.GetNodeIds() {
 		cmdMan.remainingIters[nodeId] = make(map[string]map[int]struct{})
+        cmdMan.nodeStatus[nodeId] = "AWAITING_PREDECESSORS"
 	}
 	wes := NewWorkflowExecutionState(workflow, index)
 	cmdMan.state = &wes
@@ -49,6 +52,11 @@ func (cmdMan *CmdManagerV0) GetImageNames() []string {
 	}
 	return imageNames
 }
+
+func (cmdMan *CmdManagerV0) GetNodeStatus() map[int]string {
+    return cmdMan.nodeStatus
+}
+
 func (cmdMan *CmdManagerV0) GetSuccCmds(
 	completedCmd CmdTemplate,
 	rawOutputs map[string]string,
@@ -77,6 +85,7 @@ func (cmdMan *CmdManagerV0) GetSuccCmds(
 		return nil, nil
 	}
 
+    cmdMan.nodeStatus[completedCmd.NodeId] = "FINISHED"
 	succParams, err := cmdMan.state.getSuccParams(
 		inputParams, []TypedParams{outputTp}, success,
 	)
@@ -140,6 +149,7 @@ func (cmdMan *CmdManagerV0) getCmdsFromParams(
 ) (map[int][]CmdTemplate, error) {
 	ret := make(map[int][]CmdTemplate, 0)
 	for nodeId, paramSets := range nodeParams {
+        cmdMan.nodeStatus[nodeId] = "RUNNING"
 		node, _ := cmdMan.state.workflow.GetNode(nodeId)
 		for _, paramSet := range paramSets {
 			if err := node.ResolveGlob(&paramSet.Params, glob); err != nil {

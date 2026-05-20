@@ -698,6 +698,11 @@ func RunBwbWorkflowV1(
     softFail bool,
 ) error {
     cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig)
+    if err := workflow.SetQueryHandler(ctx, "getNodeStatuses", func() (map[int]string, error) {
+        return cmdMan.GetNodeStatus(), nil
+    }); err != nil {
+        return fmt.Errorf("failed to register getNodeStatuses query handler: %s", err)
+    }
     selector := workflow.NewSelector(ctx)
     executors, executorList, err := setupExecutors(
         ctx, selector, "", &bwbWorkflow, &cmdMan, workers, masterFS, jobConfig,

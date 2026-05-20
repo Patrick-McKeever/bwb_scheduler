@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"go-scheduler/parsing"
+	"log/slog"
 	"math"
 	"sort"
 	"time"
-    "log/slog"
 
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
