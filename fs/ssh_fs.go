@@ -1,11 +1,11 @@
 package fs
 
 import (
-    "fmt"
-    "bytes"
-    "os/exec"
-    "os"
-    "path/filepath"
+	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 )
 
 
@@ -126,6 +126,7 @@ func (fs SshFS) Upload(src, dst string) error {
         "rsync -av -e ssh %s %s@%s:%s",
         src, fs.User, fs.Endpt, dst,
     )
+    fmt.Printf("\n%s\n", rsyncCmdStr)
     _, err = LocalRunCmd(rsyncCmdStr)
     if err != nil {
         return fmt.Errorf("\"%s\" failed: %s", rsyncCmdStr, err)
@@ -143,6 +144,7 @@ func (fs SshFS) Download(src, dst string) error {
         "rsync --mkpath -av -e ssh %s@%s:%s %s",
         fs.User, fs.Endpt, src, dst,
     )
+    fmt.Printf("\n%s\n", rsyncCmdStr)
     _, err = LocalRunCmd(rsyncCmdStr)
     if err != nil {
         return fmt.Errorf("\"%s\" failed: %s", rsyncCmdStr, err)

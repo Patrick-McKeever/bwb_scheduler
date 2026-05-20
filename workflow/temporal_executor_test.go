@@ -77,7 +77,7 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
             }, "", map[int]parsing.LocalJobConfig{
                 cmdToRun.Id: { UseDocker: false },
             })
-        if err := temporalExec.Setup(); err != nil {
+        if err := temporalExec.Setup(false); err != nil {
             t.Fatalf("setup failed: %s", err)
         }
         temporalExec.RunCmds([]parsing.CmdTemplate{cmdToRun})

@@ -92,9 +92,15 @@ func GetCntPath(
 }
 
 func TransferViaIntermediary(storageId string, files []string, srcFS, dstFS AbstractFileSystem) error {
-    localVolumes, err := SetupVolumes(storageId)
-    if err != nil {
-        return fmt.Errorf("error establishing intermediate FS: %s", err)
+    var err error
+    var localVolumes map[string]string
+    if storageId != "" {
+        localVolumes, err = SetupVolumes(storageId)
+        if err != nil {
+            return fmt.Errorf("error establishing intermediate FS: %s", err)
+        }
+    } else {
+        localVolumes = map[string]string {"/": "/"}
     }
     localIntermediateFS := LocalFS{Volumes: localVolumes}
 

@@ -93,7 +93,7 @@ func TestSlurmExecutorFileDownloads(t *testing.T) {
         
         // Part of the "contract" of executors is that Setup()
         // gets called before trying to run commands.
-        if err := slurmExec.Setup(); err != nil {
+        if err := slurmExec.Setup(false); err != nil {
             return fmt.Errorf("setup failed: %s", err)
         }
         slurmExec.RunCmds([]parsing.CmdTemplate{cmdToRun})
@@ -204,7 +204,7 @@ func TestSlurmExecutorFileUploads(t *testing.T) {
         
         // Part of the "contract" of executors is that Setup()
         // gets called before trying to run commands.
-        if err := slurmExec.Setup(); err != nil {
+        if err := slurmExec.Setup(false); err != nil {
             fmt.Printf("setup failed: %s", err)
             return fmt.Errorf("setup failed: %s", err)
         }
@@ -261,7 +261,7 @@ func TestSlurmExecutorChildWorkflowFailure(t *testing.T) {
         
         // Part of the "contract" of executors is that Setup()
         // gets called before trying to run commands.
-        if err := slurmExec.Setup(); err != nil {
+        if err := slurmExec.Setup(false); err != nil {
             fmt.Printf("setup failed: %s", err)
             return fmt.Errorf("setup failed: %s", err)
         }

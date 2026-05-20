@@ -88,7 +88,6 @@ func (node *ResolvedNode) GetTitle() string {
 }
 
 func (node *ResolvedNode) GetImageName() string {
-    fmt.Println("HERE", node.ImageName, node.ImageTag)
     return node.ImageName
 }
 

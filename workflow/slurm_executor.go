@@ -49,7 +49,7 @@ func NewSlurmRemoteExecutor(
     return state
 }
 
-func (exec *SlurmRemoteExecutor) setupFS() (fs.SshFS, error) {
+func (exec *SlurmRemoteExecutor) setupFS(v1 bool) (fs.SshFS, error) {
     // Setup container filesystem on SLURM fs.
     var a SlurmActivity
     dataDir := filepath.Join(exec.schedDir, exec.storageId)
@@ -63,22 +63,37 @@ func (exec *SlurmRemoteExecutor) setupFS() (fs.SshFS, error) {
     mkdirCtx := workflow.WithActivityOptions(exec.ctx, ao)
 
     err := workflow.ExecuteActivity(
-        mkdirCtx, a.ExecCmd, fmt.Sprintf("mkdir -p %s", dataDir),
+        mkdirCtx, a.ExecCmd, fmt.Sprintf("mkdir -p %s", filepath.Join(dataDir, "data")),
     ).Get(exec.ctx, nil)
     if err != nil {
         return fs.SshFS{}, err
     }
+
+    var rootCnt string
+    if v1 {
+        rootCnt = "/"
+    } else {
+        rootCnt = "/data"
+    }
     return fs.SshFS{
         User:          exec.sshConfig.User,
         Endpt:         exec.sshConfig.TransferAddr,
-        RemoteVolumes: map[string]string{"/data": dataDir},
+        RemoteVolumes: map[string]string{
+            rootCnt: dataDir,
+        },
     }, nil
 }
 
 func (exec *SlurmRemoteExecutor) handleSlurmCompleteSignal(jobRes SlurmResponse) {
     cmd := exec.cmdsById[jobRes.Result.Id]
     if jobRes.Error != nil {
-        exec.handleFinishedCmd(jobRes.Result, jobRes.Error, exec, cmd)
+        var jobErr error
+        if jobRes.Error == nil {
+            jobErr = nil
+        } else {
+            jobErr = fmt.Errorf("%s", *jobRes.Error)
+        }
+        exec.handleFinishedCmd(jobRes.Result, jobErr, exec, cmd)
         return
     }
 
@@ -115,13 +130,19 @@ func (exec *SlurmRemoteExecutor) handleSlurmCompleteSignal(jobRes SlurmResponse)
             exec.errors = append(exec.errors, err)
             return
         }
-        exec.handleFinishedCmd(jobRes.Result, jobRes.Error, exec, cmd)
+        var jobErr error
+        if jobRes.Error == nil {
+            jobErr = nil
+        } else {
+            jobErr = fmt.Errorf("%s", *jobRes.Error)
+        }
+        exec.handleFinishedCmd(jobRes.Result, jobErr, exec, cmd)
     })
 }
 
-func (exec *SlurmRemoteExecutor) Setup() error {
+func (exec *SlurmRemoteExecutor) Setup(v1 bool) error {
     // Execute slurm poller child workflow.
-    slurmFS, err := exec.setupFS()
+    slurmFS, err := exec.setupFS(v1)
     if err != nil {
         return err
     }

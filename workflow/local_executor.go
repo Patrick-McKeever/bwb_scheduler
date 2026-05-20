@@ -60,7 +60,7 @@ func NewLocalExecutor(
 	return state
 }
 
-func (exec *LocalExecutor) Setup() error {
+func (exec *LocalExecutor) Setup(v1 bool) error {
 	workers := map[string]WorkerInfo{"local": exec.localWorker}
 	go LocalResourceScheduler(
 		exec.logger, workers, exec.reqGrantChan,
@@ -69,11 +69,15 @@ func (exec *LocalExecutor) Setup() error {
 	)
 
 	// Setup worker FS.
-	volumes, err := fs.SetupVolumes(exec.storageId)
-	if err != nil {
-		return err
-	}
-	exec.masterFS.Volumes = volumes
+    if exec.storageId != "" {
+	    volumes, err := fs.SetupVolumes(exec.storageId)
+	    if err != nil {
+	    	return err
+	    }
+	    exec.masterFS.Volumes = volumes
+    } else {
+        exec.masterFS.Volumes = map[string]string{"/": "/"}
+    }
 	return nil
 }
 

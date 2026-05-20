@@ -6,6 +6,7 @@ import (
 	"go-scheduler/fs"
 	"go-scheduler/parsing"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +88,7 @@ type SlurmRequest struct {
 
 type SlurmResponse struct {
     Result CmdOutput
-    Error  error
+    Error  *string
 }
 
 func GetTemporalSshQueueName(config parsing.SshConfig) string {
@@ -353,18 +354,85 @@ func (connMan *SlurmActivity) PollRemoteSlurmActivity(
     )
 }
 
+func (connMan *SlurmActivity) mkdirIfNotExists(dir string) error {
+    lsCmd := fmt.Sprintf("ls -1 %s", dir)
+    lsOut, err := connMan.ExecCmd(lsCmd)
+    if err == nil && lsOut.ExitCode == 0 {
+        // CASE 1: Dir exists. (These two conditions should be the same)
+        return nil
+    } else if lsOut.ExitCode != 2 {
+        // CASE 2: Unrelated ls error
+        return fmt.Errorf(
+            "\"%s\" failed with exit code %d, error %s, and stderr %s",
+            lsCmd, lsOut.ExitCode, err, lsOut.StdErr,
+        )
+    }
+
+    // CASE 3: File does not exist
+    mkdirCmd := fmt.Sprintf("mkdir -p %s", dir)
+    mkdirOut, err := connMan.ExecCmd(mkdirCmd)
+    if err != nil {
+        return fmt.Errorf(
+            "\"%s\" failed with exit code %d, error %s, and stderr %s",
+            mkdirCmd, mkdirOut.ExitCode, err, mkdirOut.StdErr,
+        )
+    }
+    return nil
+}
+
+func (connMan *SlurmActivity) getSlurmVolumes(
+    cmdTemplate parsing.CmdTemplate, sshFs fs.SshFS,
+    baseVolumes map[string]string, tmpOutputHostPath string,
+) (map[string]string, error) {
+    var volumes map[string]string
+    if cmdTemplate.Version == 0 {
+        volumes = maps.Clone(baseVolumes)
+    } else {
+        volumes = make(map[string]string)
+    }
+
+    if err := connMan.mkdirIfNotExists(tmpOutputHostPath); err != nil {
+        return nil, err
+    }
+    volumes["/tmp/output"] = tmpOutputHostPath
+
+    if cmdTemplate.Version == 1 {
+        for cntPath, hostPath := range cmdTemplate.VolumeDirs {
+            remotePath, ok := fs.GetHostPath(hostPath, sshFs.RemoteVolumes)
+            volumes[cntPath] = remotePath
+            if !ok {
+                return nil, fmt.Errorf(
+                    "could not translate cnt path %s w/ volumes %v",
+                    remotePath, sshFs.RemoteVolumes,
+                )
+            }
+            if err := connMan.mkdirIfNotExists(remotePath); err != nil {
+                return nil, err
+            }
+        }
+
+        for cntPath, hostPath := range cmdTemplate.VolumeFiles {
+            remotePath, ok := fs.GetHostPath(hostPath, sshFs.RemoteVolumes)
+            volumes[cntPath] = remotePath
+            if !ok {
+                return nil, fmt.Errorf(
+                    "could not translate cnt path %s w/ volumes %v",
+                    remotePath, sshFs.RemoteVolumes,
+                )
+            }
+            dir := filepath.Dir(remotePath)
+            if err := connMan.mkdirIfNotExists(dir); err != nil {
+                return nil, err
+            }
+        }
+    }
+    return volumes, nil
+}
+
 func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
     cmd parsing.CmdTemplate, jobConfig parsing.SlurmJobConfig, 
     fs fs.SshFS, schedDir string,
 ) (SlurmJob, error) {
-    tmpOutputHostPath := filepath.Join(schedDir, randomString(16))
-    mkTmpDirCmd := fmt.Sprintf("mkdir -p %s", tmpOutputHostPath)
-    if _, err := connMan.ExecCmd(mkTmpDirCmd); err != nil {
-        return SlurmJob{}, fmt.Errorf(
-            "failed to make tmp dir %s: %s", tmpOutputHostPath, err,
-        )
-    }
-
     sbatchFname := fmt.Sprintf("%s.sbatch", randomString(16))
     sbatchLocalPath := filepath.Join("/tmp", sbatchFname)
     sbatchRemotePath := filepath.Join(schedDir, sbatchFname)
@@ -377,14 +445,11 @@ func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
     }
     defer tmpFile.Close()
 
-    volumes := fs.GetVolumes()
-    volumes["/tmp/output"] = tmpOutputHostPath
-    mkTmpDirRemoteCmd := fmt.Sprintf("mkdir -p %s", tmpOutputHostPath)
-    if _, err = connMan.ExecCmd(mkTmpDirRemoteCmd); err != nil {
-        return SlurmJob{}, fmt.Errorf(
-            "unable to make remote tmp dir %s: %s",
-            tmpOutputHostPath, err,
-        )
+    baseVolumes := fs.GetVolumes()
+    tmpOutputHostPath := filepath.Join(schedDir, randomString(16))
+    volumes, err := connMan.getSlurmVolumes(cmd, fs, baseVolumes, tmpOutputHostPath)
+    if err != nil {
+        return SlurmJob{}, fmt.Errorf("error setting up volumes: %s", err)
     }
 
     outPath, errPath, err := WriteSbatchFile(
@@ -607,15 +672,15 @@ func NotifyCmdCompletion(
             return
         }
         if JOB_CODES[result.State].failed {
-            jobErr := fmt.Errorf("job failed with err %s", output.StdErr)
+            jobErr := fmt.Sprintf("job failed with err %s", output.StdErr)
             workflow.SignalExternalWorkflow(
                 ctx, state.ParentWfId, "", "slurm-response", 
-                SlurmResponse{ Result: output, Error:  jobErr },
+                SlurmResponse{ Result: output, Error:  &jobErr },
             )
         } else {
             workflow.SignalExternalWorkflow(
                 ctx, state.ParentWfId, "", "slurm-response", 
-                SlurmResponse{ Result: output, Error: err },
+                SlurmResponse{ Result: output, Error: nil },
             )
         }
     }
