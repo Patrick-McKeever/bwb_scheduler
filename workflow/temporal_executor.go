@@ -228,12 +228,13 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
         return
     }
     volumes := fs.GetVolumes()
+    rootDir := fs.GetRootDir()
 
     useDocker := exec.configsByNode[cmd.NodeId].UseDocker
     aoCtx := workflow.WithActivityOptions(exec.ctx, ao)
     cmdCtx, cancel := workflow.WithCancel(aoCtx)
     cmdFuture := workflow.ExecuteActivity(
-        cmdCtx, RunCmdActivity, volumes, cmd, useDocker,
+        cmdCtx, RunCmdActivity, volumes, cmd, useDocker, rootDir,
     )
     exec.runningCmdActivities = append(
         exec.runningCmdActivities, RunningCmdActivity{

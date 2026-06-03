@@ -109,8 +109,15 @@ func (node *ResolvedNode) ArgIsOutputFile(arg string) bool {
     if !exists {
         return false
     }
-    return output.Kind == "file" || output.Kind == "directory" ||
-        output.Kind == "file list" || output.Kind == "directory list"
+    return output.Kind == "file" || output.Kind == "file list"
+}
+
+func (node *ResolvedNode) ArgIsOutputDir(arg string) bool {
+    output, exists := node.Outputs[arg]
+    if !exists {
+        return false
+    }
+    return output.Kind == "directory" || output.Kind == "directory list"
 }
 
 func (node *ResolvedNode) IsAsync() bool {
@@ -144,7 +151,7 @@ func (node *ResolvedNode) ParseCmd(tp TypedParams) ([]CmdTemplate, error) {
     var template CmdTemplate
     template.Version = 1
     template.NodeId = node.Id
-    template.BaseCmd = []string{strings.Join(node.Launch.Command, " ")}
+    template.BaseCmd = []string{strings.Join(node.Launch.Command, " && ")}
     template.Envs = node.Launch.Env
     template.ImageName = fmt.Sprintf("%s:%s", node.ImageName, node.ImageTag)
     template.ResourceReqs = ResourceVector{
@@ -157,6 +164,8 @@ func (node *ResolvedNode) ParseCmd(tp TypedParams) ([]CmdTemplate, error) {
     template.InFiles = make(map[string][]string)
     template.VolumeDirs = make(map[string]string)
     template.VolumeFiles = make(map[string]string)
+    template.VolumeFilesLocalMnt = make([]string, 0)
+    template.VolumeDirsLocalMnt = make([]string, 0)
     for inputName, input := range node.Inputs {
         // Param comes from another node, should be in inputs.
         if input.Source.NodeId != nil {
@@ -168,9 +177,9 @@ func (node *ResolvedNode) ParseCmd(tp TypedParams) ([]CmdTemplate, error) {
                 )
             }
             if input.Kind == "file" {
-                template.VolumeFiles[val] = val
+                template.VolumeFilesLocalMnt = append(template.VolumeFilesLocalMnt, val)
             } else if input.Kind == "directory" {
-                template.VolumeDirs[val] = val
+                template.VolumeDirsLocalMnt = append(template.VolumeDirsLocalMnt, val)
             }
         } else {
             if node.ArgIsInputFile(inputName) {
@@ -186,15 +195,16 @@ func (node *ResolvedNode) ParseCmd(tp TypedParams) ([]CmdTemplate, error) {
             }
         }
     }
+
     template.OutFiles = make(map[string][]string)
+    template.OutDirs = make(map[string][]string)
     for outputName, output := range node.Outputs {
         if node.ArgIsOutputFile(outputName) {
+            template.VolumeFilesLocalMnt = append(template.VolumeFilesLocalMnt, output.Path)
             template.OutFiles[outputName] = []string{output.Path}
-        }
-        if output.Kind == "file" {
-            template.VolumeFiles[output.Path] = output.Path
-        } else if output.Kind == "directory" {
-            template.VolumeDirs[output.Path] = output.Path
+        } else if node.ArgIsOutputDir(outputName) {
+            template.VolumeDirsLocalMnt = append(template.VolumeDirsLocalMnt, output.Path)
+            template.OutDirs[outputName] = []string{output.Path}
         }
     }
     template.OutFilePnames = make([]string, 0)
@@ -355,7 +365,7 @@ func (wf *ResolvedWorkflow) DryRun() ([]string, error) {
 
     for _, nodeId := range topSort {
         node := wf.Nodes[nodeId]
-        cmdStrs = append(cmdStrs, strings.Join(node.Launch.Command, " "))
+        cmdStrs = append(cmdStrs, strings.Join(node.Launch.Command, " && "))
     }
     return cmdStrs, nil
 }

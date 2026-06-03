@@ -62,6 +62,12 @@ func (fs SshFS) TranslatePath(path string) (string, bool) {
     return GetHostPath(path, fs.RemoteVolumes)
 }
 
+func (fs SshFS) GetRootDir() string { 
+    // TODO: This is a hacky way to maintain compatability between v0 and v1,
+    // but fix.
+    return fs.RemoteVolumes["/data"]
+}
+
 func (fs SshFS) Glob(
     root, pattern string, includeFiles, includeDirs bool,
 ) ([]string, error) {

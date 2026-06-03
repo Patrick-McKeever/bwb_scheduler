@@ -10,6 +10,7 @@ import (
 
 type AbstractFileSystem interface {
 	GetVolumes() map[string]string
+    GetRootDir() string
 	// Glob impl with string include dirs, include files as args.
 	Glob(string, string, bool, bool) ([]string, error)
 	Upload(string, string) error
@@ -23,6 +24,7 @@ type DummyFS struct{}
 
 func (DummyFS) GetVolumes() map[string]string                 { return nil }
 func (DummyFS) Glob(_, _ string, _, _ bool) ([]string, error) { return nil, nil }
+func (DummyFS) GetRootDir() string                            { return "" }
 func (DummyFS) Upload(_, _ string) error                      { return nil }
 func (DummyFS) Download(_, _ string) error                    { return nil }
 func (DummyFS) UploadCntFile(_, _ string) error                      { return nil }

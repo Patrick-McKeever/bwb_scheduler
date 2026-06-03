@@ -1,25 +1,25 @@
 package workflow
 
 import (
-    "bytes"
-    "context"
-    "crypto/rand"
-    "errors"
-    "fmt"
-    "go-scheduler/fs"
-    "go-scheduler/parsing"
-    "log/slog"
-    "maps"
-    "os"
-    "os/exec"
-    "path/filepath"
-    "strings"
-    "syscall"
-    "time"
+	"bytes"
+	"context"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"go-scheduler/fs"
+	"go-scheduler/parsing"
+	"log/slog"
+	"maps"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
 
-    "go.temporal.io/sdk/activity"
-    "go.temporal.io/sdk/log"
-    "go.temporal.io/sdk/workflow"
+	"go.temporal.io/sdk/activity"
+	"go.temporal.io/sdk/log"
+	"go.temporal.io/sdk/workflow"
 )
 
 const (
@@ -343,6 +343,7 @@ func runCmdSingularity(
     ctx context.Context,
     volumes map[string]string,
     cmdTemplate parsing.CmdTemplate,
+    rootDir string,
 ) (CmdOutput, error) {
     imageDir, err := setupImageDir()
     if err != nil {
@@ -366,37 +367,6 @@ func runCmdSingularity(
     }
 
     useGpu := cmdTemplate.ResourceReqs.Gpus > 0
-    if cmdTemplate.Version == 1 {
-        for _, hostPath := range cmdTemplate.VolumeDirs {
-            _, err := os.Stat(hostPath)
-            if errors.Is(err, os.ErrNotExist) {
-                if err := os.MkdirAll(hostPath, 0755); err != nil {
-                    return CmdOutput{}, fmt.Errorf(
-                        "failed to create host dir %s: %s", hostPath, err,
-                    )
-                }
-            }
-        }
-        for _, hostPath := range cmdTemplate.VolumeFiles {
-            _, err := os.Stat(hostPath)
-            if errors.Is(err, os.ErrNotExist) {
-                dir := filepath.Dir(hostPath)
-                if err := os.MkdirAll(dir, 0755); err != nil {
-                    return CmdOutput{}, fmt.Errorf(
-                        "failed to create parent dir %s of volume path %s: %s",
-                        dir, hostPath, err,
-                    )
-                }
-
-                f, err := os.OpenFile(hostPath, os.O_RDONLY|os.O_CREATE, 0644)
-                if f.Close() != nil || err != nil {
-                    return CmdOutput{}, fmt.Errorf(
-                        "failed to create volume path %s: %s", hostPath, err,
-                    )
-                }
-            }
-        }
-    }
     cmdStr, envs := parsing.FormSingularityCmd(
         cmdTemplate, volumes, localSifPath, useGpu,
     )
@@ -453,6 +423,7 @@ func RunCmd(
     volumes map[string]string,
     cmdTemplate parsing.CmdTemplate,
     useDocker bool,
+    rootDir string,
 ) (CmdOutput, error) {
     var finalVolumes map[string]string
     if cmdTemplate.OverrideFsVolumes {
@@ -462,6 +433,38 @@ func RunCmd(
         finalVolumes = make(map[string]string)
         maps.Copy(finalVolumes, volumes)
     }
+
+    if cmdTemplate.Version == 1 {
+        for _, outDir := range cmdTemplate.VolumeDirsLocalMnt {
+            hostPath := filepath.Join(rootDir, outDir)
+            finalVolumes[outDir] = hostPath
+            _, err := os.Stat(hostPath)
+            if errors.Is(err, os.ErrNotExist) {
+                if err := os.MkdirAll(hostPath, 0755); err != nil {
+                    return CmdOutput{}, fmt.Errorf(
+                        "failed to create volume path %s: %s",
+                        hostPath, err,
+                    )
+                }
+            }
+        }
+        for _, outFile := range cmdTemplate.VolumeFilesLocalMnt {
+            hostPath := filepath.Join(rootDir, outFile)
+            hostPathParentDir := filepath.Dir(hostPath)
+            cntPathParentDir := filepath.Dir(outFile)
+            finalVolumes[cntPathParentDir] = hostPathParentDir
+            _, err := os.Stat(hostPathParentDir)
+            if errors.Is(err, os.ErrNotExist) {
+                if err := os.MkdirAll(hostPathParentDir, 0755); err != nil {
+                    return CmdOutput{}, fmt.Errorf(
+                        "failed to create parent dir %s of volume path %s: %s",
+                        hostPathParentDir, hostPath, err,
+                    )
+                }
+            }
+        }
+    }
+
     tmpDir, err := setupTmpDir()
     if err != nil {
         return CmdOutput{}, fmt.Errorf(
@@ -473,7 +476,7 @@ func RunCmd(
     if useDocker {
         return runCmdDocker(ctx, finalVolumes, cmdTemplate)
     } else {
-        return runCmdSingularity(ctx, finalVolumes, cmdTemplate)
+        return runCmdSingularity(ctx, finalVolumes, cmdTemplate, rootDir)
     }
 }
 
@@ -482,6 +485,7 @@ func RunCmdActivity(
     volumes map[string]string,
     cmdTemplate parsing.CmdTemplate,
     useDocker bool,
+    rootDir string,
 ) (CmdOutput, error) {
     outChan := make(chan struct {
         out CmdOutput
@@ -493,7 +497,7 @@ func RunCmdActivity(
     }
 
     go func() {
-        out, err := RunCmd(ctx, volumes, cmdTemplate, useDocker)
+        out, err := RunCmd(ctx, volumes, cmdTemplate, useDocker, rootDir)
         outChan <- outType{out: out, err: err}
     }()
 

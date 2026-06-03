@@ -1,0 +1,1498 @@
+{
+    "schema": "biodepot.resolved_workflow/v1",
+    "resolved_workflow": {
+        "run_id": "bulk-rna-seq-extraembryonic-slurm-dry-run-001",
+        "use_local_storage": true,
+        "nodes": {
+            "100": {
+                "id": 100,
+                "title": "Trimgalore_0",
+                "description": "Dry-run adapter trimming for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                "image_name": "biodepot/trimgalore",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R1 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val_1.fq.gz ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R2 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001_val_2.fq.gz"
+                    ],
+                    "env": {
+                        "trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    }
+                },
+                "inputs": {
+                    "inputFile_R1": {
+                        "name": "inputFile_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "inputFile_R2": {
+                        "name": "inputFile_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    },
+                    "trimmed_R1": {
+                        "name": "trimmed_R1",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val_1.fq.gz"
+                    },
+                    "trimmed_R2": {
+                        "name": "trimmed_R2",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001_val_2.fq.gz"
+                    }
+                },
+                "resources": {
+                    "cores": 2,
+                    "mem_mb": 4000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "Trimgalore",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "101": {
+                "id": 101,
+                "title": "Trimgalore_1",
+                "description": "Dry-run adapter trimming for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                "image_name": "biodepot/trimgalore",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R1 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val_1.fq.gz ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R2 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001_val_2.fq.gz"
+                    ],
+                    "env": {
+                        "trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    }
+                },
+                "inputs": {
+                    "inputFile_R1": {
+                        "name": "inputFile_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "inputFile_R2": {
+                        "name": "inputFile_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    },
+                    "trimmed_R1": {
+                        "name": "trimmed_R1",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val_1.fq.gz"
+                    },
+                    "trimmed_R2": {
+                        "name": "trimmed_R2",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001_val_2.fq.gz"
+                    }
+                },
+                "resources": {
+                    "cores": 2,
+                    "mem_mb": 4000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "Trimgalore",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "102": {
+                "id": 102,
+                "title": "Trimgalore_2",
+                "description": "Dry-run adapter trimming for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                "image_name": "biodepot/trimgalore",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R1 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val_1.fq.gz ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R2 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001_val_2.fq.gz"
+                    ],
+                    "env": {
+                        "trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    }
+                },
+                "inputs": {
+                    "inputFile_R1": {
+                        "name": "inputFile_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "inputFile_R2": {
+                        "name": "inputFile_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    },
+                    "trimmed_R1": {
+                        "name": "trimmed_R1",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val_1.fq.gz"
+                    },
+                    "trimmed_R2": {
+                        "name": "trimmed_R2",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001_val_2.fq.gz"
+                    }
+                },
+                "resources": {
+                    "cores": 2,
+                    "mem_mb": 4000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "Trimgalore",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "103": {
+                "id": 103,
+                "title": "Trimgalore_3",
+                "description": "Dry-run adapter trimming for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                "image_name": "biodepot/trimgalore",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R1 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val_1.fq.gz ",
+                        " printf '%s\\n' 'DRY_RUN Trimgalore R2 placeholder for /data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001_val_2.fq.gz"
+                    ],
+                    "env": {
+                        "trimmeddir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    }
+                },
+                "inputs": {
+                    "inputFile_R1": {
+                        "name": "inputFile_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "inputFile_R2": {
+                        "name": "inputFile_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz"
+                        },
+                        "mount": {
+                            "container_path": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed"
+                    },
+                    "trimmed_R1": {
+                        "name": "trimmed_R1",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val_1.fq.gz"
+                    },
+                    "trimmed_R2": {
+                        "name": "trimmed_R2",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001_val_2.fq.gz"
+                    }
+                },
+                "resources": {
+                    "cores": 2,
+                    "mem_mb": 4000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "Trimgalore",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "200": {
+                "id": 200,
+                "title": "starAlign_0",
+                "description": "Dry-run STAR alignment for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                "image_name": "biodepot/multistar",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val ",
+                        " printf '%s\\n' 'DRY_RUN STAR log for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/Log.final.out ",
+                        " printf '%s\\n' 'DRY_RUN STAR gene counts for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/ReadsPerGene.out.tab ",
+                        " printf '%s\\n' 'DRY_RUN STAR transcriptome BAM placeholder for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    ],
+                    "env": {
+                        "outputDirectory": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                        "VERSION": "2.7.11a",
+                        "APELIST": "true",
+                        "MULTISAMPLE": "true"
+                    }
+                },
+                "inputs": {
+                    "genomeDir": {
+                        "name": "genomeDir",
+                        "kind": "directory",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/genome"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R1": {
+                        "name": "readFilesIn_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 100,
+                            "output": "trimmed_R1"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val_1.fq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R2": {
+                        "name": "readFilesIn_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 100,
+                            "output": "trimmed_R2"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001_val_2.fq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val"
+                    },
+                    "transcriptomeBAM": {
+                        "name": "transcriptomeBAM",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    }
+                },
+                "resources": {
+                    "cores": 16,
+                    "mem_mb": 64000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "starAlign",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "201": {
+                "id": 201,
+                "title": "starAlign_1",
+                "description": "Dry-run STAR alignment for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                "image_name": "biodepot/multistar",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val ",
+                        " printf '%s\\n' 'DRY_RUN STAR log for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/Log.final.out ",
+                        " printf '%s\\n' 'DRY_RUN STAR gene counts for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/ReadsPerGene.out.tab ",
+                        " printf '%s\\n' 'DRY_RUN STAR transcriptome BAM placeholder for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    ],
+                    "env": {
+                        "outputDirectory": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                        "VERSION": "2.7.11a",
+                        "APELIST": "true",
+                        "MULTISAMPLE": "true"
+                    }
+                },
+                "inputs": {
+                    "genomeDir": {
+                        "name": "genomeDir",
+                        "kind": "directory",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/genome"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R1": {
+                        "name": "readFilesIn_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 101,
+                            "output": "trimmed_R1"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val_1.fq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R2": {
+                        "name": "readFilesIn_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 101,
+                            "output": "trimmed_R2"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001_val_2.fq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val"
+                    },
+                    "transcriptomeBAM": {
+                        "name": "transcriptomeBAM",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    }
+                },
+                "resources": {
+                    "cores": 16,
+                    "mem_mb": 64000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "starAlign",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "202": {
+                "id": 202,
+                "title": "starAlign_2",
+                "description": "Dry-run STAR alignment for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                "image_name": "biodepot/multistar",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val ",
+                        " printf '%s\\n' 'DRY_RUN STAR log for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/Log.final.out ",
+                        " printf '%s\\n' 'DRY_RUN STAR gene counts for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/ReadsPerGene.out.tab ",
+                        " printf '%s\\n' 'DRY_RUN STAR transcriptome BAM placeholder for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    ],
+                    "env": {
+                        "outputDirectory": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                        "VERSION": "2.7.11a",
+                        "APELIST": "true",
+                        "MULTISAMPLE": "true"
+                    }
+                },
+                "inputs": {
+                    "genomeDir": {
+                        "name": "genomeDir",
+                        "kind": "directory",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/genome"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R1": {
+                        "name": "readFilesIn_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 102,
+                            "output": "trimmed_R1"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val_1.fq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R2": {
+                        "name": "readFilesIn_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 102,
+                            "output": "trimmed_R2"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001_val_2.fq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val"
+                    },
+                    "transcriptomeBAM": {
+                        "name": "transcriptomeBAM",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    }
+                },
+                "resources": {
+                    "cores": 16,
+                    "mem_mb": 64000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "starAlign",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "203": {
+                "id": 203,
+                "title": "starAlign_3",
+                "description": "Dry-run STAR alignment for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                "image_name": "biodepot/multistar",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val ",
+                        " printf '%s\\n' 'DRY_RUN STAR log for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/Log.final.out ",
+                        " printf '%s\\n' 'DRY_RUN STAR gene counts for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/ReadsPerGene.out.tab ",
+                        " printf '%s\\n' 'DRY_RUN STAR transcriptome BAM placeholder for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    ],
+                    "env": {
+                        "outputDirectory": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                        "VERSION": "2.7.11a",
+                        "APELIST": "true",
+                        "MULTISAMPLE": "true"
+                    }
+                },
+                "inputs": {
+                    "genomeDir": {
+                        "name": "genomeDir",
+                        "kind": "directory",
+                        "source": {
+                            "type": "path",
+                            "path": "/home/lysander/slurm_test/genome"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R1": {
+                        "name": "readFilesIn_R1",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 103,
+                            "output": "trimmed_R1"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val_1.fq.gz",
+                            "mode": "ro"
+                        }
+                    },
+                    "readFilesIn_R2": {
+                        "name": "readFilesIn_R2",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 103,
+                            "output": "trimmed_R2"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/trimmed/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001_val_2.fq.gz",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputDir": {
+                        "name": "outputDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val"
+                    },
+                    "transcriptomeBAM": {
+                        "name": "transcriptomeBAM",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/Aligned.toTranscriptome.out.bam"
+                    }
+                },
+                "resources": {
+                    "cores": 16,
+                    "mem_mb": 64000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "starAlign",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "300": {
+                "id": 300,
+                "title": "salmon_0",
+                "description": "Dry-run Salmon quantification for CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                "image_name": "biodepot/salmon",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/quant.sf ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/quant.genes.sf"
+                    ],
+                    "env": {
+                        "inputfile": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                        "prefix": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val"
+                    }
+                },
+                "inputs": {
+                    "transcriptome": {
+                        "name": "transcriptome",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/transcriptome.fa"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/transcriptome.fa",
+                            "mode": "ro"
+                        }
+                    },
+                    "gtffile": {
+                        "name": "gtffile",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/genome.gtf"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/genome.gtf",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignmentfile": {
+                        "name": "alignmentfile",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 200,
+                            "output": "transcriptomeBAM"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputdir": {
+                        "name": "outputdir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val"
+                    },
+                    "quant": {
+                        "name": "quant",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/quant.sf"
+                    },
+                    "quantGenes": {
+                        "name": "quantGenes",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val/quant.genes.sf"
+                    }
+                },
+                "resources": {
+                    "cores": 8,
+                    "mem_mb": 16000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "salmon",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "301": {
+                "id": 301,
+                "title": "salmon_1",
+                "description": "Dry-run Salmon quantification for CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                "image_name": "biodepot/salmon",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/quant.sf ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/quant.genes.sf"
+                    ],
+                    "env": {
+                        "inputfile": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                        "prefix": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val"
+                    }
+                },
+                "inputs": {
+                    "transcriptome": {
+                        "name": "transcriptome",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/transcriptome.fa"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/transcriptome.fa",
+                            "mode": "ro"
+                        }
+                    },
+                    "gtffile": {
+                        "name": "gtffile",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/genome.gtf"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/genome.gtf",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignmentfile": {
+                        "name": "alignmentfile",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 201,
+                            "output": "transcriptomeBAM"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputdir": {
+                        "name": "outputdir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val"
+                    },
+                    "quant": {
+                        "name": "quant",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/quant.sf"
+                    },
+                    "quantGenes": {
+                        "name": "quantGenes",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val/quant.genes.sf"
+                    }
+                },
+                "resources": {
+                    "cores": 8,
+                    "mem_mb": 16000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "salmon",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "302": {
+                "id": 302,
+                "title": "salmon_2",
+                "description": "Dry-run Salmon quantification for CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                "image_name": "biodepot/salmon",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/quant.sf ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/quant.genes.sf"
+                    ],
+                    "env": {
+                        "inputfile": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                        "prefix": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val"
+                    }
+                },
+                "inputs": {
+                    "transcriptome": {
+                        "name": "transcriptome",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/transcriptome.fa"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/transcriptome.fa",
+                            "mode": "ro"
+                        }
+                    },
+                    "gtffile": {
+                        "name": "gtffile",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/genome.gtf"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/genome.gtf",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignmentfile": {
+                        "name": "alignmentfile",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 202,
+                            "output": "transcriptomeBAM"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputdir": {
+                        "name": "outputdir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val"
+                    },
+                    "quant": {
+                        "name": "quant",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/quant.sf"
+                    },
+                    "quantGenes": {
+                        "name": "quantGenes",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val/quant.genes.sf"
+                    }
+                },
+                "resources": {
+                    "cores": 8,
+                    "mem_mb": 16000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "salmon",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "303": {
+                "id": 303,
+                "title": "salmon_3",
+                "description": "Dry-run Salmon quantification for CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                "image_name": "biodepot/salmon",
+                "image_tag": "latest",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/quant.sf ",
+                        " printf 'Name\\tLength\\tEffectiveLength\\tTPM\\tNumReads\\nDRY_RUN\\t1\\t1\\t0\\t0\\n' > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/quant.genes.sf"
+                    ],
+                    "env": {
+                        "inputfile": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                        "prefix": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val"
+                    }
+                },
+                "inputs": {
+                    "transcriptome": {
+                        "name": "transcriptome",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/transcriptome.fa"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/transcriptome.fa",
+                            "mode": "ro"
+                        }
+                    },
+                    "gtffile": {
+                        "name": "gtffile",
+                        "kind": "file",
+                        "source": {
+                            "type": "path",
+                            "path": "/data/processing/genome/genome.gtf"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/genome/genome.gtf",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignmentfile": {
+                        "name": "alignmentfile",
+                        "kind": "file",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 203,
+                            "output": "transcriptomeBAM"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/Aligned.toTranscriptome.out.bam",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "outputdir": {
+                        "name": "outputdir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val"
+                    },
+                    "quant": {
+                        "name": "quant",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/quant.sf"
+                    },
+                    "quantGenes": {
+                        "name": "quantGenes",
+                        "kind": "file",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val/quant.genes.sf"
+                    }
+                },
+                "resources": {
+                    "cores": 8,
+                    "mem_mb": 16000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "salmon",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            },
+            "400": {
+                "id": 400,
+                "title": "gatherCounts",
+                "description": "Dry-run aggregation of per-sample STAR and Salmon outputs",
+                "image_name": "biodepot/gathercounts",
+                "image_tag": "cbbd690a__21b9851b__e5512470",
+                "launch": {
+                    "command": [
+                        "mkdir -p /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables ",
+                        " printf '%s\\n' DRY_RUN,genesRawCounts.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/genesRawCounts.csv ",
+                        " printf '%s\\n' DRY_RUN,genesCounts.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/genesCounts.csv ",
+                        " printf '%s\\n' DRY_RUN,genesTPM.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/genesTPM.csv ",
+                        " printf '%s\\n' DRY_RUN,txRawCounts.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/txRawCounts.csv ",
+                        " printf '%s\\n' DRY_RUN,txCounts.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/txCounts.csv ",
+                        " printf '%s\\n' DRY_RUN,txTPM.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/txTPM.csv ",
+                        " printf '%s\\n' DRY_RUN,featureCounts.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/featureCounts.csv ",
+                        " printf '%s\\n' DRY_RUN,stats.csv > /data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables/stats.csv"
+                    ],
+                    "env": {
+                        "outputDir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables"
+                    }
+                },
+                "inputs": {
+                    "countsDir_0": {
+                        "name": "countsDir_0",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 300,
+                            "output": "outputdir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "countsDir_1": {
+                        "name": "countsDir_1",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 301,
+                            "output": "outputdir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "countsDir_2": {
+                        "name": "countsDir_2",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 302,
+                            "output": "outputdir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "countsDir_3": {
+                        "name": "countsDir_3",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 303,
+                            "output": "outputdir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Counts/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignsDir_0": {
+                        "name": "alignsDir_0",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 200,
+                            "output": "outputDir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignsDir_1": {
+                        "name": "alignsDir_1",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 201,
+                            "output": "outputDir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignsDir_2": {
+                        "name": "alignsDir_2",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 202,
+                            "output": "outputDir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    },
+                    "alignsDir_3": {
+                        "name": "alignsDir_3",
+                        "kind": "directory",
+                        "source": {
+                            "type": "node_output",
+                            "node_id": 203,
+                            "output": "outputDir"
+                        },
+                        "mount": {
+                            "container_path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/alignedfiles/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001_val",
+                            "mode": "ro"
+                        }
+                    }
+                },
+                "outputs": {
+                    "tablesDir": {
+                        "name": "tablesDir",
+                        "kind": "directory",
+                        "path": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/slurm_dry_run/Tables"
+                    }
+                },
+                "resources": {
+                    "cores": 4,
+                    "mem_mb": 8000,
+                    "gpus": 0
+                },
+                "scheduler_controls": {
+                    "useScheduler": true,
+                    "useGpu": false,
+                    "nWorkers": 1,
+                    "slots": 1
+                },
+                "scheduler_hints": {
+                    "dry_run": true,
+                    "dry_run_mode": "write-placeholder-outputs",
+                    "stage": "gatherCounts",
+                    "source_workflow": "/mnt/pikachu/Bulk-RNA-seq/star_salmon_aws",
+                    "skipped_bwb_nodes": [
+                        "downloadURL",
+                        "10x_format_fa_gtf",
+                        "gffread",
+                        "starIndex",
+                        "S3_download",
+                        "S3_upload",
+                        "filter_files",
+                        "filterY",
+                        "Start"
+                    ]
+                },
+                "staging": {
+                    "mode": "shared_fs"
+                }
+            }
+        },
+        "links": [
+            {
+                "source": 100,
+                "sink": 200,
+                "source_output": "trimmed_R1",
+                "sink_input": "readFilesIn_R1"
+            },
+            {
+                "source": 100,
+                "sink": 200,
+                "source_output": "trimmed_R2",
+                "sink_input": "readFilesIn_R2"
+            },
+            {
+                "source": 200,
+                "sink": 300,
+                "source_output": "transcriptomeBAM",
+                "sink_input": "alignmentfile"
+            },
+            {
+                "source": 300,
+                "sink": 400,
+                "source_output": "outputdir",
+                "sink_input": "countsDir_0"
+            },
+            {
+                "source": 200,
+                "sink": 400,
+                "source_output": "outputDir",
+                "sink_input": "alignsDir_0"
+            },
+            {
+                "source": 101,
+                "sink": 201,
+                "source_output": "trimmed_R1",
+                "sink_input": "readFilesIn_R1"
+            },
+            {
+                "source": 101,
+                "sink": 201,
+                "source_output": "trimmed_R2",
+                "sink_input": "readFilesIn_R2"
+            },
+            {
+                "source": 201,
+                "sink": 301,
+                "source_output": "transcriptomeBAM",
+                "sink_input": "alignmentfile"
+            },
+            {
+                "source": 301,
+                "sink": 400,
+                "source_output": "outputdir",
+                "sink_input": "countsDir_1"
+            },
+            {
+                "source": 201,
+                "sink": 400,
+                "source_output": "outputDir",
+                "sink_input": "alignsDir_1"
+            },
+            {
+                "source": 102,
+                "sink": 202,
+                "source_output": "trimmed_R1",
+                "sink_input": "readFilesIn_R1"
+            },
+            {
+                "source": 102,
+                "sink": 202,
+                "source_output": "trimmed_R2",
+                "sink_input": "readFilesIn_R2"
+            },
+            {
+                "source": 202,
+                "sink": 302,
+                "source_output": "transcriptomeBAM",
+                "sink_input": "alignmentfile"
+            },
+            {
+                "source": 302,
+                "sink": 400,
+                "source_output": "outputdir",
+                "sink_input": "countsDir_2"
+            },
+            {
+                "source": 202,
+                "sink": 400,
+                "source_output": "outputDir",
+                "sink_input": "alignsDir_2"
+            },
+            {
+                "source": 103,
+                "sink": 203,
+                "source_output": "trimmed_R1",
+                "sink_input": "readFilesIn_R1"
+            },
+            {
+                "source": 103,
+                "sink": 203,
+                "source_output": "trimmed_R2",
+                "sink_input": "readFilesIn_R2"
+            },
+            {
+                "source": 203,
+                "sink": 303,
+                "source_output": "transcriptomeBAM",
+                "sink_input": "alignmentfile"
+            },
+            {
+                "source": 303,
+                "sink": 400,
+                "source_output": "outputdir",
+                "sink_input": "countsDir_3"
+            },
+            {
+                "source": 203,
+                "sink": 400,
+                "source_output": "outputDir",
+                "sink_input": "alignsDir_3"
+            }
+        ]
+    }
+}

@@ -20,6 +20,12 @@ func (fs LocalFS) TranslatePath(path string) (string, bool) {
     return GetHostPath(path, fs.Volumes)
 }
 
+func (fs LocalFS) GetRootDir() string { 
+    // TODO: This is a hacky way to maintain compatability between v0 and v1,
+    // but fix.
+    return fs.Volumes["/data"]
+}
+
 func (fs LocalFS) Glob(
     root, pattern string, includeFiles, includeDirs bool,
 ) ([]string, error) {

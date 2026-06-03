@@ -62,7 +62,7 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
 
     // Handle an activity invoked during setup.
     env.OnActivity(fs.SetupVolumes, mock.Anything, mock.Anything).Return(nil, nil).Maybe()
-    env.OnActivity(RunCmdActivity, mock.Anything, mock.Anything, cmdToRun, mock.Anything).
+    env.OnActivity(RunCmdActivity, mock.Anything, mock.Anything, cmdToRun, mock.Anything, mock.Anything).
         Return(func(_ map[string]string, _ parsing.CmdTemplate) (CmdOutput, error) {
             //require.Equal(t, queueName, assignedQueue)
             require.True(t, readyToRunJob)

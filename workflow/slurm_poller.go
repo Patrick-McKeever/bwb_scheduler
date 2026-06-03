@@ -396,32 +396,27 @@ func (connMan *SlurmActivity) getSlurmVolumes(
     }
     volumes["/tmp/output"] = tmpOutputHostPath
 
+    rootDir := sshFs.GetRootDir()
     if cmdTemplate.Version == 1 {
+        for cntPath, hostPath := range cmdTemplate.VolumeFiles {
+            volumes[cntPath] = hostPath
+        }
         for cntPath, hostPath := range cmdTemplate.VolumeDirs {
-            remotePath, ok := fs.GetHostPath(hostPath, sshFs.RemoteVolumes)
-            volumes[cntPath] = remotePath
-            if !ok {
-                return nil, fmt.Errorf(
-                    "could not translate cnt path %s w/ volumes %v",
-                    remotePath, sshFs.RemoteVolumes,
-                )
-            }
-            if err := connMan.mkdirIfNotExists(remotePath); err != nil {
+            volumes[cntPath] = hostPath
+        }
+        for _, outDir := range cmdTemplate.VolumeDirsLocalMnt {
+            hostPath := filepath.Join(rootDir, outDir)
+            volumes[outDir] = hostPath
+            if err := connMan.mkdirIfNotExists(hostPath); err != nil {
                 return nil, err
             }
         }
-
-        for cntPath, hostPath := range cmdTemplate.VolumeFiles {
-            remotePath, ok := fs.GetHostPath(hostPath, sshFs.RemoteVolumes)
-            volumes[cntPath] = remotePath
-            if !ok {
-                return nil, fmt.Errorf(
-                    "could not translate cnt path %s w/ volumes %v",
-                    remotePath, sshFs.RemoteVolumes,
-                )
-            }
-            dir := filepath.Dir(remotePath)
-            if err := connMan.mkdirIfNotExists(dir); err != nil {
+        for _, outFile := range cmdTemplate.VolumeFiles {
+            hostPath := filepath.Join(rootDir, outFile)
+            hostPathParentDir := filepath.Dir(hostPath)
+            cntPathParentDir := filepath.Dir(outFile)
+            volumes[cntPathParentDir]= hostPathParentDir
+            if err := connMan.mkdirIfNotExists(hostPathParentDir); err != nil {
                 return nil, err
             }
         }

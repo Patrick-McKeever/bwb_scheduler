@@ -166,10 +166,11 @@ func (exec *LocalExecutor) RunCmdWithGrant(
 	cmd parsing.CmdTemplate, grant ResourceGrant,
 ) {
 	volumes := exec.masterFS.GetVolumes()
+    rootDir := exec.masterFS.GetRootDir()
 	useDocker := exec.configsByNode[cmd.NodeId].UseDocker
 	exec.waitGroup.Add(1)
 	go func() {
-		result, err := RunCmd(exec.ctx, volumes, cmd, useDocker)
+		result, err := RunCmd(exec.ctx, volumes, cmd, useDocker, rootDir)
 		exec.waitGroup.Done()
 		exec.cmdResChan <- struct {
 			result CmdOutput

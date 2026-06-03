@@ -18,6 +18,7 @@ type WorkflowNode interface {
     GetTitle() string
     ArgIsInputFile(string) bool
     ArgIsOutputFile(string) bool
+    ArgIsOutputDir(string) bool
     GetImageName() string
     GetImageTag() string
     IsAsync() bool
@@ -90,6 +91,20 @@ func (node *WorkflowNodeV0) ArgIsInputFile(arg string) bool {
 func (node *WorkflowNodeV0) ArgIsOutputFile(arg string) bool {
     argType, exists := node.ArgTypes[arg]
     if !exists {
+        return false
+    }
+    if ! strings.HasPrefix(argType.ArgType, "file") {
+        return false
+    }
+    return argType.OutputFile != nil && *argType.OutputFile 
+}
+
+func (node *WorkflowNodeV0) ArgIsOutputDir(arg string) bool {
+    argType, exists := node.ArgTypes[arg]
+    if !exists {
+        return false
+    }
+    if ! strings.HasPrefix(argType.ArgType, "directory") {
         return false
     }
     return argType.OutputFile != nil && *argType.OutputFile 

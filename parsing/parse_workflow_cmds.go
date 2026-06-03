@@ -48,12 +48,15 @@ type CmdTemplate struct {
     // to /tmp/output).
     InFiles       map[string][]string
     OutFiles      map[string][]string
+    OutDirs       map[string][]string
     OutFilePnames []string
 
     // Meant for v1, where volume mappings are part of workflow format.
     OverrideFsVolumes bool
     VolumeDirs map[string]string
     VolumeFiles map[string]string
+    VolumeDirsLocalMnt []string
+    VolumeFilesLocalMnt []string
 
     ResourceReqs ResourceVector
 }
@@ -142,16 +145,26 @@ func copyCmdTemplate(template CmdTemplate) CmdTemplate {
     newTemplate.InFiles = make(map[string][]string, len(template.InFiles))
     newTemplate.OutFiles = make(map[string][]string, len(template.OutFiles))
     newTemplate.OutFilePnames = make([]string, len(template.OutFilePnames))
+    newTemplate.OutDirs = make(map[string][]string, len(template.OutDirs))
+    newTemplate.VolumeFiles = make(map[string]string, len(template.VolumeFiles))
+    newTemplate.VolumeDirs = make(map[string]string, len(template.VolumeDirs))
+    newTemplate.VolumeDirsLocalMnt = make([]string, 0)
+    newTemplate.VolumeFilesLocalMnt = make([]string, 0)
 
+    copy(newTemplate.VolumeDirsLocalMnt, template.VolumeDirsLocalMnt)
+    copy(newTemplate.VolumeFilesLocalMnt, template.VolumeFilesLocalMnt)
     copy(newTemplate.BaseCmd, template.BaseCmd)
     copy(newTemplate.Args, template.Args)
     copy(newTemplate.Flags, template.Flags)
     copy(newTemplate.OutFilePnames, template.OutFilePnames)
 
+    newTemplate.VolumeFiles = copyMapOfScalars(template.VolumeFiles)
+    newTemplate.VolumeDirs = copyMapOfScalars(template.VolumeDirs)
     newTemplate.Envs = copyMapOfScalars(template.Envs)
     newTemplate.IterVals = copyTypedParams(template.IterVals)
     newTemplate.InFiles = copyMapOfLists(template.InFiles)
     newTemplate.OutFiles = copyMapOfLists(template.OutFiles)
+    newTemplate.OutDirs = copyMapOfLists(template.OutDirs)
 
     return newTemplate
 }
@@ -1424,10 +1437,23 @@ func FormSingularityCmdPrefix(
         gpuFlag = "--nv"
     }
 
+    cntPaths := make([]string, 0, len(volumes))
+    for k := range volumes {
+        cntPaths = append(cntPaths, k)
+    }
+    // Sort volumes by length of host path. Singularity requires
+    // that if one volume's host path is a prefix of another,
+    // the shorter one comes first.
+    sort.Slice(cntPaths, func(i, j int) bool {
+        return len(volumes[cntPaths[i]]) < len(volumes[cntPaths[j]])
+    })
+
     volumesStr := ""
-    for cntPath, hostPath := range volumes {
+    for _, cntPath := range cntPaths {
+        hostPath := volumes[cntPath]
         volumesStr += fmt.Sprintf("-B %s:%s ", hostPath, cntPath)
     }
+
     return fmt.Sprintf(
         "singularity exec %s -p -i --containall --cleanenv %s %s",
         gpuFlag, volumesStr, sifPath,
