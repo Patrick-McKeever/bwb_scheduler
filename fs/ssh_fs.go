@@ -20,6 +20,7 @@ type SshFS struct {
     Endpt           string
     RemoteVolumes   map[string]string
     LocalVolumes    map[string]string
+    RootDir         string
 }
 
 func NewSshFS(
@@ -65,7 +66,7 @@ func (fs SshFS) TranslatePath(path string) (string, bool) {
 func (fs SshFS) GetRootDir() string { 
     // TODO: This is a hacky way to maintain compatability between v0 and v1,
     // but fix.
-    return fs.RemoteVolumes["/data"]
+    return fs.RootDir
 }
 
 func (fs SshFS) Glob(

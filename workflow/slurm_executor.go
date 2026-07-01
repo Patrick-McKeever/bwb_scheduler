@@ -81,6 +81,7 @@ func (exec *SlurmRemoteExecutor) setupFS(v1 bool) (fs.SshFS, error) {
         RemoteVolumes: map[string]string{
             rootCnt: dataDir,
         },
+        RootDir: dataDir,
     }, nil
 }
 

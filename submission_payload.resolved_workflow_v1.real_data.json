@@ -1,0 +1,2358 @@
+{
+  "schema": "biodepot.resolved_workflow/v1",
+  "resolved_workflow": {
+    "run_id": "preprint-bulkrna-jax-six-real-001",
+    "use_local_storage": true,
+    "nodes": {
+      "50": {
+        "id": 50,
+        "title": "preStagedGenome",
+        "description": "Six-sample real-runtime pilot: validate pre-staged GRCh38/gencode reference on the SLURM host",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "test -s /home/patrick/processing/genome/SA",
+            "test -s /home/patrick/processing/genome/Genome",
+            "test -s /home/patrick/processing/genome/transcriptome.fa",
+            "test -s /home/patrick/processing/genome/genome.gtf"
+          ]
+        },
+        "outputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "path": "/home/patrick/processing/genome"
+          },
+          "transcriptomeFa": {
+            "kind": "file",
+            "path": "/home/patrick/processing/genome/transcriptome.fa"
+          },
+          "genomeGtf": {
+            "kind": "file",
+            "path": "/home/patrick/processing/genome/genome.gtf"
+          }
+        },
+        "resources": {
+          "cores": 1,
+          "mem_mb": 1024,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "preStagedGenome",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "100": {
+        "id": 100,
+        "title": "Trimgalore_0",
+        "description": "Six-sample real-runtime pilot: Trimgalore_0 for SIX3_PTC_A07_GT24-05564",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_0",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "101": {
+        "id": 101,
+        "title": "Trimgalore_1",
+        "description": "Six-sample real-runtime pilot: Trimgalore_1 for SIX3_PTC_A08_GT24-05565",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_1",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "102": {
+        "id": 102,
+        "title": "Trimgalore_2",
+        "description": "Six-sample real-runtime pilot: Trimgalore_2 for SIX3_PTC_C07_GT24-05566",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_2",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "103": {
+        "id": 103,
+        "title": "Trimgalore_3",
+        "description": "Six-sample real-runtime pilot: Trimgalore_3 for SIX3_WT_1_GT24-05567",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_3",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "104": {
+        "id": 104,
+        "title": "Trimgalore_4",
+        "description": "Six-sample real-runtime pilot: Trimgalore_4 for SIX3_WT_2_GT24-05568",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_4",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "105": {
+        "id": 105,
+        "title": "Trimgalore_5",
+        "description": "Six-sample real-runtime pilot: Trimgalore_5 for SIX3_WT_3_GT24-05569",
+        "image_name": "biodepot/trimgalore",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/trimmed",
+            "trim_galore --paired --fastqc --gzip --cores 1 -o /home/patrick/jax_sixfile/output/trimmed /home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001.fastq.gz /home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001.fastq.gz"
+          ],
+          "env": {
+            "trimmeddir": "/home/patrick/jax_sixfile/output/trimmed"
+          }
+        },
+        "inputs": {
+          "inputFile_R1": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001.fastq.gz",
+              "mode": "ro"
+            }
+          },
+          "inputFile_R2": {
+            "kind": "file",
+            "source": {
+              "type": "path",
+              "path": "/home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001.fastq.gz"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/input/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001.fastq.gz",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/trimmed"
+          },
+          "trimmed_R1": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001_val_1.fq.gz"
+          },
+          "trimmed_R2": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001_val_2.fq.gz"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "Trimgalore_5",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "200": {
+        "id": 200,
+        "title": "starAlign_0",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_PTC_A07_GT24-05564",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 100,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 100,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A07_GT24-05564_CGCTATGT-GTGTCGGA_S180_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 100,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_0",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "201": {
+        "id": 201,
+        "title": "starAlign_1",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_PTC_A08_GT24-05565",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 101,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 101,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_A08_GT24-05565_GTATGTTC-TTCCTGTT_S187_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 101,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_1",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "202": {
+        "id": 202,
+        "title": "starAlign_2",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_PTC_C07_GT24-05566",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 102,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 102,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_PTC_C07_GT24-05566_ACGCACCT-CCTTCACC_S191_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 102,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_2",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "203": {
+        "id": 203,
+        "title": "starAlign_3",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_WT_1_GT24-05567",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 103,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 103,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_1_GT24-05567_TACTCATA-GCCACAGG_S185_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 103,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_3",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "204": {
+        "id": 204,
+        "title": "starAlign_4",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_WT_2_GT24-05568",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 104,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 104,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_2_GT24-05568_CGTCTGCG-ATTGTGAA_S192_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 104,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_4",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "205": {
+        "id": 205,
+        "title": "starAlign_5",
+        "description": "Six-sample real-runtime pilot: direct STAR for SIX3_WT_3_GT24-05569",
+        "image_name": "biodepot/multistar",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "export PATH=/usr/local/bin/2.7.11a/Linux_x86_64_static:$PATH",
+            "STAR --version",
+            "mkdir -p /home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569",
+            "STAR --runMode alignReads --genomeDir /home/patrick/processing/genome --readFilesIn /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001_val_1.fq.gz /home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001_val_2.fq.gz --readFilesCommand zcat --runThreadN 16 --quantMode TranscriptomeSAM GeneCounts --outSAMtype BAM Unsorted --outSAMattributes NH HI AS NM MD --twopassMode Basic --outFilterMultimapNmax 20 --alignSJDBoverhangMin 1 --quantTranscriptomeBan Singleend --genomeLoad NoSharedMemory --outFileNamePrefix /home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569/",
+            "test -s /home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569/Aligned.toTranscriptome.out.bam"
+          ],
+          "env": {
+            "VERSION": "2.7.11a"
+          }
+        },
+        "inputs": {
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R1": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 105,
+              "output": "trimmed_R1"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R1_001_val_1.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "readFilesIn_R2": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 105,
+              "output": "trimmed_R2"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed/SIX3_WT_3_GT24-05569_TCGATATC-ACTCGTGT_S178_L008_R2_001_val_2.fq.gz",
+              "mode": "ro"
+            }
+          },
+          "trimmedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 105,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/trimmed",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned"
+          },
+          "outputDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569"
+          },
+          "transcriptomeBAM": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569/Aligned.toTranscriptome.out.bam"
+          }
+        },
+        "resources": {
+          "cores": 16,
+          "mem_mb": 90000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "starAlign_5",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "300": {
+        "id": 300,
+        "title": "salmon_0",
+        "description": "Six-sample real-runtime pilot: salmon_0 for SIX3_PTC_A07_GT24-05564",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_PTC_A07_GT24-05564",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 200,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 200,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A07_GT24-05564"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A07_GT24-05564/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_0",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "301": {
+        "id": 301,
+        "title": "salmon_1",
+        "description": "Six-sample real-runtime pilot: salmon_1 for SIX3_PTC_A08_GT24-05565",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_PTC_A08_GT24-05565",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 201,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 201,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A08_GT24-05565"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A08_GT24-05565/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_1",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "302": {
+        "id": 302,
+        "title": "salmon_2",
+        "description": "Six-sample real-runtime pilot: salmon_2 for SIX3_PTC_C07_GT24-05566",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_PTC_C07_GT24-05566",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 202,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 202,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_C07_GT24-05566"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_C07_GT24-05566/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_2",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "303": {
+        "id": 303,
+        "title": "salmon_3",
+        "description": "Six-sample real-runtime pilot: salmon_3 for SIX3_WT_1_GT24-05567",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_WT_1_GT24-05567",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 203,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 203,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_1_GT24-05567"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_1_GT24-05567/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_3",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "304": {
+        "id": 304,
+        "title": "salmon_4",
+        "description": "Six-sample real-runtime pilot: salmon_4 for SIX3_WT_2_GT24-05568",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_WT_2_GT24-05568",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 204,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 204,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_2_GT24-05568"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_2_GT24-05568/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_4",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "305": {
+        "id": 305,
+        "title": "salmon_5",
+        "description": "Six-sample real-runtime pilot: salmon_5 for SIX3_WT_3_GT24-05569",
+        "image_name": "biodepot/salmon",
+        "image_tag": "latest",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts/SIX3_WT_3_GT24-05569",
+            "runSalmon.sh quant -t /home/patrick/processing/genome/transcriptome.fa -l A -g /home/patrick/processing/genome/genome.gtf"
+          ],
+          "env": {
+            "inputfile": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569/Aligned.toTranscriptome.out.bam",
+            "prefix": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "transcriptome": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "transcriptomeFa"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/transcriptome.fa",
+              "mode": "ro"
+            }
+          },
+          "gtffile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeGtf"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome/genome.gtf",
+              "mode": "ro"
+            }
+          },
+          "alignmentfile": {
+            "kind": "file",
+            "source": {
+              "type": "node_output",
+              "node_id": 205,
+              "output": "transcriptomeBAM"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569/Aligned.toTranscriptome.out.bam",
+              "mode": "ro"
+            }
+          },
+          "genomeDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 50,
+              "output": "genomeDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/processing/genome",
+              "mode": "ro"
+            }
+          },
+          "alignedDir": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 205,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "outputdir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_3_GT24-05569"
+          },
+          "quant": {
+            "kind": "file",
+            "path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_3_GT24-05569/quant.sf"
+          }
+        },
+        "resources": {
+          "cores": 8,
+          "mem_mb": 24000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "salmon_5",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      },
+      "400": {
+        "id": 400,
+        "title": "gatherCounts",
+        "description": "Six-sample real-runtime pilot: gatherCounts",
+        "image_name": "biodepot/gathercounts",
+        "image_tag": "cbbd690a__21b9851b__e5512470",
+        "launch": {
+          "command": [
+            "mkdir -p /home/patrick/jax_sixfile/output/counts",
+            "makeCountsMatrix.sh /home/patrick/jax_sixfile/output/counts /home/patrick/jax_sixfile/output/aligned"
+          ],
+          "env": {
+            "outputDir": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "inputs": {
+          "alignedRoot": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 200,
+              "output": "alignedRoot"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned",
+              "mode": "ro"
+            }
+          },
+          "countsDir_0": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 300,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A07_GT24-05564",
+              "mode": "ro"
+            }
+          },
+          "countsDir_1": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 301,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_A08_GT24-05565",
+              "mode": "ro"
+            }
+          },
+          "countsDir_2": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 302,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_PTC_C07_GT24-05566",
+              "mode": "ro"
+            }
+          },
+          "countsDir_3": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 303,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_1_GT24-05567",
+              "mode": "ro"
+            }
+          },
+          "countsDir_4": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 304,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_2_GT24-05568",
+              "mode": "ro"
+            }
+          },
+          "countsDir_5": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 305,
+              "output": "outputdir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/counts/SIX3_WT_3_GT24-05569",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_0": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 200,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A07_GT24-05564",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_1": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 201,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_A08_GT24-05565",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_2": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 202,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_PTC_C07_GT24-05566",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_3": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 203,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_1_GT24-05567",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_4": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 204,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_2_GT24-05568",
+              "mode": "ro"
+            }
+          },
+          "alignsDir_5": {
+            "kind": "directory",
+            "source": {
+              "type": "node_output",
+              "node_id": 205,
+              "output": "outputDir"
+            },
+            "mount": {
+              "container_path": "/home/patrick/jax_sixfile/output/aligned/SIX3_WT_3_GT24-05569",
+              "mode": "ro"
+            }
+          }
+        },
+        "outputs": {
+          "tablesDir": {
+            "kind": "directory",
+            "path": "/home/patrick/jax_sixfile/output/counts"
+          }
+        },
+        "resources": {
+          "cores": 4,
+          "mem_mb": 8000,
+          "gpus": 0
+        },
+        "scheduler_controls": {
+          "useScheduler": true,
+          "useGpu": false,
+          "nWorkers": 1,
+          "slots": 1
+        },
+        "scheduler_hints": {
+          "dry_run": false,
+          "stage": "gatherCounts",
+          "source": "JAX_sixfile six-sample real runtime pilot"
+        },
+        "staging": {
+          "mode": "shared_fs"
+        }
+      }
+    },
+    "links": [
+      {
+        "source": 50,
+        "sink": 200,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 100,
+        "sink": 200,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 100,
+        "sink": 200,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 100,
+        "sink": 200,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 300,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 300,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 300,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 200,
+        "sink": 300,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 200,
+        "sink": 300,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 200,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_0"
+      },
+      {
+        "source": 300,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_0"
+      },
+      {
+        "source": 50,
+        "sink": 201,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 101,
+        "sink": 201,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 101,
+        "sink": 201,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 101,
+        "sink": 201,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 301,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 301,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 301,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 201,
+        "sink": 301,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 201,
+        "sink": 301,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 201,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_1"
+      },
+      {
+        "source": 301,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_1"
+      },
+      {
+        "source": 50,
+        "sink": 202,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 102,
+        "sink": 202,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 102,
+        "sink": 202,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 102,
+        "sink": 202,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 302,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 302,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 302,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 202,
+        "sink": 302,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 202,
+        "sink": 302,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 202,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_2"
+      },
+      {
+        "source": 302,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_2"
+      },
+      {
+        "source": 50,
+        "sink": 203,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 103,
+        "sink": 203,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 103,
+        "sink": 203,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 103,
+        "sink": 203,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 303,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 303,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 303,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 203,
+        "sink": 303,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 203,
+        "sink": 303,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 203,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_3"
+      },
+      {
+        "source": 303,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_3"
+      },
+      {
+        "source": 50,
+        "sink": 204,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 104,
+        "sink": 204,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 104,
+        "sink": 204,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 104,
+        "sink": 204,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 304,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 304,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 304,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 204,
+        "sink": 304,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 204,
+        "sink": 304,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 204,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_4"
+      },
+      {
+        "source": 304,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_4"
+      },
+      {
+        "source": 50,
+        "sink": 205,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 105,
+        "sink": 205,
+        "source_output": "trimmed_R1",
+        "sink_input": "readFilesIn_R1"
+      },
+      {
+        "source": 105,
+        "sink": 205,
+        "source_output": "trimmed_R2",
+        "sink_input": "readFilesIn_R2"
+      },
+      {
+        "source": 105,
+        "sink": 205,
+        "source_output": "outputDir",
+        "sink_input": "trimmedDir"
+      },
+      {
+        "source": 50,
+        "sink": 305,
+        "source_output": "genomeDir",
+        "sink_input": "genomeDir"
+      },
+      {
+        "source": 50,
+        "sink": 305,
+        "source_output": "genomeGtf",
+        "sink_input": "gtffile"
+      },
+      {
+        "source": 50,
+        "sink": 305,
+        "source_output": "transcriptomeFa",
+        "sink_input": "transcriptome"
+      },
+      {
+        "source": 205,
+        "sink": 305,
+        "source_output": "outputDir",
+        "sink_input": "alignedDir"
+      },
+      {
+        "source": 205,
+        "sink": 305,
+        "source_output": "transcriptomeBAM",
+        "sink_input": "alignmentfile"
+      },
+      {
+        "source": 205,
+        "sink": 400,
+        "source_output": "outputDir",
+        "sink_input": "alignsDir_5"
+      },
+      {
+        "source": 305,
+        "sink": 400,
+        "source_output": "outputdir",
+        "sink_input": "countsDir_5"
+      },
+      {
+        "source": 200,
+        "sink": 400,
+        "source_output": "alignedRoot",
+        "sink_input": "alignedRoot"
+      }
+    ]
+  }
+}

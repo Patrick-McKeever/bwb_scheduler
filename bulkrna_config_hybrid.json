@@ -1,18 +1,18 @@
 {
     "executors": {
         "slurm": {
-            "ip_addr": "128.208.252.232:22",
-            "user": "lysander",
-            "transfer_addr": "128.208.252.232",
-            "sched_dir": "/srv/slurm_mnt",
-            "cmd_prefix": "docker exec slurmdbd"
+            "ip_addr": "bridges2.psc.edu:22",
+            "user": "mckeever",
+            "transfer_addr": "data.bridges2.psc.edu",
+            "sched_dir": "/ocean/projects/bio230034p/mckeever/SCHED_STORAGE",
+            "cmd_prefix": ""
         }, "temporal": {}
     },
     "configs": {
         "star": {
             "executor": "slurm",
             "annotations": {
-                "partition": "normal",
+                "partition": "RM-shared",
                 "mem": "32G",
                 "cpus_per_task": 16
             }
@@ -20,7 +20,7 @@
         "salmon": {
             "executor": "slurm",
             "annotations": {
-                "partition": "normal",
+                "partition": "RM-shared",
                 "mem": "8G",
                 "cpus_per_task": 5
             }
@@ -28,7 +28,7 @@
         "lowMem": {
             "executor": "slurm",
             "annotations": {
-                "partition": "normal",
+                "partition": "RM-shared",
                 "mem": "500M",
                 "cpus_per_task": 1
             }
@@ -36,7 +36,7 @@
         "mediumMem": {
             "executor": "slurm",
             "annotations": {
-                "partition": "normal",
+                "partition": "RM-shared",
                 "mem": "500M",
                 "cpus_per_task": 1
             }
@@ -44,25 +44,35 @@
         "temporal": {
             "executor": "temporal"
         },
-        "filterY": {
+        "trim": {
             "executor": "slurm",
             "annotations": {
-                "partition": "normal",
+                "partition": "RM-shared",
                 "mem": "8G",
-                "cpus_per_task": 4
+                "cpus_per_task": 5
             }
         }
     },
     "node_configs": {
-        "0": "temporal",
-        "1": "star",
-        "2": "star",
-        "3": "mediumMem",
-        "4": "temporal",
-        "5": "mediumMem",
-        "6": "salmon",
-        "7": "temporal",
-        "9": "lowMem",
-        "13": "filterY"
+        "50": "lowMem",
+        "100": "trim",
+        "101": "trim",
+        "102": "trim",
+        "103": "trim",
+        "104": "trim",  
+        "105": "trim", 
+        "200": "star", 
+        "201": "star", 
+        "202": "star", 
+        "203": "star", 
+        "204": "star", 
+        "205": "star", 
+        "300": "salmon", 
+        "301": "salmon", 
+        "302": "salmon", 
+        "303": "salmon", 
+        "304": "salmon", 
+        "305": "salmon", 
+        "400": "mediumMem"
     }
 }
