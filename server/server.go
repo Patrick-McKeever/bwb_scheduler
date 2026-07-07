@@ -3,14 +3,16 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"go-scheduler/fs"
 	"go-scheduler/parsing"
 	"go-scheduler/workflow"
 	"log/slog"
 	"net/http"
+	"os"
 
+	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/sdk/client"
 	temporalLog "go.temporal.io/sdk/log"
-	enumspb "go.temporal.io/api/enums/v1"
 )
 
 type StartWorkflowRequest struct {
@@ -130,10 +132,14 @@ func (s *Server) handleStartWorkflow(w http.ResponseWriter, r *http.Request) {
 		req.WorkerInfo.QueueId: req.WorkerInfo,
 	}
 
+	sched_dir := os.Getenv("BWB_SCHED_DIR")
+	masterFS := fs.LocalFS{
+		RootDir: sched_dir,
+	}
 	we, err := s.temporalClient.ExecuteWorkflow(
 		r.Context(), workflowOptions,
 		workflow.RunBwbWorkflowV1, "", jobConfig,
-		bwbWorkflow, index, workers, nil, false,
+		bwbWorkflow, index, workers, masterFS, false,
 	)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to start workflow: %s", err))

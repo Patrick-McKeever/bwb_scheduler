@@ -671,8 +671,6 @@ func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
 	cmd parsing.CmdRunParams, jobConfig parsing.SlurmJobConfig,
 	fs fs.SshFS, slurmDir, imageDir string,
 ) (SlurmJob, error) {
-	fmt.Println("RECEIVED")
-	parsing.PrettyPrint(cmd)
 	jobSlurmId := randomString(16)
 	tmpOutputHostPath := filepath.Join(slurmDir, jobSlurmId)
 

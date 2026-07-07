@@ -758,8 +758,9 @@ func RunBwbWorkflowV1(
     masterFS fs.LocalFS,
     softFail bool,
 ) error {
+    masterRootDir := masterFS.GetRootDir()
     rootDirs := map[parsing.ExecType]string {
-        parsing.EXEC_TEMPORAL: masterFS.GetRootDir(),
+        parsing.EXEC_TEMPORAL: masterRootDir,
         parsing.EXEC_SLURM: jobConfig.SlurmExecutor.SchedDir,
     }
     cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig, rootDirs)

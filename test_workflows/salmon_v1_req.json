@@ -26,11 +26,7 @@
         "image_tag": "latest",
         "launch": {
           "command": [
-            "salmon",
-            "index",
-            "-t", "/work/in/transcripts.fa",
-            "-i", "/work/out/salmon_index",
-            "-p", "4"
+            "salmon index -t /work/in/transcripts.fa -i /work/out/salmon_index -p 4"
           ],
           "env": {},
           "cwd": "/work"
@@ -41,7 +37,7 @@
             "kind": "file",
             "source": {
               "type": "path",
-              "path": "/test/data/Arabidopsis_thaliana.TAIR10.28.cdna.all.fa.gz"
+              "path": "/test/data/Arabidopsis_thaliana.TAIR10.cdna.all.fa.gz"
             },
             "mount": {
               "container_path": "/work/in/transcripts.fa",
@@ -79,14 +75,7 @@
         "image_tag": "latest",
         "launch": {
           "command": [
-            "salmon",
-            "quant",
-            "-l", "A",
-            "-i", "/work/out/salmon_index",
-            "-r", "/reads.fastq",
-            "-o", "/work/out/quant",
-            "--minAssignedFrags", "0",
-            "-p", "4"
+            "salmon quant -l A -i /work/out/salmon_index -r /reads.fastq -o /work/out/quant --minAssignedFrags 0 -p 4"
           ],
           "env": {},
           "cwd": "/work"
@@ -97,7 +86,7 @@
             "kind": "file",
             "source": {
               "type": "path",
-              "path": "/work/in/DRR016134_1.fastq.gz"
+              "path": "/test/in/DRR016134_1.fastq.gz"
             },
             "mount": {
               "container_path": "/reads.fastq",

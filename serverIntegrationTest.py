@@ -9,33 +9,68 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 import urllib.error
 
-SERVER_ADDR = "http://localhost:8080"
-POLL_INTERVAL_SECS = 5
-TERMINAL_STATUSES = {"FINISHED", "FAILED", "CANCELED", "TERMINATED", "TIMED_OUT"}
-WORKFLOW_REQ_PATH = "test_workflows/salmon_v1_req.json"
+serverAddr = "http://localhost:5444"
+pollIntervalSecs = 5
+terminalStatuses = {"FINISHED", "FAILED", "CANCELED", "TERMINATED", "TIMED_OUT"}
+workflowReqPath = "test_workflows/salmon_v1_req.json"
 
 
-def start_background(cmd: list[str]) -> subprocess.Popen:
-    print(f"[+] Starting: {' '.join(cmd)}")
-    return subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+class ManagedProcess:
+    # Wraps a Popen and continuously drains its output into a buffer so it
+    # can be printed later without blocking the process or losing history.
+    def __init__(self, name: str, cmd: list[str]):
+        self.name = name
+        self.cmd = cmd
+        self.outputLines: list[str] = []
+        self.lock = threading.Lock()
+        print(f"[+] Starting: {' '.join(cmd)}")
+        self.proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        self.readerThread = threading.Thread(target=self._readOutput, daemon=True)
+        self.readerThread.start()
+
+    def _readOutput(self) -> None:
+        assert self.proc.stdout is not None
+        for line in self.proc.stdout:
+            with self.lock:
+                self.outputLines.append(line.rstrip("\n"))
+
+    def dumpOutput(self) -> None:
+        with self.lock:
+            lines = list(self.outputLines)
+        print(f"[+] Output from '{self.name}' ({' '.join(self.cmd)}):")
+        if not lines:
+            print("    (no output captured)")
+        for line in lines:
+            print(f"    {line}")
+
+    def terminate(self) -> None:
+        self.proc.terminate()
+
+    def wait(self, timeout: float) -> None:
+        self.proc.wait(timeout=timeout)
+
+    def kill(self) -> None:
+        self.proc.kill()
 
 
-def wait_for_server(timeout_secs: int = 30) -> None:
+def waitForServer(timeout_secs: int = 30) -> None:
     deadline = time.time() + timeout_secs
     while time.time() < deadline:
         try:
-            urllib.request.urlopen(f"{SERVER_ADDR}/workflow_status", timeout=1)
+            urllib.request.urlopen(f"{serverAddr}/workflow_status", timeout=1)
+        # Any HTTP response (even 4xx) means the server is up.
         except urllib.error.HTTPError:
-            # Any HTTP response (even 4xx) means the server is up.
             return
         except (urllib.error.URLError, ConnectionRefusedError):
             time.sleep(0.5)
@@ -43,10 +78,10 @@ def wait_for_server(timeout_secs: int = 30) -> None:
     sys.exit(1)
 
 
-def post_json(path: str, payload: dict) -> dict:
+def postJson(path: str, payload: dict) -> dict:
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
-        f"{SERVER_ADDR}{path}",
+        f"{serverAddr}{path}",
         data=body,
         headers={"Content-Type": "application/json"},
         method="POST",
@@ -55,8 +90,11 @@ def post_json(path: str, payload: dict) -> dict:
         return json.loads(resp.read())
 
 
-def shutdown(procs: list[subprocess.Popen]) -> None:
+def shutdown(procs: list[ManagedProcess], dumpOutputOnFailure: bool = False) -> None:
     print("[+] Shutting down background processes...")
+    if dumpOutputOnFailure:
+        for p in procs:
+            p.dumpOutput()
     for p in procs:
         p.terminate()
     for p in procs:
@@ -67,17 +105,16 @@ def shutdown(procs: list[subprocess.Popen]) -> None:
 
 
 def main() -> None:
-    procs: list[subprocess.Popen] = []
+    procs: list[ManagedProcess] = []
 
-    def on_signal(signum, frame):
+    def onSignal(signum, frame):
         shutdown(procs)
         sys.exit(1)
 
-    signal.signal(signal.SIGINT, on_signal)
-    signal.signal(signal.SIGTERM, on_signal)
+    signal.signal(signal.SIGINT, onSignal)
+    signal.signal(signal.SIGTERM, onSignal)
 
-    # Start workers
-    procs.append(start_background([
+    procs.append(ManagedProcess("workers", [
         "go", "run", "main.go", "workers",
         "--workerName", "worker-queue",
         "--ram", "8200MB",
@@ -85,59 +122,60 @@ def main() -> None:
         "--gpus", "0",
     ]))
 
-    # Start HTTP server
-    procs.append(start_background(["go", "run", "main.go", "serve"]))
+    procs.append(ManagedProcess("server", ["go", "run", "main.go", "serve", "--addr", ":5444"]))
 
-    print(f"[+] Waiting for server at {SERVER_ADDR}...")
-    wait_for_server(timeout_secs=60)
+    print(f"[+] Waiting for server at {serverAddr}...")
+    waitForServer(timeout_secs=60)
     print("[+] Server is up.")
 
-    # Load and submit workflow request
-    if not os.path.exists(WORKFLOW_REQ_PATH):
-        print(f"[!] Request file not found: {WORKFLOW_REQ_PATH}", file=sys.stderr)
-        shutdown(procs)
+    if not os.path.exists(workflowReqPath):
+        print(f"[!] Request file not found: {workflowReqPath}", file=sys.stderr)
+        shutdown(procs, dumpOutputOnFailure=True)
         sys.exit(1)
 
-    with open(WORKFLOW_REQ_PATH) as f:
-        workflow_req = json.load(f)
+    with open(workflowReqPath) as f:
+        workflowReq = json.load(f)
 
-    print(f"[+] Submitting workflow from {WORKFLOW_REQ_PATH}...")
+    print(f"[+] Submitting workflow from {workflowReqPath}...")
     try:
-        start_resp = post_json("/start_workflow", workflow_req)
+        startResp = postJson("/start_workflow", workflowReq)
     except urllib.error.HTTPError as e:
         body = e.read().decode()
         print(f"[!] /start_workflow returned {e.code}: {body}", file=sys.stderr)
-        shutdown(procs)
+        shutdown(procs, dumpOutputOnFailure=True)
         sys.exit(1)
 
-    workflow_id = start_resp["workflow_id"]
-    run_id = start_resp.get("run_id", "")
-    print(f"[+] Workflow started — id={workflow_id}  run_id={run_id}")
+    workflowId = startResp["workflow_id"]
+    runId = startResp.get("run_id", "")
+    print(f"[+] Workflow started — id={workflowId}  run_id={runId}")
 
-    # Poll until terminal status
-    status_req = {"workflow_id": workflow_id, "run_id": run_id}
-    final_status = "Unknown"
+    statusReq = {"workflow_id": workflowId, "run_id": runId}
+    finalStatus = "Unknown"
     while True:
-        time.sleep(POLL_INTERVAL_SECS)
+        time.sleep(pollIntervalSecs)
         try:
-            status_resp = post_json("/workflow_status", status_req)
+            statusResp = postJson("/workflow_status", statusReq)
         except urllib.error.HTTPError as e:
             body = e.read().decode()
             print(f"[!] /workflow_status returned {e.code}: {body}", file=sys.stderr)
-            shutdown(procs)
+            shutdown(procs, dumpOutputOnFailure=True)
             sys.exit(1)
 
-        final_status = status_resp.get("workflow_status", "Unknown")
-        node_statuses = status_resp.get("node_statuses", {})
-        print(f"[~] status={final_status}  nodes={node_statuses}")
+        finalStatus = statusResp.get("workflow_status", "Unknown")
+        nodeStatuses = statusResp.get("node_statuses", {})
+        print(f"[~] status={finalStatus}  nodes={nodeStatuses}")
 
-        if final_status in TERMINAL_STATUSES:
-            print(f"[+] Workflow reached terminal status: {final_status}")
+        if finalStatus in terminalStatuses:
+            print(f"[+] Workflow reached terminal status: {finalStatus}")
             break
 
-    shutdown(procs)
-    sys.exit(0 if final_status == "FINISHED" else 1)
+    pipelineFailed = finalStatus != "FINISHED"
+    shutdown(procs, dumpOutputOnFailure=pipelineFailed)
+    sys.exit(0 if not pipelineFailed else 1)
 
 
 if __name__ == "__main__":
+    if not "BWB_SCHED_DIR" in os.environ:
+        print("Please set env var BWB_SCHED_DIR before running")
+        sys.exit(1)
     main()
