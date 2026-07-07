@@ -20,6 +20,7 @@ type TemporalExecutor struct {
     ctx                    workflow.Context
     canceled               bool
     handleFinishedCmd      CmdHandler
+    handleFileXfers        FileXferHandler
     masterFS               fs.LocalFS
     workers                map[string]WorkerInfo
     storageId              string
@@ -29,7 +30,7 @@ type TemporalExecutor struct {
     cancelIdxs             map[int]struct{}
     cancelChild            func()
     workerFSs              map[string]fs.LocalFS
-    cmdsById               map[int]parsing.CmdTemplate
+    cmdsById               map[int]parsing.CmdRunParams
     grantsById             map[int]ResourceGrant
     configsByNode          map[int]parsing.LocalJobConfig
     waitForCmdCancellation bool
@@ -38,7 +39,7 @@ type TemporalExecutor struct {
 
 func NewTemporalExecutor(
     ctx workflow.Context, selector *workflow.Selector,
-    cmdMan parsing.CmdManager, masterFS fs.LocalFS,
+    cmdMan *parsing.CmdManager, masterFS fs.LocalFS,
     workers map[string]WorkerInfo, storageId string,
     configsByNode map[int]parsing.LocalJobConfig,
 ) TemporalExecutor {
@@ -52,7 +53,7 @@ func NewTemporalExecutor(
     state.workers = workers
     state.storageId = storageId
     state.workerFSs = make(map[string]fs.LocalFS)
-    state.cmdsById = make(map[int]parsing.CmdTemplate)
+    state.cmdsById = make(map[int]parsing.CmdRunParams)
     state.grantsById = make(map[int]ResourceGrant)
     state.errors = make([]error, 0)
     state.configsByNode = configsByNode
@@ -67,6 +68,20 @@ func NewTemporalExecutor(
         }
     }
     return state
+}
+
+func (exec *TemporalExecutor) GetFS() fs.AbstractFileSystem {
+    if len(exec.workerFSs) != 1 {
+        panic("not implemented - currently assume 1 FS per executor")
+    }
+    for _, fs := range exec.workerFSs {
+        return fs
+    }
+    return nil
+}
+
+func (exec *TemporalExecutor) SetFileXferHandler(xferHandler FileXferHandler) {
+    exec.handleFileXfers = xferHandler
 }
 
 func (exec *TemporalExecutor) Setup(v1 bool) error {
@@ -93,7 +108,7 @@ func (exec *TemporalExecutor) Setup(v1 bool) error {
         var grant ResourceGrant
         c.Receive(exec.ctx, &grant)
         cmd := exec.cmdsById[grant.RequestId]
-        exec.RunCmdWithGrant(cmd, grant)
+        exec.RunXfersAndCmdWithGrant(cmd, grant)
     })
 
     cancelChan := workflow.GetSignalChannel(exec.ctx, "cancel")
@@ -116,23 +131,19 @@ func (exec *TemporalExecutor) Setup(v1 bool) error {
         }
         cmdCtx := workflow.WithActivityOptions(exec.ctx, ao)
 
-        var volumes map[string]string
-        if exec.storageId != "" {
-            err := workflow.ExecuteActivity(
-                cmdCtx, fs.SetupVolumes, exec.storageId,
-            ).Get(exec.ctx, &volumes)
-            if err != nil {
-                return fmt.Errorf(
-                    "error setting up cmd dirs on worker %s: %s",
-                    queueId, err,
-                )
-            }
-        } else {
-            volumes = map[string]string{"/": "/"}
+        var rootDir string
+        err := workflow.ExecuteActivity(
+            cmdCtx, fs.SetupRootDir, exec.storageId,
+        ).Get(exec.ctx, &rootDir)
+        if err != nil {
+            return fmt.Errorf(
+                "error setting up cmd dirs on worker %s: %s",
+                queueId, err,
+            )
         }
 
 
-        exec.workerFSs[queueId] = fs.LocalFS{Volumes: volumes}
+        exec.workerFSs[queueId] = fs.LocalFS{RootDir: rootDir}
     }
     return nil
 }
@@ -158,15 +169,15 @@ func (exec *TemporalExecutor) GetErrors() []error {
 }
 
 func (exec *TemporalExecutor) RunCmds(
-    cmds []parsing.CmdTemplate,
+    cmds []parsing.CmdRunParams,
 ) {
     workflowId := workflow.GetInfo(exec.ctx).WorkflowExecution.ID
     for _, cmd := range cmds {
-        exec.cmdsById[cmd.Id] = cmd
+        exec.cmdsById[cmd.Cmd.Id] = cmd
         req := ResourceRequest{
-            Rank:             cmd.Priority,
-            Id:               cmd.Id,
-            Requirements:     cmd.ResourceReqs,
+            Rank:             cmd.Cmd.Priority,
+            Id:               cmd.Cmd.Id,
+            Requirements:     cmd.Cmd.ResourceReqs,
             CallerWorkflowId: workflowId,
         }
 
@@ -207,8 +218,54 @@ func (exec *TemporalExecutor) BuildImages(imageNames []string) error {
     return nil
 }
 
+func (exec *TemporalExecutor) RunXfersAndCmdWithGrant(
+    cmd parsing.CmdRunParams, grant ResourceGrant,
+) {
+    if len(cmd.Xfers) == 0 {
+        exec.RunCmdWithGrant(cmd, grant)
+        return
+    }
+
+    logger := workflow.GetLogger(exec.ctx)
+    downloadAo := workflow.ActivityOptions{
+        TaskQueue:           grant.WorkerId,
+        StartToCloseTimeout: time.Hour * 1,
+        RetryPolicy: &temporal.RetryPolicy{
+            MaximumAttempts: 1,
+        },
+    }
+    downloadCtx := workflow.WithActivityOptions(exec.ctx, downloadAo)
+    logger.Info("Performing xfers", "infiles", cmd.Xfers)
+    downloadFutures, err := exec.handleFileXfers(downloadCtx, exec.storageId, cmd.Xfers)
+    if err != nil {
+        exec.errors = append(exec.errors, err)
+        return
+    }
+
+    remaining := len(downloadFutures)
+    failed := false
+    for _, fut := range downloadFutures {
+        (*exec.selector).AddFuture(fut, func(f workflow.Future) {
+            if failed {
+                return
+            }
+            if err := f.Get(exec.ctx, nil); err != nil {
+                exec.errors = append(exec.errors, fmt.Errorf(
+                    "xfer failed with error %s", err,
+                ))
+                return
+            }
+            
+            remaining--
+            if remaining == 0 {
+               exec.RunCmdWithGrant(cmd, grant)
+            }
+        })
+    }
+}
+
 func (exec *TemporalExecutor) RunCmdWithGrant(
-    cmd parsing.CmdTemplate, grant ResourceGrant,
+    cmd parsing.CmdRunParams, grant ResourceGrant,
 ) {
     ao := workflow.ActivityOptions{
         TaskQueue:           grant.WorkerId,
@@ -220,6 +277,8 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
         },
     }
 
+    
+
     fs, ok := exec.workerFSs[grant.WorkerId]
     if !ok {
         exec.errors = append(exec.errors, fmt.Errorf(
@@ -227,14 +286,13 @@ func (exec *TemporalExecutor) RunCmdWithGrant(
         ))
         return
     }
-    volumes := fs.GetVolumes()
     rootDir := fs.GetRootDir()
 
-    useDocker := exec.configsByNode[cmd.NodeId].UseDocker
+    useDocker := exec.configsByNode[cmd.Cmd.NodeId].UseDocker
     aoCtx := workflow.WithActivityOptions(exec.ctx, ao)
     cmdCtx, cancel := workflow.WithCancel(aoCtx)
     cmdFuture := workflow.ExecuteActivity(
-        cmdCtx, RunCmdActivity, volumes, cmd, useDocker, rootDir,
+        cmdCtx, RunCmdActivity, cmd, useDocker, rootDir,
     )
     exec.runningCmdActivities = append(
         exec.runningCmdActivities, RunningCmdActivity{
@@ -280,4 +338,8 @@ func (exec *TemporalExecutor) Glob(
         root, pattern, findFile, findDir,
     ).Get(exec.ctx, &out)
     return out, err
+}
+
+func (exec *TemporalExecutor) GetID() parsing.ExecType {
+	return parsing.EXEC_TEMPORAL
 }

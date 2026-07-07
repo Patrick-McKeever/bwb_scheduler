@@ -1,6 +1,9 @@
 package parsing
 
 import (
+    "fmt"
+    "encoding/json"
+    "os"
 	"testing"
 )
 
@@ -76,5 +79,37 @@ func TestFusionFinderWorkflowConversion(t *testing.T) {
     _, err = DryRun(wf)
     if err != nil {
         t.Fatalf("error running star salmon dashboard workflow: %s", err)
+    }
+}
+
+type ResolvedWorkflowEnvelope struct {
+	Schema      string          `json:"schema"` // must equal "biodepot.resolved_workflow/v1"
+	WorkflowRaw json.RawMessage `json:"resolved_workflow"`
+}
+func TestBulkRNADryRun(t *testing.T) {
+    wfPath := "../test_workflows/bulkrna_async.json"
+	data, err := os.ReadFile(wfPath)
+	if err != nil {
+		t.Fatalf("failed to read workflow file %s: %v", wfPath, err)
+	}
+	var rawWf ResolvedWorkflowEnvelope
+	if err := json.Unmarshal(data, &rawWf); err != nil {
+		t.Fatalf("failed to unmarshal JSON file %s: %v", wfPath, err)
+	}
+	var bwbWorkflow WorkflowV0
+	if err := json.Unmarshal(rawWf.WorkflowRaw, &bwbWorkflow); err != nil {
+        t.Fatalf("could not unmarshal: %s", err)
+    }
+    bwbWorkflow.SetParam(4, "fastqDir", "FASTQ_DIR")
+    fmt.Println(bwbWorkflow.GetNodeIds())
+	if err := PropagateArgTypes(&bwbWorkflow); err != nil {
+		t.Fatalf(
+			"error propagating arg types in %s: %s",
+			wfPath, err,
+		)
+	}
+    _, err = DryRun(bwbWorkflow)
+    if err != nil {
+        t.Fatalf("error running bulk RNA async workflow: %s", err)
     }
 }

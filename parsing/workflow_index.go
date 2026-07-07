@@ -126,8 +126,8 @@ func layeredTopSort(workflow Workflow) ([][]int, error) {
     graph := make(map[int][]int)
     indegree := make(map[int]int)
     nodes := make(map[int]bool)
-
-    for _, nodeId := range workflow.GetNodeIds() {
+    nodeIds := workflow.GetNodeIds()
+    for _, nodeId := range nodeIds {
         graph[nodeId] = make([]int, 0)
         indegree[nodeId] = 0
         nodes[nodeId] = true

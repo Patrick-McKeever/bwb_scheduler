@@ -844,7 +844,7 @@ func TestDryRun(t *testing.T) {
 }
 
 func TestDryRunDashboard(t *testing.T) {
-	data, err := os.ReadFile("/home/patrick/go-scheduler/test_workflows/dashboard.json")
+	data, err := os.ReadFile("../test_workflows/dashboard.json")
 	if err != nil {
 		t.Fatalf("failed to read JSON file: %v", err)
 	}

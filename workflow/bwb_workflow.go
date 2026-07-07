@@ -1,3 +1,4 @@
+// bwb_workflow.go
 package workflow
 
 import (
@@ -9,7 +10,6 @@ import (
 	"go-scheduler/fs"
 	"go-scheduler/parsing"
 	"log/slog"
-	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,9 +22,78 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+type Executor interface {
+    Setup(bool) error
+    SetCmdHandler(CmdHandler)
+    SetFileXferHandler(FileXferHandler)
+    Shutdown()
+    GetErrors() []error
+    RunCmds([]parsing.CmdRunParams)
+    BuildImages([]string) error
+    GetFS() fs.AbstractFileSystem
+    Glob(string, string, bool, bool) ([]string, error)
+    GetID() parsing.ExecType
+}
+
 const (
     SCHEDULER_QUEUE = "bwb_worker"
 )
+
+type FileXferHandler func(
+    workflow.Context,
+    string,
+    []parsing.ObligatoryXfer, 
+) ([]workflow.Future, error)
+
+func DefaultFileXferHanlder(
+    ctx workflow.Context,
+    storageId string,
+    xfers []parsing.ObligatoryXfer, 
+    execFSs map[parsing.ExecType]fs.AbstractFileSystem,
+) ([]workflow.Future, error) {
+    // src exec -> dst exec -> transfer
+    xfersByExecs := make(map[parsing.ExecType]map[parsing.ExecType][]parsing.ObligatoryXfer)
+    for _, xfer := range xfers {
+        srcExec := xfer.SrcExecutor
+        dstExec := xfer.DstExecutor
+        if _, ok := xfersByExecs[srcExec]; !ok {
+            xfersByExecs[srcExec] = make(map[parsing.ExecType][]parsing.ObligatoryXfer)
+        }
+
+        if _, ok := xfersByExecs[srcExec][dstExec]; !ok {
+            xfersByExecs[srcExec][dstExec] = make([]parsing.ObligatoryXfer, 0)
+        }
+
+        xfersByExecs[srcExec][dstExec] = append(
+            xfersByExecs[srcExec][dstExec], xfer,
+        )
+    }
+
+    futures := make([]workflow.Future, 0)
+    for srcExec := range xfersByExecs {
+        srcFS, ok := execFSs[srcExec]
+        if !ok {
+            return nil, fmt.Errorf(
+                "executor %d unfound in exec -> FS map %v",
+                srcExec, execFSs,
+            )
+        }
+
+        for dstExec, xfers := range xfersByExecs[srcExec] {
+            dstFS, ok := execFSs[dstExec]
+            if !ok {
+                return nil, fmt.Errorf(
+                    "executor %d unfound in exec -> FS map %v",
+                    srcExec, execFSs,
+                )
+            }
+
+            future := fs.RunTransferActivity(ctx, storageId, srcFS, dstFS, xfers)
+            futures = append(futures, future)
+        }
+    }
+    return futures, nil
+}
 
 type CmdOutput struct {
     Id          int
@@ -34,18 +103,7 @@ type CmdOutput struct {
     OutputFiles []string
 }
 
-type CmdHandler func(CmdOutput, error, Executor, parsing.CmdTemplate)
-
-type Executor interface {
-    Setup(bool) error
-    SetCmdHandler(CmdHandler)
-    Shutdown()
-    GetErrors() []error
-    RunCmds([]parsing.CmdTemplate)
-    BuildImages([]string) error
-    Glob(string, string, bool, bool) ([]string, error)
-}
-
+type CmdHandler func(CmdOutput, error, Executor, parsing.CmdRunParams)
 type CmdRunner func(string) (CmdOut, error)
 
 func getSifName(dockerImage string) string {
@@ -420,47 +478,23 @@ func runCmdSingularity(
 
 func RunCmd(
     ctx context.Context,
-    volumes map[string]string,
-    cmdTemplate parsing.CmdTemplate,
+    cmdRunParams parsing.CmdRunParams,
     useDocker bool,
     rootDir string,
 ) (CmdOutput, error) {
-    var finalVolumes map[string]string
-    if cmdTemplate.OverrideFsVolumes {
-        finalVolumes = maps.Clone(cmdTemplate.VolumeDirs)
-        maps.Copy(finalVolumes, cmdTemplate.VolumeFiles)
-    } else {
-        finalVolumes = make(map[string]string)
-        maps.Copy(finalVolumes, volumes)
+    finalVolumes := make(map[string]string)
+    for _, mnt := range cmdRunParams.Volumes {
+        finalVolumes[mnt.CntPath] = mnt.HostPath
     }
 
-    if cmdTemplate.Version == 1 {
-        for _, outDir := range cmdTemplate.VolumeDirsLocalMnt {
-            hostPath := filepath.Join(rootDir, outDir)
-            finalVolumes[outDir] = hostPath
-            _, err := os.Stat(hostPath)
-            if errors.Is(err, os.ErrNotExist) {
-                if err := os.MkdirAll(hostPath, 0755); err != nil {
-                    return CmdOutput{}, fmt.Errorf(
-                        "failed to create volume path %s: %s",
-                        hostPath, err,
-                    )
-                }
-            }
-        }
-        for _, outFile := range cmdTemplate.VolumeFilesLocalMnt {
-            hostPath := filepath.Join(rootDir, outFile)
-            hostPathParentDir := filepath.Dir(hostPath)
-            cntPathParentDir := filepath.Dir(outFile)
-            finalVolumes[cntPathParentDir] = hostPathParentDir
-            _, err := os.Stat(hostPathParentDir)
-            if errors.Is(err, os.ErrNotExist) {
-                if err := os.MkdirAll(hostPathParentDir, 0755); err != nil {
-                    return CmdOutput{}, fmt.Errorf(
-                        "failed to create parent dir %s of volume path %s: %s",
-                        hostPathParentDir, hostPath, err,
-                    )
-                }
+    for _, dir := range cmdRunParams.HostDirsToCreate {
+        _, err := os.Stat(dir)
+        if errors.Is(err, os.ErrNotExist) {
+            if err := os.MkdirAll(dir, 0755); err != nil {
+                return CmdOutput{}, fmt.Errorf(
+                    "failed to create dir %s on host FS: %s",
+                    dir, err,
+                )
             }
         }
     }
@@ -474,16 +508,15 @@ func RunCmd(
 
     finalVolumes["/tmp/output"] = tmpDir
     if useDocker {
-        return runCmdDocker(ctx, finalVolumes, cmdTemplate)
+        return runCmdDocker(ctx, finalVolumes, cmdRunParams.Cmd)
     } else {
-        return runCmdSingularity(ctx, finalVolumes, cmdTemplate, rootDir)
+        return runCmdSingularity(ctx, finalVolumes, cmdRunParams.Cmd, rootDir)
     }
 }
 
 func RunCmdActivity(
     ctx context.Context,
-    volumes map[string]string,
-    cmdTemplate parsing.CmdTemplate,
+    cmd parsing.CmdRunParams,
     useDocker bool,
     rootDir string,
 ) (CmdOutput, error) {
@@ -497,7 +530,7 @@ func RunCmdActivity(
     }
 
     go func() {
-        out, err := RunCmd(ctx, volumes, cmdTemplate, useDocker, rootDir)
+        out, err := RunCmd(ctx, cmd, useDocker, rootDir)
         outChan <- outType{out: out, err: err}
     }()
 
@@ -520,17 +553,18 @@ func RunCmdActivity(
 
 func HandleCompletedCmd(
     logger log.Logger, result CmdOutput, err error, softFail bool,
-    cmdMan parsing.CmdManager, executors map[int]Executor,
-    completedCmd parsing.CmdTemplate, finalErr *error,
+    cmdMan *parsing.CmdManager, executors map[int]Executor,
+    completedCmd parsing.CmdRunParams, fsByExec map[int]fs.AbstractFileSystem,
+    finalErr *error,
 ) {
-    logger.Debug("Finished cmd", "cmdId", completedCmd.Id, "nodeId", completedCmd.NodeId)
+    logger.Debug("Finished cmd", "cmdId", completedCmd.Cmd.Id, "nodeId", completedCmd.Cmd.NodeId)
     cmdSucceeded := err == nil
     if !softFail && !cmdSucceeded {
         *finalErr = err
         return
     }
     succCmds, err := cmdMan.GetSuccCmds(
-        completedCmd, result.RawOutputs,
+        completedCmd.Cmd, result.RawOutputs,
         func(nodeId int, root, pattern string, findFile, findDir bool) ([]string, error) {
             executor, ok := executors[nodeId]
             if !ok {
@@ -546,6 +580,7 @@ func HandleCompletedCmd(
     }
 
     logger.Debug("Got succ CMDs", "succCmds", succCmds)
+    fmt.Println("Got succ CMDs", "succCmds", succCmds)
     RunCmds(executors, succCmds)
 }
 
@@ -554,7 +589,7 @@ func setupExecutors(
     selector workflow.Selector,
     storageId string,
     bwbWorkflow parsing.Workflow,
-    cmdMan parsing.CmdManager,
+    cmdMan *parsing.CmdManager,
     workers map[string]WorkerInfo,
     masterFS fs.LocalFS,
     jobConfig parsing.JobConfig,
@@ -602,7 +637,10 @@ func setupExecutors(
     return executors, executorList, nil
 }
 
-func RunCmds(executors map[int]Executor, cmdsByNode map[int][]parsing.CmdTemplate) error {
+func RunCmds(
+    executors map[int]Executor, 
+    cmdsByNode map[int][]parsing.CmdRunParams,
+) error {
     for nodeId, cmdList := range cmdsByNode {
         executor, ok := executors[nodeId]
         if !ok {
@@ -615,7 +653,7 @@ func RunCmds(executors map[int]Executor, cmdsByNode map[int][]parsing.CmdTemplat
 
 func RunBwbWorkflowHelper(
     logger log.Logger,
-    cmdMan parsing.CmdManager,
+    cmdMan *parsing.CmdManager,
     executorsByNode map[int]Executor,
     executors []Executor,
     softFail bool,
@@ -629,20 +667,39 @@ func RunBwbWorkflowHelper(
 
     var finalErr error = nil
     imageNames := cmdMan.GetImageNames()
+    fsByExec := make(map[int]fs.AbstractFileSystem)
     for _, executor := range executors {
         if err := executor.Setup(v1); err != nil {
             return err
         }
 
+        fsByExec[int(executor.GetID())] = executor.GetFS()
+
         if err := executor.BuildImages(imageNames); err != nil {
             return err
         }
+    }
 
-        executor.SetCmdHandler(func(res CmdOutput, err error, exec Executor, cmd parsing.CmdTemplate) {
+    // Type alias is biting me in the ass, fix later
+    fsByExecCorrectType := make(map[parsing.ExecType]fs.AbstractFileSystem)
+    for execType, fs := range fsByExec {
+        fsByExecCorrectType[parsing.ExecType(execType)] = fs
+    }
+
+    // Wait until fsByExec is set before passing to completed cmd handler.
+    for _, executor := range executors {
+        executor.SetCmdHandler(func(res CmdOutput, err error, exec Executor, cmd parsing.CmdRunParams) {
             HandleCompletedCmd(
-                logger, res, err, softFail, cmdMan, executorsByNode, cmd, &finalErr,
+                logger, res, err, softFail, cmdMan, executorsByNode, cmd, fsByExec, &finalErr,
             )
         })
+
+        executor.SetFileXferHandler(func(
+            ctx workflow.Context, storageID string, xfers []parsing.ObligatoryXfer,
+            ) ([]workflow.Future, error) {
+                return DefaultFileXferHanlder(ctx, storageID, xfers, fsByExecCorrectType)
+            },
+        )
     }
 
     initialCmds, err := cmdMan.GetInitialCmds(
@@ -701,7 +758,11 @@ func RunBwbWorkflowV1(
     masterFS fs.LocalFS,
     softFail bool,
 ) error {
-    cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig)
+    rootDirs := map[parsing.ExecType]string {
+        parsing.EXEC_TEMPORAL: masterFS.GetRootDir(),
+        parsing.EXEC_SLURM: jobConfig.SlurmExecutor.SchedDir,
+    }
+    cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig, rootDirs)
     if err := workflow.SetQueryHandler(ctx, "getNodeStatuses", func() (map[int]string, error) {
         return cmdMan.GetNodeStatus(), nil
     }); err != nil {
@@ -734,7 +795,11 @@ func RunBwbWorkflowV0(
     masterFS fs.LocalFS,
     softFail bool,
 ) error {
-    cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig)
+    rootDirs := map[parsing.ExecType]string {
+        parsing.EXEC_TEMPORAL: masterFS.GetRootDir(),
+        parsing.EXEC_SLURM: jobConfig.SlurmExecutor.SchedDir,
+    }
+    cmdMan := parsing.NewCmdManager(&bwbWorkflow, index, jobConfig, rootDirs)
     selector := workflow.NewSelector(ctx)
     executors, executorList, err := setupExecutors(
         ctx, selector, storageId, &bwbWorkflow, &cmdMan, workers, masterFS, jobConfig,
@@ -763,7 +828,10 @@ func RunBwbWorkflowNoTemporal(
     softFail bool,
     logger slog.Logger,
 ) error {
-    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, jobConfig)
+    rootDirs := map[parsing.ExecType]string {
+        parsing.EXEC_LOCAL: masterFS.GetRootDir(),
+    }
+    cmdMan := parsing.NewCmdManager(bwbWorkflow, index, jobConfig, rootDirs)
     executors := make(map[int]Executor)
     localExecutor := NewLocalExecutor(
         ctx, &cmdMan, masterFS, localWorker, storageId,

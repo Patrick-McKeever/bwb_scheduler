@@ -226,14 +226,11 @@ func dryRunWorkflow(
 	}
 
 	// Lazy, make an ABC method to do this setup automatically later.
-	if bwbWorkflow.GetVersion() == "biodepot.legacy" {
-		var bwbWorkflow parsing.WorkflowV0
-		if err := parsing.PropagateArgTypes(&bwbWorkflow); err != nil {
-			return fmt.Errorf(
-				"error propagating arg types in %s: %s",
-				wfPath, err,
-			)
-		}
+	if err := bwbWorkflow.PropagateArgTypes(); err != nil {
+		return fmt.Errorf(
+			"error propagating arg types in %s: %s",
+			wfPath, err,
+		)
 	}
 
 	out, err := bwbWorkflow.DryRun()
@@ -416,15 +413,11 @@ func runWorkflow(
 		return err
 	}
 
-	// Lazy, make an ABC method to do this setup automatically later.
-	if bwbWorkflow.GetVersion() == "biodepot.legacy" {
-		var bwbWorkflow parsing.WorkflowV0
-		if err := parsing.PropagateArgTypes(&bwbWorkflow); err != nil {
-			return fmt.Errorf(
-				"error propagating arg types in %s: %s",
-				wfPath, err,
-			)
-		}
+	if err := bwbWorkflow.PropagateArgTypes(); err != nil {
+		return fmt.Errorf(
+			"error propagating arg types in %s: %s",
+			wfPath, err,
+		)
 	}
 
 	if _, err := bwbWorkflow.DryRun(); err != nil {
@@ -452,9 +445,7 @@ func runWorkflow(
 	}
 
 	masterFS := fs.LocalFS{
-		Volumes: map[string]string{
-			"/data": filepath.Join(sched_dir, revisedStorageID),
-		},
+		RootDir: filepath.Join(sched_dir, revisedStorageID),
 	}
 
 	slogLevel := slog.LevelInfo

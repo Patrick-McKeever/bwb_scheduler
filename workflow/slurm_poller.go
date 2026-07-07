@@ -6,7 +6,6 @@ import (
 	"go-scheduler/fs"
 	"go-scheduler/parsing"
 	"io"
-	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -93,7 +92,7 @@ type CmdOut struct {
 }
 
 type SlurmRequest struct {
-	Cmd    parsing.CmdTemplate
+	Cmd    parsing.CmdRunParams
 	Config parsing.SlurmJobConfig
 }
 
@@ -201,7 +200,6 @@ func WriteSbatchFile(
 	slurmConfig parsing.SshConfig, jobConfig parsing.SlurmJobConfig,
 	slurmDir, imageDir, jobSlurmId string,
 ) (string, string, error) {
-
 	outBasePath := fmt.Sprintf("%s.out", jobSlurmId)
 	errBasePath := fmt.Sprintf("%s.err", jobSlurmId)
 	outPath := filepath.Join(slurmDir, outBasePath)
@@ -668,67 +666,22 @@ func (connMan *SlurmActivity) mkdirAll(dirs []string) error {
 	return nil
 }
 
-// collectSlurmDirs computes, without any SSH calls, all remote directories
-// that must exist before a job can be submitted. The caller is responsible for
-// creating them, typically via mkdirAll.
-func collectSlurmDirs(
-	cmdTemplate parsing.CmdTemplate, sshFs fs.SshFS,
-	slurmDir, tmpOutputHostPath string,
-) []string {
-	dirs := []string{slurmDir, tmpOutputHostPath}
-
-	rootDir := sshFs.GetRootDir()
-	if cmdTemplate.Version == 1 {
-		for _, outDir := range cmdTemplate.VolumeDirsLocalMnt {
-			dirs = append(dirs, filepath.Join(rootDir, outDir))
-		}
-		for _, outFile := range cmdTemplate.VolumeFiles {
-			dirs = append(dirs, filepath.Dir(filepath.Join(rootDir, outFile)))
-		}
-	}
-	return dirs
-}
-
-// getSlurmVolumes builds the container-to-host volume map for the job.
-// Directory creation is intentionally not performed here; call collectSlurmDirs
-// and mkdirAll before this to ensure all paths exist.
-func (connMan *SlurmActivity) getSlurmVolumes(
-	cmdTemplate parsing.CmdTemplate, sshFs fs.SshFS,
-	baseVolumes map[string]string, tmpOutputHostPath string,
-) map[string]string {
-	var volumes map[string]string
-	if cmdTemplate.Version == 0 {
-		volumes = maps.Clone(baseVolumes)
-	} else {
-		volumes = make(map[string]string)
-	}
-
-	volumes["/tmp/output"] = tmpOutputHostPath
-
-	rootDir := sshFs.GetRootDir()
-	if cmdTemplate.Version == 1 {
-		for _, outDir := range cmdTemplate.VolumeDirsLocalMnt {
-			fmt.Println("ROOT DIR", rootDir, " OUT DIR", outDir)
-			volumes[outDir] = filepath.Join(rootDir, outDir)
-		}
-		for _, outFile := range cmdTemplate.VolumeFiles {
-			fmt.Println("ROOT DIR", rootDir, " OUT FILE", outFile)
-			hostPathParentDir := filepath.Dir(filepath.Join(rootDir, outFile))
-			volumes[filepath.Dir(outFile)] = hostPathParentDir
-		}
-	}
-	return volumes
-}
 
 func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
-	cmd parsing.CmdTemplate, jobConfig parsing.SlurmJobConfig,
+	cmd parsing.CmdRunParams, jobConfig parsing.SlurmJobConfig,
 	fs fs.SshFS, slurmDir, imageDir string,
 ) (SlurmJob, error) {
+	fmt.Println("RECEIVED")
+	parsing.PrettyPrint(cmd)
 	jobSlurmId := randomString(16)
 	tmpOutputHostPath := filepath.Join(slurmDir, jobSlurmId)
 
 	// Create all required remote directories in a single SSH call.
-	dirsToCreate := collectSlurmDirs(cmd, fs, slurmDir, tmpOutputHostPath)
+	dirsToCreate := []string{tmpOutputHostPath}
+	for _, dir := range cmd.HostDirsToCreate {
+		dirsToCreate = append(dirsToCreate, dir)
+	}
+
 	if err := connMan.mkdirAll(dirsToCreate); err != nil {
 		return SlurmJob{}, fmt.Errorf("failed to create remote directories: %s", err)
 	}
@@ -745,11 +698,13 @@ func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
 	}
 	defer tmpFile.Close()
 
-	baseVolumes := fs.GetVolumes()
-	volumes := connMan.getSlurmVolumes(cmd, fs, baseVolumes, tmpOutputHostPath)
-
+	volumes := getSlurmVolumes(cmd, tmpOutputHostPath)
+	fmt.Println()
+	fmt.Println("CMD", cmd)
+	fmt.Println("VOLS", volumes)
+	fmt.Println()
 	outPath, errPath, err := WriteSbatchFile(
-		tmpFile, cmd, volumes, connMan.Config, jobConfig, slurmDir, imageDir, jobSlurmId,
+		tmpFile, cmd.Cmd, volumes, connMan.Config, jobConfig, slurmDir, imageDir, jobSlurmId,
 	)
 	if err != nil {
 		return SlurmJob{}, fmt.Errorf("error writing sbatch file: %s", err)
@@ -776,10 +731,10 @@ func (connMan *SlurmActivity) StartRemoteSlurmJobActivity(
 	jobIdRaw := strings.Split(sbatchOut.StdOut, ";")[0]
 	jobId := strings.TrimSuffix(jobIdRaw, "\n")
 	return SlurmJob{
-		CmdId:             cmd.Id,
+		CmdId:             cmd.Cmd.Id,
 		JobId:             jobId,
 		TmpOutputHostPath: tmpOutputHostPath,
-		ExpOutFilePnames:  cmd.OutFilePnames,
+		ExpOutFilePnames:  cmd.Cmd.OutFilePnames,
 		SbatchPath:        sbatchRemotePath,
 		OutPath:           outPath,
 		ErrPath:           errPath,
@@ -987,7 +942,7 @@ func SlurmPollerWorkflow(ctx workflow.Context, state SlurmState) error {
 	selector.AddReceive(slurmReqChan, func(c workflow.ReceiveChannel, _ bool) {
 		var pendingReq SlurmRequest
 		c.Receive(ctx, &pendingReq)
-		state.Requests[pendingReq.Cmd.Id] = pendingReq
+		state.Requests[pendingReq.Cmd.Cmd.Id] = pendingReq
 		StartSlurmJob(pendingReq, ctx, &state)
 	})
 

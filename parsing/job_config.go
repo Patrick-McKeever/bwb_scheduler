@@ -429,6 +429,7 @@ func ParseAndValidateJobConfigFile(file string) (JobConfig, error) {
 
 func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
     var jc JobConfig
+    jc.ExecTypeByNode = make(map[int]ExecType)
     if noTemporal {
         jc.LocalConfigsByName = map[string]LocalJobConfig{
             "default": {UseDocker: false},
@@ -438,6 +439,7 @@ func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
             jc.LocalConfigsByNode[nodeId] = LocalJobConfig{
                 UseDocker: false,
             }
+            jc.ExecTypeByNode[nodeId] = EXEC_LOCAL
         }
     } else {
         jc.TemporalConfigsByName = map[string]LocalJobConfig{
@@ -448,6 +450,7 @@ func GetDefaultConfig(wf Workflow, noTemporal bool) JobConfig {
             jc.TemporalConfigsByNode[nodeId] = LocalJobConfig{
                 UseDocker: false,
             }
+            jc.ExecTypeByNode[nodeId] = EXEC_TEMPORAL
         }
     }
     return jc

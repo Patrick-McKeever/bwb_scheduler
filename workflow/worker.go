@@ -70,7 +70,7 @@ func StartWorker(
 	} else {
 		w.RegisterActivity(WorkerHeartbeatActivity)
 		w.RegisterActivity(RunCmdActivity)
-		w.RegisterActivity(fs.SetupVolumes)
+		w.RegisterActivity(fs.SetupRootDir)
 	}
 
 	log.Println("Starting worker...")

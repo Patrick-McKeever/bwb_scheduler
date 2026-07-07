@@ -3,7 +3,6 @@ package workflow
 import (
 	"errors"
 	"go-scheduler/parsing"
-	"go-scheduler/fs"
 	"testing"
 	"time"
     "strings"
@@ -55,7 +54,7 @@ func TestSlurmResponse(t *testing.T) {
 
 	memStr := "40G"
 	expConfig := parsing.SlurmJobConfig{Mem: &memStr}
-	expCmd := parsing.CmdTemplate{Id: cmdId}
+	expCmd := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: cmdId}}
 	expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
 
 	// StartRemoteSlurmJobActivity now receives 5 args:
@@ -132,7 +131,7 @@ func TestSlurmContinueAsNewStateMaintenance(t *testing.T) {
 
 	memStr := "40G"
 	expConfig := parsing.SlurmJobConfig{Mem: &memStr}
-	expCmd := parsing.CmdTemplate{Id: cmdId}
+	expCmd := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: cmdId}}
 	expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
 
 	env.OnActivity(
@@ -219,7 +218,7 @@ func TestSlurmJobFatalFailure(t *testing.T) {
 	memStr := "40G"
 	maxRetries := 2
 	expConfig := parsing.SlurmJobConfig{Mem: &memStr, MaxRetries: &maxRetries}
-	expCmd := parsing.CmdTemplate{Id: cmdId}
+	expCmd := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: cmdId}}
 	expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
 
 	env.OnActivity(
@@ -281,7 +280,7 @@ func TestSlurmJobNonFatalFailure(t *testing.T) {
 	memStr := "40G"
 	maxRetries := 2
 	expConfig := parsing.SlurmJobConfig{Mem: &memStr, MaxRetries: &maxRetries}
-	expCmd := parsing.CmdTemplate{Id: cmdId}
+	expCmd := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: cmdId}}
 	expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
 
 	env.OnActivity(
@@ -343,7 +342,7 @@ func TestSlurmJobRetryOnNonFatalErr(t *testing.T) {
 	memStr := "40G"
 	maxRetries := 2
 	expConfig := parsing.SlurmJobConfig{Mem: &memStr, MaxRetries: &maxRetries}
-	expCmd := parsing.CmdTemplate{Id: cmdId}
+	expCmd := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: cmdId}}
 	expSlurmJob := SlurmJob{CmdId: cmdId, JobId: jobId}
 
 	env.OnActivity(
@@ -1116,75 +1115,6 @@ func TestFetchAllJobOutputs_ScriptFailure_ReturnsError(t *testing.T) {
 	}
 }
  
-// --- collectSlurmDirs ---
- 
-func TestCollectSlurmDirs_Version0_OnlyBaselineDirs(t *testing.T) {
-	cmd := parsing.CmdTemplate{Version: 0}
-	dirs := collectSlurmDirs(cmd, fs.SshFS{RootDir: "/root"}, "/sched/slurm", "/sched/slurm/tmpjob")
-	// For version 0 we expect exactly slurmDir and tmpOutputHostPath.
-	if len(dirs) != 2 {
-		t.Errorf("expected 2 dirs for version 0, got %d: %v", len(dirs), dirs)
-	}
-	if !contains(dirs, "/sched/slurm") {
-		t.Error("slurmDir missing from dirs")
-	}
-	if !contains(dirs, "/sched/slurm/tmpjob") {
-		t.Error("tmpOutputHostPath missing from dirs")
-	}
-}
- 
-func TestCollectSlurmDirs_Version1_VolumeDirs(t *testing.T) {
-	cmd := parsing.CmdTemplate{
-		Version:            1,
-		VolumeDirsLocalMnt: []string{"/output/dir1", "/output/dir2"},
-	}
-	dirs := collectSlurmDirs(cmd, fs.SshFS{RootDir: "/remote/root"}, "/sched/slurm", "/sched/slurm/tmpjob")
-	// Expect: slurmDir, tmpOutputHostPath, /remote/root/output/dir1, /remote/root/output/dir2
-	if len(dirs) != 4 {
-		t.Errorf("expected 4 dirs, got %d: %v", len(dirs), dirs)
-	}
-	if !contains(dirs, "/remote/root/output/dir1") {
-		t.Errorf("volume dir 1 missing; dirs = %v", dirs)
-	}
-	if !contains(dirs, "/remote/root/output/dir2") {
-		t.Errorf("volume dir 2 missing; dirs = %v", dirs)
-	}
-}
- 
-func TestCollectSlurmDirs_Version1_VolumeFiles_ParentDir(t *testing.T) {
-	cmd := parsing.CmdTemplate{
-		Version:     1,
-		VolumeFiles: map[string]string{"/data/input/file.fastq.gz": "/data/input/file.fastq.gz"},
-	}
-	dirs := collectSlurmDirs(cmd, fs.SshFS{RootDir: "/remote/root"}, "/sched/slurm", "/sched/slurm/tmpjob")
-	// Expect: slurmDir, tmpOutputHostPath, /remote/root/data/input (parent of file)
-	if !contains(dirs, "/remote/root/data/input") {
-		t.Errorf("parent dir of volume file missing; dirs = %v", dirs)
-	}
-}
- 
-func TestCollectSlurmDirs_Version1_BothVolumeDirsAndFiles(t *testing.T) {
-	cmd := parsing.CmdTemplate{
-		Version:            1,
-		VolumeDirsLocalMnt: []string{"/out/trimmed"},
-		VolumeFiles:        map[string]string{
-            "/data/input/sample.fastq.gz": "/data/input/sample.fastq.gz", 
-            "/data/input/other.fastq.gz": "/data/input/other.fastq.gz",
-        },
-	}
-	dirs := collectSlurmDirs(cmd, fs.SshFS{RootDir: "/remote"}, "/sched/slurm", "/sched/slurm/tmpjob")
-	// slurmDir + tmpOutputHostPath + 1 volume dir + 1 parent dir (both files share it)
-	// = 4 (note: duplicate parent dirs are not deduplicated by collectSlurmDirs,
-	//   but mkdir -p on duplicates is harmless)
-	if !contains(dirs, "/remote/out/trimmed") {
-		t.Errorf("volume dir missing; dirs = %v", dirs)
-	}
-	if !contains(dirs, "/remote/data/input") {
-		t.Errorf("volume file parent dir missing; dirs = %v", dirs)
-	}
-}
- 
-// --- helpers used by multiple tests ---
  
 // makeSimulatingRunCmd returns a CmdRunner that intercepts the gather script,
 // extracts the embedded token, and returns simulated output without any real

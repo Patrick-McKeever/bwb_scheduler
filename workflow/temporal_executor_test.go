@@ -26,7 +26,7 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
 
     assignedQueue := "ASSIGNED_QUEUE"
     readyToRunJob := false
-    cmdToRun := parsing.CmdTemplate{Id: 1805, ResourceReqs: parsing.ResourceVector{MemMb: 500}}
+    cmdToRun := parsing.CmdRunParams{Cmd: parsing.CmdTemplate{Id: 1805, ResourceReqs: parsing.ResourceVector{MemMb: 500}}}
     env.RegisterWorkflowWithOptions(func(ctx workflow.Context, _ SchedWorkflowState) error {
         selector := workflow.NewSelector(ctx)
         selector.AddReceive(
@@ -37,8 +37,8 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
                     t.Fatalf("could not convert signal contents to resource req")
                 }
                 // Ensure request was passed faithfully by executor.
-                require.Equal(t, req.Id, cmdToRun.Id)
-                require.Equal(t, req.Requirements, cmdToRun.ResourceReqs)
+                require.Equal(t, req.Id, cmdToRun.Cmd.Id)
+                require.Equal(t, req.Requirements, cmdToRun.Cmd.ResourceReqs)
                 workflow.SignalExternalWorkflow(
                     ctx, req.CallerWorkflowId, "", "allocation-response", ResourceGrant{
                         RequestId: req.Id,
@@ -61,8 +61,8 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
     })
 
     // Handle an activity invoked during setup.
-    env.OnActivity(fs.SetupVolumes, mock.Anything, mock.Anything).Return(nil, nil).Maybe()
-    env.OnActivity(RunCmdActivity, mock.Anything, mock.Anything, cmdToRun, mock.Anything, mock.Anything).
+    env.OnActivity(fs.SetupRootDir, mock.Anything).Return("", nil).Maybe()
+    env.OnActivity(RunCmdActivity, mock.Anything, cmdToRun, mock.Anything, mock.Anything).
         Return(func(_ map[string]string, _ parsing.CmdTemplate) (CmdOutput, error) {
             //require.Equal(t, queueName, assignedQueue)
             require.True(t, readyToRunJob)
@@ -75,18 +75,138 @@ func TestTemporalExecutorGrantRequest(t *testing.T) {
             ctx, &selector, nil, fs.LocalFS{}, map[string]WorkerInfo{
                 assignedQueue: { QueueId: assignedQueue },
             }, "", map[int]parsing.LocalJobConfig{
-                cmdToRun.Id: { UseDocker: false },
+                cmdToRun.Cmd.Id: { UseDocker: false },
             })
         if err := temporalExec.Setup(false); err != nil {
             t.Fatalf("setup failed: %s", err)
         }
-        temporalExec.RunCmds([]parsing.CmdTemplate{cmdToRun})
+        temporalExec.RunCmds([]parsing.CmdRunParams{parsing.CmdRunParams{Cmd: cmdToRun.Cmd}})
         for i := 0; i < 10; i++ {
             selector.Select(ctx)
         }
         return nil
     })
     env.AssertExpectations(t)
+}
+
+// Temporal executor should request resource grant from scheduling
+// workflow and should schedule the RunCmd activity only after both
+// the resource grant is received AND any obligatory input files have
+// been transferred from their source (here, Slurm) filesystem into
+// the local filesystem.
+func TestTemporalExecutorFileDownloads(t *testing.T) {
+    testSuite := &testsuite.WorkflowTestSuite{}
+    env := testSuite.NewTestWorkflowEnvironment()
+    env.RegisterActivity(RunCmd)
+    env.RegisterActivity(fs.TransferSshToLocalFS)
+
+    assignedQueue := "ASSIGNED_QUEUE"
+    storageId := "storageId"
+    readyToRunJob := false
+
+    localFS := fs.LocalFS{
+        RootDir: "/localRoot",
+    }
+    sshFS := fs.SshFS{
+        RootDir: "remote",
+    }
+    execToFs := map[parsing.ExecType]fs.AbstractFileSystem{
+        parsing.EXEC_TEMPORAL: localFS,
+        parsing.EXEC_SLURM:    sshFS,
+    }
+
+    xfers := []parsing.ObligatoryXfer{
+        parsing.ObligatoryXfer{
+            SrcExecutor: parsing.EXEC_SLURM,
+            DstExecutor: parsing.EXEC_TEMPORAL,
+            SrcHostPath: "/src/host/path",
+            DstHostPath: "/dst/host/path",
+        },
+    }
+    cmdToRun := parsing.CmdRunParams{
+        Cmd: parsing.CmdTemplate{
+            Id:           1805,
+            ResourceReqs: parsing.ResourceVector{MemMb: 500},
+        },
+        Xfers: xfers,
+    }
+
+    finishedTransfer := false
+    env.OnActivity(
+        fs.TransferSshToLocalFS, storageId, sshFS, localFS, xfers,
+    ).Return(func(string, fs.SshFS, fs.LocalFS, []parsing.ObligatoryXfer) error {
+        finishedTransfer = true
+        return nil
+    }).Once()
+
+    env.RegisterWorkflowWithOptions(func(ctx workflow.Context, _ SchedWorkflowState) error {
+        selector := workflow.NewSelector(ctx)
+        selector.AddReceive(
+            workflow.GetSignalChannel(ctx, "new-request"),
+            func(c workflow.ReceiveChannel, _ bool) {
+                var req ResourceRequest
+                if ok := c.Receive(ctx, &req); !ok {
+                    t.Fatalf("could not convert signal contents to resource req")
+                }
+                // Ensure request was passed faithfully by executor.
+                require.Equal(t, req.Id, cmdToRun.Cmd.Id)
+                require.Equal(t, req.Requirements, cmdToRun.Cmd.ResourceReqs)
+                workflow.SignalExternalWorkflow(
+                    ctx, req.CallerWorkflowId, "", "allocation-response", ResourceGrant{
+                        RequestId: req.Id,
+                        WorkerId:  assignedQueue,
+                    },
+                )
+                readyToRunJob = true
+            },
+        )
+
+        // Force mocked child workflow to sleep before selecting (and
+        // therefore before responding to signal), giving the executor
+        // the opportunity to prematurely schedule the job, which would
+        // result in the test failing.
+        workflow.Sleep(ctx, 900*time.Second)
+        selector.Select(ctx)
+        return nil
+    }, workflow.RegisterOptions{
+        Name: "ResourceSchedulerWorkflow",
+    })
+
+    // Handle an activity invoked during setup.
+    env.OnActivity(fs.SetupRootDir, mock.Anything).Return("", nil).Maybe()
+    env.OnActivity(RunCmdActivity, mock.Anything, cmdToRun, mock.Anything, mock.Anything).
+        Return(func(_ map[string]string, _ parsing.CmdTemplate) (CmdOutput, error) {
+            require.True(t, readyToRunJob)
+            require.True(t, finishedTransfer)
+            return CmdOutput{}, nil
+        }).Once()
+
+    env.ExecuteWorkflow(func(ctx workflow.Context) error {
+        selector := workflow.NewSelector(ctx)
+        temporalExec := NewTemporalExecutor(
+            ctx, &selector, nil, localFS, map[string]WorkerInfo{
+                assignedQueue: {QueueId: assignedQueue},
+            }, storageId, map[int]parsing.LocalJobConfig{
+                cmdToRun.Cmd.Id: {UseDocker: false},
+            })
+        if err := temporalExec.Setup(false); err != nil {
+            t.Fatalf("setup failed: %s", err)
+        }
+        temporalExec.SetFileXferHandler(
+            func(
+                ctx workflow.Context, s string, ox []parsing.ObligatoryXfer,
+            ) ([]workflow.Future, error) {
+                return DefaultFileXferHanlder(ctx, s, ox, execToFs)
+            },
+        )
+        temporalExec.RunCmds([]parsing.CmdRunParams{cmdToRun})
+        for i := 0; i < 10; i++ {
+            selector.Select(ctx)
+        }
+        return nil
+    })
+    env.AssertExpectations(t)
+    require.True(t, finishedTransfer)
 }
 
 // NOTE: I am unable to test grant releases because 

@@ -1,3 +1,4 @@
+// local_executor.go
 package workflow
 
 import (
@@ -24,14 +25,14 @@ type LocalExecutor struct {
 		result CmdOutput
 		err    error
 	}
-	cmdsById      map[int]parsing.CmdTemplate
+	cmdsById      map[int]parsing.CmdRunParams
 	grantsById    map[int]ResourceGrant
 	configsByNode map[int]parsing.LocalJobConfig
 	errors        []error
 }
 
 func NewLocalExecutor(
-	ctx context.Context, cmdMan parsing.CmdManager,
+	ctx context.Context, cmdMan *parsing.CmdManager,
 	masterFS fs.LocalFS, worker WorkerInfo, storageId string,
 	configsByNode map[int]parsing.LocalJobConfig,
 	logger slog.Logger,
@@ -46,7 +47,7 @@ func NewLocalExecutor(
 	state.logger = logger
 	state.configsByNode = configsByNode
 	state.grantsById = make(map[int]ResourceGrant)
-	state.cmdsById = make(map[int]parsing.CmdTemplate)
+	state.cmdsById = make(map[int]parsing.CmdRunParams)
 	state.grantsById = make(map[int]ResourceGrant)
 	state.errors = make([]error, 0)
 	state.reqGrantChan = make(chan ResourceRequest)
@@ -60,6 +61,12 @@ func NewLocalExecutor(
 	return state
 }
 
+func (exec *LocalExecutor) GetFS() fs.AbstractFileSystem {
+	return exec.masterFS
+}
+
+func (exec *LocalExecutor) SetFileXferHandler(_ FileXferHandler) {}
+
 func (exec *LocalExecutor) Setup(v1 bool) error {
 	workers := map[string]WorkerInfo{"local": exec.localWorker}
 	go LocalResourceScheduler(
@@ -69,15 +76,15 @@ func (exec *LocalExecutor) Setup(v1 bool) error {
 	)
 
 	// Setup worker FS.
-    if exec.storageId != "" {
-	    volumes, err := fs.SetupVolumes(exec.storageId)
-	    if err != nil {
-	    	return err
-	    }
-	    exec.masterFS.Volumes = volumes
-    } else {
-        exec.masterFS.Volumes = map[string]string{"/": "/"}
-    }
+	rootDir, err := fs.SetupRootDir(exec.storageId)
+	if err != nil { return err }
+	exec.masterFS = fs.LocalFS{
+		RootDir: rootDir,
+	}
+
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -131,14 +138,14 @@ func (exec *LocalExecutor) GetErrors() []error {
 }
 
 func (exec *LocalExecutor) RunCmds(
-	cmds []parsing.CmdTemplate,
+	cmds []parsing.CmdRunParams,
 ) {
 	for _, cmd := range cmds {
-		exec.cmdsById[cmd.Id] = cmd
+		exec.cmdsById[cmd.Cmd.Id] = cmd
 		req := ResourceRequest{
-			Rank:         cmd.Priority,
-			Id:           cmd.Id,
-			Requirements: cmd.ResourceReqs,
+			Rank:         cmd.Cmd.Priority,
+			Id:           cmd.Cmd.Id,
+			Requirements: cmd.Cmd.ResourceReqs,
 		}
 
 		exec.reqGrantChan <- req
@@ -163,14 +170,13 @@ func (exec *LocalExecutor) BuildImages(imageNames []string) error {
 }
 
 func (exec *LocalExecutor) RunCmdWithGrant(
-	cmd parsing.CmdTemplate, grant ResourceGrant,
+	cmd parsing.CmdRunParams, grant ResourceGrant,
 ) {
-	volumes := exec.masterFS.GetVolumes()
     rootDir := exec.masterFS.GetRootDir()
-	useDocker := exec.configsByNode[cmd.NodeId].UseDocker
+	useDocker := exec.configsByNode[cmd.Cmd.NodeId].UseDocker
 	exec.waitGroup.Add(1)
 	go func() {
-		result, err := RunCmd(exec.ctx, volumes, cmd, useDocker, rootDir)
+		result, err := RunCmd(exec.ctx, cmd, useDocker, rootDir)
 		exec.waitGroup.Done()
 		exec.cmdResChan <- struct {
 			result CmdOutput
@@ -189,4 +195,8 @@ func (exec *LocalExecutor) Glob(
 	return fs.GlobActivity(
 		exec.masterFS, root, pattern, findFile, findDir,
 	)
+}
+
+func (exec *LocalExecutor) GetID() parsing.ExecType {
+	return parsing.EXEC_LOCAL
 }

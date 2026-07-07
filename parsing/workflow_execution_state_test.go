@@ -2,8 +2,8 @@ package parsing
 
 import (
 	"fmt"
-	"slices"
 	"sort"
+	"slices"
 	"testing"
 )
 
@@ -11,7 +11,6 @@ func getSuccInputsOrFail(
 	t *testing.T, succs map[int][]NodeParams, err error,
 	sourceId int, succId int, expectedLen int,
 ) []NodeParams {
-	// These should be the same thing, but want to check our bases.
 	if err != nil || succs == nil {
 		t.Fatalf(
 			"generating successors for %d failed with err %s",
@@ -40,7 +39,6 @@ func getSuccInputsOrFail(
 func getArgTypesOrFail(
 	t *testing.T, pname string, nodeId int, workflow WorkflowV0,
 ) WorkflowArgType {
-	// Panic on misformed inputs, since this indicates bad test setup.
 	node, nodeExists := workflow.Nodes[nodeId]
 	if !nodeExists {
 		t.Fatalf(
@@ -132,7 +130,7 @@ func getEligibleSuccessors(
 
 	out := make(map[int][]NodeParams)
 	for i := 0; i < len(inputs); i++ {
-		succParams, err := state.getSuccParams(inputs[i], outputs[i], true)
+		succParams, _, err := state.getSuccParams(inputs[i], outputs[i], map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("getEligible successors failed w/ err: %s", err)
 		}
@@ -197,14 +195,14 @@ func TestNonRedundancy(t *testing.T) {
 	}
 
 	p1Vals := genArbitraryOutputs(t, "p1", 1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	if err != nil {
 		t.Fatalf("could not get succs of node 1: %s", err)
 	} else if _, ok := succsOf1[2]; !ok {
 		t.Fatalf("node 1 does not trigger node 2 as successor")
 	}
 
-	succsOf1, err = state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err = state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	if err != nil {
 		t.Fatalf("could not get succs of node 1: %s", err)
 	} else if _, ok := succsOf1[2]; ok {
@@ -281,12 +279,12 @@ func TestNonAsyncTransferToAsyncDescendant(t *testing.T) {
 	}
 
 	p1Vals := genArbitraryOutputs(t, "p1", 1, 0, 1, workflow)
-	state.getSuccParams(startNodes[1][0], p1Vals, true)
+	state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 
 	numIterationsOf2 := 3
 	p2Vals := genArbitraryOutputs(t, "p2", numIterationsOf2, 0, 2, workflow)
-	succsOf2, err := state.getSuccParams(
-		startNodes[2][0], p2Vals, true,
+	succsOf2, _, err := state.getSuccParams(
+		startNodes[2][0], p2Vals, map[string]ExecVolumeMnt{}, true,
 	)
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, numIterationsOf2)
 
@@ -394,7 +392,7 @@ func TestMultipleAsyncTransfer(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -545,7 +543,7 @@ func TestAsyncAndNonAsyncSiblingsWhichDescendFromAsyncNode(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -680,7 +678,7 @@ func TestAsyncPropagationWithoutDirectLink(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	outputsFor2 := make([][]TypedParams, 0)
@@ -777,7 +775,7 @@ func TestSimpleBarrier(t *testing.T) {
 	inputsFor1 := startNodes[1][0]
 	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	if err != nil {
 		t.Fatalf("error getting succs of 1: %s", err)
 	}
@@ -785,7 +783,7 @@ func TestSimpleBarrier(t *testing.T) {
 
 	for i, inputSet := range inputsFor2 {
 		p2Vals := genArbitraryOutputs(t, "p2", 1, 0, 2, workflow)
-		succsOf1, err := state.getSuccParams(inputSet, p2Vals, true)
+		succsOf1, _, err := state.getSuccParams(inputSet, p2Vals, map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("error generating succs of 1: %s", err)
 		}
@@ -869,7 +867,7 @@ func TestBarrierReduction(t *testing.T) {
 	inputsFor1 := startNodes[1][0]
 	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	if err != nil {
 		t.Fatalf("error getting succs of 1: %s", err)
 	}
@@ -877,7 +875,7 @@ func TestBarrierReduction(t *testing.T) {
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)
 	for i, inputSet := range inputsFor2 {
 		p2Vals := genArbitraryOutputs(t, "p2", 1, i, 2, workflow)
-		succsOf1, err := state.getSuccParams(inputSet, p2Vals, true)
+		succsOf1, _, err := state.getSuccParams(inputSet, p2Vals, map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("error generating succs of 1: %s", err)
 		}
@@ -1032,7 +1030,7 @@ func TestMultipleBarrier(t *testing.T) {
 	inputsFor0 := startNodes[0][0]
 	inputsFor0.Params.AddParam("0", "pInit", workflow.Nodes[0].ArgTypes["pInit"].ArgType)
 	p0Vals := genArbitraryOutputs(t, "p0", numOutputsOf0, 0, 1, workflow)
-	succsOf0, err := state.getSuccParams(inputsFor0, p0Vals, true)
+	succsOf0, _, err := state.getSuccParams(inputsFor0, p0Vals, map[string]ExecVolumeMnt{}, true)
 
 	inputsFor1 := getSuccInputsOrFail(t, succsOf0, err, 0, 1, numOutputsOf0)
 	outputsFor1 := make([][]TypedParams, 0)
@@ -1065,7 +1063,7 @@ func TestMultipleBarrier(t *testing.T) {
 		oneRunId := inputSet.AncList[2]
 		delete(runIdGroups[zeroRunId], oneRunId)
 
-		succsOf1, err = state.getSuccParams(inputSet, []TypedParams{{}}, true)
+		succsOf1, _, err = state.getSuccParams(inputSet, []TypedParams{{}}, map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("error generating succs of 1: %s", err)
 		}
@@ -1102,7 +1100,7 @@ func TestMultipleBarrier(t *testing.T) {
 			t.Fatalf("error adding results of 3: %s", err)
 		}
 
-		succsOf3, err := state.getSuccParams(inputSet, []TypedParams{{}}, true)
+		succsOf3, _, err := state.getSuccParams(inputSet, []TypedParams{{}}, map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("error getting succs of 3: %s", err)
 		}
@@ -1170,10 +1168,10 @@ func TestSimpleWorkflowCompletion(t *testing.T) {
 	assertCompletionVal(t, state, false)
 
 	p1Vals := genArbitraryOutputs(t, "p1", 1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, 1)
 
-	_, err = state.getSuccParams(inputsFor2[0], []TypedParams{{}}, true)
+	_, _, err = state.getSuccParams(inputsFor2[0], []TypedParams{{}}, map[string]ExecVolumeMnt{}, true)
 	if err != nil {
 		t.Fatalf("error adding outputs for node 2: %s", err)
 	}
@@ -1253,7 +1251,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -1265,7 +1263,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 	for i, inputFor2 := range inputsFor2 {
 		expNumSuccsOf2 += (i + 1)
 		p2Vals := genArbitraryOutputs(t, "p2", (i + 1), (i+1)*len(inputsFor2), 2, workflow)
-		iterSuccsOf2, err := state.getSuccParams(inputFor2, p2Vals, true)
+		iterSuccsOf2, _, err := state.getSuccParams(inputFor2, p2Vals, map[string]ExecVolumeMnt{}, true)
 		if err != nil {
 			t.Fatalf("error adding outputs of 2: %s", err)
 		}
@@ -1278,7 +1276,7 @@ func TestAsyncWorkflowCompletion(t *testing.T) {
 
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, expNumSuccsOf2)
 	for i, inputFor3 := range inputsFor3 {
-		err := state.addCmdResults(inputFor3, []TypedParams{{}})
+		err := state.addCmdResults(inputFor3, []TypedParams{{}}, map[string]ExecVolumeMnt{})
 		if err != nil {
 			t.Fatalf("error adding outputs of 2: %s", err)
 		}
@@ -1362,7 +1360,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 	// Generate 3 values for node 1 param p1
 	numIterationsOf1 := 3
 	p1Vals := genArbitraryOutputs(t, "p1", numIterationsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numIterationsOf1)
 
 	// The idea here is to correlate different values of p2 with each value of p1.
@@ -1374,7 +1372,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 	for i, inputFor2 := range inputsFor2 {
 		p2Vals := genArbitraryOutputs(t, "p2", (i + 1), (i+1)*len(inputsFor2), 2, workflow)
 		failure := i == 0
-		iterSuccsOf2, err := state.getSuccParams(inputFor2, p2Vals, !failure)
+		iterSuccsOf2, _, err := state.getSuccParams(inputFor2, p2Vals, map[string]ExecVolumeMnt{}, !failure)
 		if err != nil {
 			t.Fatalf("error adding outputs of 2: %s", err)
 		}
@@ -1398,7 +1396,7 @@ func TestAsyncWorkflowFailure(t *testing.T) {
 
 	inputsFor3 := getSuccInputsOrFail(t, succsOf2, err, 2, 3, expNumSuccsOf2)
 	for i, inputFor3 := range inputsFor3 {
-		err := state.addCmdResults(inputFor3, []TypedParams{{}})
+		err := state.addCmdResults(inputFor3, []TypedParams{{}}, map[string]ExecVolumeMnt{})
 		if err != nil {
 			t.Fatalf("error adding outputs of 2: %s", err)
 		}
@@ -1497,13 +1495,13 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 	inputsFor1 := startNodes[1][0]
 	inputsFor1.Params.AddParam("0", "p0", workflow.Nodes[1].ArgTypes["p0"].ArgType)
 	p1Vals := genArbitraryOutputs(t, "p1", numOutputsOf1, 0, 1, workflow)
-	succsOf1, err := state.getSuccParams(startNodes[1][0], p1Vals, true)
+	succsOf1, _, err := state.getSuccParams(startNodes[1][0], p1Vals, map[string]ExecVolumeMnt{}, true)
 	inputsFor2 := getSuccInputsOrFail(t, succsOf1, err, 1, 2, numOutputsOf1)
 	for i, inputSet := range inputsFor2 {
 		failure := i == 0
 		numVals2 := 1
 		p2Vals := genArbitraryOutputs(t, "p2", numVals2, 0, 2, workflow)
-		succsOf2, err := state.getSuccParams(inputSet, p2Vals, !failure)
+		succsOf2, _, err := state.getSuccParams(inputSet, p2Vals, map[string]ExecVolumeMnt{}, !failure)
 		if err != nil {
 			t.Fatalf("error generating succs of 2: %s", err)
 		}
@@ -1518,7 +1516,7 @@ func TestWorkflowFailureWithBarrier(t *testing.T) {
 			assertCompletionVal(t, state, false)
 			assertFailureVal(t, state, true)
 			p3Vals := genArbitraryOutputs(t, "p3", 1, 0, 3, workflow)
-			succsOf3, err := state.getSuccParams(inputSetFor3, p3Vals, true)
+			succsOf3, _, err := state.getSuccParams(inputSetFor3, p3Vals, map[string]ExecVolumeMnt{}, true)
 			if err != nil {
 				t.Fatalf("error generating succs of 3: %s", err)
 			}
