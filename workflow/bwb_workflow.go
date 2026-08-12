@@ -340,7 +340,7 @@ func runCmdDocker(
     var stdout, stderr bytes.Buffer
     cmd := exec.Command("sh", "-c", cmdStr)
     cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-    cmd.Env = envs
+    cmd.Env = append(os.Environ(), envs...)
     cmd.Stdout = &stdout
     cmd.Stderr = &stderr
 

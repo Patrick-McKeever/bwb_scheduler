@@ -494,6 +494,7 @@ func main() {
 
 	var noTemporal bool
 	var useDocker bool
+	var dockerVersion string
 	var verbose bool
 	var softFail bool
 	var workerName string
@@ -529,6 +530,12 @@ func main() {
 			}
 			if noTemporal && workerName != "" {
 				return fmt.Errorf("cannot have --workerName with --noTemporal")
+			}
+			if dockerVersion != "" && !useDocker {
+				return fmt.Errorf("cannot set --dockerVersion without --docker")
+			}
+			if dockerVersion != "" {
+				os.Setenv("DOCKER_API_VERSION", dockerVersion)
 			}
 			return nil
 		},
@@ -588,6 +595,11 @@ func main() {
 	runCmd.Flags().BoolVar(
 		&useDocker, "docker", false, "Use docker for locally run containers "+
 			"rather than singularity. Overrides values in job config.",
+	)
+	runCmd.Flags().StringVar(
+		&dockerVersion, "dockerVersion", "", "Docker API version to use "+
+			"(sets the DOCKER_API_VERSION env var for docker invocations). "+
+			"Requires --docker.",
 	)
 	runCmd.Flags().BoolVarP(
 		&verbose, "verbose", "v", false, "Output verbosity.",

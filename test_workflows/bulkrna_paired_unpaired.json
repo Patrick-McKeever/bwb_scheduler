@@ -1,0 +1,2203 @@
+{
+    "resolved_workflow": {
+        "Links": [
+            {
+                "SinkChannel": "URL",
+                "SinkNodeId": 0,
+                "SourceChannel": "genomegtfURLs",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 5,
+                "SourceChannel": "directory",
+                "SourceNodeId": 0
+            },
+            {
+                "SinkChannel": "outputfile",
+                "SinkNodeId": 3,
+                "SourceChannel": "transcriptomefile",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "genomefile",
+                "SinkNodeId": 3,
+                "SourceChannel": "outputfa",
+                "SourceNodeId": 5
+            },
+            {
+                "SinkChannel": "gtffile",
+                "SinkNodeId": 3,
+                "SourceChannel": "outputgtf",
+                "SourceNodeId": 5
+            },
+            {
+                "SinkChannel": "genomeDir",
+                "SinkNodeId": 1,
+                "SourceChannel": "genome_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "starversion",
+                "SinkNodeId": 1,
+                "SourceChannel": "starversion",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "genomeFastaFile",
+                "SinkNodeId": 1,
+                "SourceChannel": "outputfa",
+                "SourceNodeId": 5
+            },
+            {
+                "SinkChannel": "sjdbGTFfile",
+                "SinkNodeId": 1,
+                "SourceChannel": "outputgtf",
+                "SourceNodeId": 5
+            },
+            {
+                "SinkChannel": "directory",
+                "SinkNodeId": 0,
+                "SourceChannel": "download_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputfa",
+                "SinkNodeId": 5,
+                "SourceChannel": "genome_file",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "inputgtf",
+                "SinkNodeId": 5,
+                "SourceChannel": "raw_annotation_file",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputgtf",
+                "SinkNodeId": 5,
+                "SourceChannel": "annotation_file",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "inputfa",
+                "SinkNodeId": 5,
+                "SourceChannel": "raw_genome_file",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "skipDownload",
+                "SinkNodeId": 0,
+                "SourceChannel": "bypass_star_index",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "skipFormat",
+                "SinkNodeId": 5,
+                "SourceChannel": "bypass_star_index",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "skipGFF",
+                "SinkNodeId": 3,
+                "SourceChannel": "bypass_star_index",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "skipIndex",
+                "SinkNodeId": 1,
+                "SourceChannel": "bypass_star_index",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "starversion",
+                "SinkNodeId": 2,
+                "SourceChannel": "starversion",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "genomeDir",
+                "SinkNodeId": 2,
+                "SourceChannel": "genomeDir",
+                "SourceNodeId": 1
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 6,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 2
+            },
+            {
+                "SinkChannel": "Trigger",
+                "SinkNodeId": 1,
+                "SourceChannel": "directory",
+                "SourceNodeId": 0
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 3,
+                "SourceChannel": "directory",
+                "SourceNodeId": 0
+            },
+            {
+                "SinkChannel": "gtffile",
+                "SinkNodeId": 6,
+                "SourceChannel": "outputgtf",
+                "SourceNodeId": 5
+            },
+            {
+                "SinkChannel": "transcriptome",
+                "SinkNodeId": 6,
+                "SourceChannel": "outputfile",
+                "SourceNodeId": 3
+            },
+            {
+                "SinkChannel": "alignsDir",
+                "SinkNodeId": 9,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 2
+            },
+            {
+                "SinkChannel": "countsDir",
+                "SinkNodeId": 9,
+                "SourceChannel": "outputdir",
+                "SourceNodeId": 6
+            },
+            {
+                "SinkChannel": "inputdir",
+                "SinkNodeId": 10,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 7
+            },
+            {
+                "SinkChannel": "readFilesIn",
+                "SinkNodeId": 2,
+                "SourceChannel": "fastqfiles",
+                "SourceNodeId": 10
+            },
+            {
+                "SinkChannel": "inputFiles",
+                "SinkNodeId": 7,
+                "SourceChannel": "fastqfiles",
+                "SourceNodeId": 11
+            },
+            {
+                "SinkChannel": "inputFiles",
+                "SinkNodeId": 16,
+                "SourceChannel": "fastqfiles",
+                "SourceNodeId": 15
+            },
+            {
+                "SinkChannel": "inputdir",
+                "SinkNodeId": 17,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 16
+            },
+            {
+                "SinkChannel": "readFilesIn",
+                "SinkNodeId": 18,
+                "SourceChannel": "fastqfiles",
+                "SourceNodeId": 17
+            },
+            {
+                "SinkChannel": "genomeDir",
+                "SinkNodeId": 18,
+                "SourceChannel": "genomeDir",
+                "SourceNodeId": 1
+            },
+            {
+                "SinkChannel": "starversion",
+                "SinkNodeId": 18,
+                "SourceChannel": "starversion",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "inputdir",
+                "SinkNodeId": 11,
+                "SourceChannel": "paired_fastq_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "inputdir",
+                "SinkNodeId": 15,
+                "SourceChannel": "unpaired_fastq_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputDir",
+                "SinkNodeId": 7,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 7,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputDir",
+                "SinkNodeId": 2,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputDir",
+                "SinkNodeId": 16,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 16,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputDir",
+                "SinkNodeId": 18,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "outputdir",
+                "SinkNodeId": 6,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "tablesDir",
+                "SinkNodeId": 9,
+                "SourceChannel": "output_dir",
+                "SourceNodeId": 4
+            },
+            {
+                "SinkChannel": "inputdir",
+                "SinkNodeId": 19,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 2
+            },
+            {
+                "SinkChannel": "trigger",
+                "SinkNodeId": 19,
+                "SourceChannel": "outputDir",
+                "SourceNodeId": 18
+            },
+            {
+                "SinkChannel": "alignmentfiles",
+                "SinkNodeId": 6,
+                "SourceChannel": "bamfiles",
+                "SourceNodeId": 19
+            }
+        ],
+        "NodeBaseProps": {
+            "0": {
+                "URL": null,
+                "concatenateFile": "",
+                "decompress": true,
+                "directory": "",
+                "noClobberFiles": false
+            },
+            "1": {
+                "genomeChrBinNbits": "18",
+                "genomeDir": "",
+                "genomeFastaFile": "",
+                "genomeSAindexNbases": 14,
+                "genomeSAsparseD": 1,
+                "genomeSuffixLengthMax": -1,
+                "overwrite": false,
+                "rmode": "genomeGenerate",
+                "runThreadN": 16,
+                "sjdbFileChrStartEnd": [],
+                "sjdbGTFchrPrefix": "chr",
+                "sjdbGTFfeatureExon": "exon",
+                "sjdbGTFfile": "",
+                "sjdbGTFtagExonParentGene": "gene_id",
+                "sjdbGTFtagExonParentTranscript": "transcript_id",
+                "sjdbInsertSave": "Basic",
+                "sjdbOverhang": 100,
+                "sjdbScore": 2,
+                "starversion": ""
+            },
+            "10": {
+                "fastqfiles": null,
+                "inputdir": "",
+                "pattern": "*.fq.gz"
+            },
+            "11": {
+                "fastqfiles": null,
+                "inputdir": "",
+                "pattern": "*.fastq.gz"
+            },
+            "15": {
+                "fastqfiles": null,
+                "inputdir": "",
+                "pattern": "*.fastq.gz"
+            },
+            "16": {
+                "basenames": [],
+                "fastqc": true,
+                "gzipped": true,
+                "inputFiles": null,
+                "ncores": 4,
+                "outputDir": "",
+                "paired": false
+            },
+            "17": {
+                "fastqfiles": null,
+                "inputdir": "",
+                "pattern": "*.fq.gz"
+            },
+            "18": {
+                "alignSJDBoverhangMin": 1,
+                "genomeDir": "",
+                "genomeLoad": "NoSharedMemory",
+                "outFilterMultimapNmax": 20,
+                "outSAMattributes": "NH HI AS NM MD",
+                "outSAMtype": "BAM Unsorted",
+                "outputDir": "",
+                "quantMode": "TranscriptomeSAM GeneCounts",
+                "readFilesCommand": "zcat",
+                "readFilesIn": null,
+                "runThreadN": 16,
+                "starversion": "",
+                "twopassMode": "Basic"
+            },
+            "19": {
+                "bamfiles": null,
+                "inputdir": "",
+                "pattern": "*ome.out.bam"
+            },
+            "2": {
+                "alignSJDBoverhangMin": 1,
+                "genomeDir": "",
+                "genomeLoad": "NoSharedMemory",
+                "outFilterMultimapNmax": 20,
+                "outSAMattributes": "NH HI AS NM MD",
+                "outSAMtype": "BAM Unsorted",
+                "outputDir": "",
+                "quantMode": "TranscriptomeSAM GeneCounts",
+                "quantTranscriptomeBan": "Singleend",
+                "readFilesCommand": "zcat",
+                "readFilesIn": null,
+                "runThreadN": 16,
+                "starversion": "",
+                "twopassMode": "Basic"
+            },
+            "3": {
+                "genomefile": "",
+                "gtffile": "",
+                "outputfile": "",
+                "overwritefiles": false
+            },
+            "4": {
+                "annotation_file": "/data/processing/genome/genome.gtf",
+                "bypass_star_index": false,
+                "download_dir": "/data/processing/downloads",
+                "downloadindexlink": false,
+                "fastqfiles": [
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R1_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Hypoxia_GT23-11306_ATGTAAGT-CATAGAGT_S38_L001_R2_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R1_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_E06__Normoxia_GT23-11294_CAAGCTAG-CGCTATGT_S35_L001_R2_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R1_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Hypoxia_GT23-11307_GCACGGAC-TGCGAGAC_S17_L001_R2_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R1_001.fastq.gz",
+                    "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic/CE_G07__Normoxia_GT23-11295_TGGATCGA-TATCGCAC_S25_L001_R2_001.fastq.gz"
+                ],
+                "genome_dir": "/data/processing/genome",
+                "genome_file": "/data/processing/genome/genome.fa",
+                "genomegtfURLs": [
+                    "https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
+                    "https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_44/gencode.v44.primary_assembly.annotation.gtf.gz"
+                ],
+                "output_dir": "/data/processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
+                "paired_fastq_dir": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic",
+                "raw_annotation_file": "/data/processing/downloads/gencode.v44.primary_assembly.annotation.gtf",
+                "raw_genome_file": "/data/processing/downloads/Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+                "starversion": "2.7.11a",
+                "transcriptomefile": "/data/processing/genome/transcriptome.fa",
+                "trimmedfastqfiles": null,
+                "unpaired_fastq_dir": "/data/morphic-bio-processing/morphic-jax/JAX_RNAseq_ExtraEmbryonic_unpaired"
+            },
+            "5": {
+                "inputfa": "",
+                "inputgtf": "",
+                "outputfa": "",
+                "outputgtf": "",
+                "overwritefiles": false
+            },
+            "6": {
+                "alignmentfiles": null,
+                "gtffile": "",
+                "libtype": "A ",
+                "outputdir": "",
+                "transcriptome": ""
+            },
+            "7": {
+                "basenames": [],
+                "fastqc": true,
+                "gzipped": true,
+                "inputFiles": null,
+                "ncores": 4,
+                "outputDir": "",
+                "paired": true
+            },
+            "9": {
+                "alignsDir": "",
+                "countsDir": "",
+                "tablesDir": ""
+            }
+        },
+        "Nodes": {
+            "0": {
+                "ArgOrder": [
+                    "URL"
+                ],
+                "ArgTypes": {
+                    "URL": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "URL(s)",
+                        "output_file": null,
+                        "type": "text list"
+                    },
+                    "concatenateFile": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--concatenateFile",
+                        "input_file": null,
+                        "label": "Download and join into one file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "decompress": {
+                        "argument": null,
+                        "default": true,
+                        "env": null,
+                        "flag": "--decompress",
+                        "input_file": null,
+                        "label": "Decompress files",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "directory": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--directory",
+                        "input_file": null,
+                        "label": "Download directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "noClobberFiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "clobber",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Overwrite existing files",
+                        "output_file": null,
+                        "type": "bool"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "download.sh"
+                ],
+                "Id": 0,
+                "ImageName": "patrickmckeever/downloadurl",
+                "ImageTag": "0.1",
+                "IterAttrs": [
+                    "URL"
+                ],
+                "IterGroupSize": {
+                    "URL": 1
+                },
+                "Iterate": true,
+                "OptionsChecked": {
+                    "concatenateFile": false,
+                    "decompress": true,
+                    "saveLog": false
+                },
+                "RequiredParams": [
+                    "URL",
+                    "directory",
+                    "noClobberFiles"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "downloadURL"
+            },
+            "1": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "genomeChrBinNbits": {
+                        "argument": null,
+                        "default": "18",
+                        "env": null,
+                        "flag": "--genomeChrBinNbits",
+                        "input_file": null,
+                        "label": "genomeChrBinNbits",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "genomeDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "genomeDir",
+                        "flag": "--genomeDir",
+                        "input_file": null,
+                        "label": "genomeDir",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "genomeFastaFile": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--genomeFastaFiles",
+                        "input_file": null,
+                        "label": "genomeFastaFiles",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "genomeSAindexNbases": {
+                        "argument": null,
+                        "default": 14,
+                        "env": null,
+                        "flag": "--genomeSAindexNbases",
+                        "input_file": null,
+                        "label": "genomeSAindexNbases",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "genomeSAsparseD": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--genomeSAsparseD",
+                        "input_file": null,
+                        "label": "genomeSAsparseD",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "genomeSuffixLengthMax": {
+                        "argument": null,
+                        "default": -1,
+                        "env": null,
+                        "flag": "--genomeSuffixLengthMax",
+                        "input_file": null,
+                        "label": "genomeSuffixLengthMax",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "overwrite": {
+                        "argument": null,
+                        "default": null,
+                        "env": "overwrite",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Overwrite files",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "rmode": {
+                        "argument": null,
+                        "default": "genomeGenerate",
+                        "env": null,
+                        "flag": "--runMode",
+                        "input_file": null,
+                        "label": "runMode",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "runThreadN": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--runThreadN",
+                        "input_file": null,
+                        "label": "runThreadN",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "sjdbFileChrStartEnd": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--sjdbFileChrStartEnd",
+                        "input_file": null,
+                        "label": "sjdbFileChrStartEnd",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "sjdbGTFchrPrefix": {
+                        "argument": null,
+                        "default": "chr",
+                        "env": null,
+                        "flag": "--sjdbGTFchrPrefix ",
+                        "input_file": null,
+                        "label": "sjdbGTFchrPrefix ",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "sjdbGTFfeatureExon": {
+                        "argument": null,
+                        "default": "exon",
+                        "env": null,
+                        "flag": "--sjdbGTFfeatureExon",
+                        "input_file": null,
+                        "label": "sjdbGTFfeatureExon",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "sjdbGTFfile": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--sjdbGTFfile",
+                        "input_file": null,
+                        "label": "sjdbGTFfile",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "sjdbGTFtagExonParentGene": {
+                        "argument": null,
+                        "default": "gene_id",
+                        "env": null,
+                        "flag": "--sjdbGTFtagExonParentGenet",
+                        "input_file": null,
+                        "label": "sjdbGTFtagExonParentGene",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "sjdbGTFtagExonParentTranscript": {
+                        "argument": null,
+                        "default": "transcript_id",
+                        "env": null,
+                        "flag": "--sjdbGTFtagExonParentTranscript",
+                        "input_file": null,
+                        "label": "sjdbGTFtagExonParentTranscript",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "sjdbInsertSave": {
+                        "argument": null,
+                        "default": "Basic",
+                        "env": null,
+                        "flag": "--sjdbInsertSave ",
+                        "input_file": null,
+                        "label": "sjdbInsertSave",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "sjdbOverhang": {
+                        "argument": null,
+                        "default": 100,
+                        "env": null,
+                        "flag": "--sjdbOverhang",
+                        "input_file": null,
+                        "label": "sjdbOverhang",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "sjdbScore": {
+                        "argument": null,
+                        "default": 2,
+                        "env": null,
+                        "flag": "--sjdbScore",
+                        "input_file": null,
+                        "label": "sjdbScore",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "starversion": {
+                        "argument": null,
+                        "default": "2.7.11a",
+                        "env": "VERSION",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Star version",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "[ -n \"$overwrite\" ] || [ !  -f  \"$genomeDir/SAindex\" ] ||  exit 0",
+                    "/usr/local/bin/$VERSION/Linux_x86_64_static/STAR"
+                ],
+                "Id": 1,
+                "ImageName": "patrickmckeever/star_async",
+                "ImageTag": "0.4",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "sjdbFileChrStartEnd": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "genomeChrBinNbits": false,
+                    "genomeSAindexNbases": false,
+                    "genomeSAsparseD": false,
+                    "genomeSuffixLengthMax": false,
+                    "runThreadN": true,
+                    "saveLog": false,
+                    "sjdbFileChrStartEnd ": false,
+                    "sjdbGTFchrPrefix ": false,
+                    "sjdbGTFfeatureExon": false,
+                    "sjdbGTFfile": true,
+                    "sjdbGTFtagExonParentGene": false,
+                    "sjdbGTFtagExonParentTranscript": false,
+                    "sjdbInsertSave ": false,
+                    "sjdbOverhang": false,
+                    "sjdbScore": false,
+                    "skipIndex": false
+                },
+                "RequiredParams": [
+                    "rmode",
+                    "genomeDir",
+                    "genomeFastaFile",
+                    "starversion",
+                    "overwrite"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "starIndex"
+            },
+            "10": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "fastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "fastqfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "inputdir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputdir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "pattern": {
+                        "argument": null,
+                        "default": null,
+                        "env": "pattern",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "File search pattern",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "mkdir -p /tmp/output",
+                    "find _bwb{inputdir}/trimmed -type f -name _bwb{pattern} | sort > /tmp/output/fastqfiles"
+                ],
+                "Id": 10,
+                "ImageName": "biodepot/bash_utilities",
+                "ImageTag": "alpine-3.17.1__24884064__91e2e7b9__1a66801e",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "fastqfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "fastqfiles": false
+                },
+                "RequiredParams": [
+                    "inputdir",
+                    "pattern"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "filter_files"
+            },
+            "11": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "fastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "fastqfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "inputdir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputdir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "pattern": {
+                        "argument": null,
+                        "default": null,
+                        "env": "pattern",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "File search pattern",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "mkdir -p /tmp/output",
+                    "find _bwb{inputdir} -type f -name _bwb{pattern} | sort > /tmp/output/fastqfiles"
+                ],
+                "Id": 11,
+                "ImageName": "biodepot/bash_utilities",
+                "ImageTag": "alpine-3.17.1__24884064__91e2e7b9__1a66801e",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "fastqfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "fastqfiles": false
+                },
+                "RequiredParams": [
+                    "inputdir",
+                    "pattern"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "filter_files"
+            },
+            "15": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "fastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "fastqfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "inputdir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputdir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "pattern": {
+                        "argument": null,
+                        "default": null,
+                        "env": "pattern",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "File search pattern",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "mkdir -p /tmp/output",
+                    "find _bwb{inputdir} -type f -name _bwb{pattern} | sort > /tmp/output/fastqfiles"
+                ],
+                "Id": 15,
+                "ImageName": "biodepot/bash_utilities",
+                "ImageTag": "alpine-3.17.1__24884064__91e2e7b9__1a66801e",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "fastqfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "fastqfiles": false
+                },
+                "RequiredParams": [
+                    "inputdir",
+                    "pattern"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "filter_files_unpaired_raw"
+            },
+            "16": {
+                "ArgOrder": [
+                    "inputFiles"
+                ],
+                "ArgTypes": {
+                    "basenames": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--basename",
+                        "input_file": null,
+                        "label": "basenames",
+                        "output_file": null,
+                        "type": "text list"
+                    },
+                    "fastqc": {
+                        "argument": null,
+                        "default": true,
+                        "env": null,
+                        "flag": "--fastqc ",
+                        "input_file": null,
+                        "label": "fastqc ",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "gzipped": {
+                        "argument": null,
+                        "default": true,
+                        "env": null,
+                        "flag": "--gzip ",
+                        "input_file": null,
+                        "label": "gzip  ",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "inputFiles": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq files",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "ncores": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--cores ",
+                        "input_file": null,
+                        "label": "Cores ",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "outputDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "-o",
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "paired": {
+                        "argument": null,
+                        "default": false,
+                        "env": null,
+                        "flag": "--paired ",
+                        "input_file": null,
+                        "label": "Paired ",
+                        "output_file": null,
+                        "type": "bool"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "[ -n \"_bwb{inputFiles}\" ] || exit 0",
+                    "trim_galore -o _bwb{outputDir}/trimmed_unpaired "
+                ],
+                "Id": 16,
+                "ImageName": "biodepot/trimgalore",
+                "ImageTag": "latest",
+                "IterAttrs": [
+                    "inputFiles"
+                ],
+                "IterGroupSize": {
+                    "basenames": 1,
+                    "inputFiles": 1
+                },
+                "Iterate": true,
+                "OptionsChecked": {
+                    "basenames": false,
+                    "inputDir": false,
+                    "outputDir": true
+                },
+                "RequiredParams": [
+                    "inputFiles",
+                    "paired",
+                    "fastqc",
+                    "gzipped",
+                    "ncores"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "Trimgalore_unpaired"
+            },
+            "17": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "fastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "fastqfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "inputdir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputdir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "pattern": {
+                        "argument": null,
+                        "default": null,
+                        "env": "pattern",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "File search pattern",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "mkdir -p /tmp/output",
+                    "find _bwb{inputdir}/trimmed_unpaired -type f -name _bwb{pattern} | sort > /tmp/output/fastqfiles"
+                ],
+                "Id": 17,
+                "ImageName": "biodepot/bash_utilities",
+                "ImageTag": "alpine-3.17.1__24884064__91e2e7b9__1a66801e",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "fastqfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "fastqfiles": false
+                },
+                "RequiredParams": [
+                    "inputdir",
+                    "pattern"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "filter_files_unpaired_trimmed"
+            },
+            "18": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "alignSJDBoverhangMin": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--alignSJDBoverhangMin",
+                        "input_file": null,
+                        "label": "alignSJDBoverhangMin",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "genomeDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--genomeDir",
+                        "input_file": null,
+                        "label": "genomeDir",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "genomeLoad": {
+                        "argument": null,
+                        "default": "NoSharedMemory",
+                        "env": null,
+                        "flag": "--genomeLoad",
+                        "input_file": null,
+                        "label": "genomeLoad",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outFilterMultimapNmax": {
+                        "argument": null,
+                        "default": 20,
+                        "env": null,
+                        "flag": "--outFilterMultimapNmax",
+                        "input_file": null,
+                        "label": "outFilterMultimapNmax",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "outSAMattributes": {
+                        "argument": null,
+                        "default": "NH HI AS NM MD",
+                        "env": null,
+                        "flag": "--outSAMattributes",
+                        "input_file": null,
+                        "label": "outSAMattributes",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outSAMtype": {
+                        "argument": null,
+                        "default": "BAM Unsorted",
+                        "env": null,
+                        "flag": "--outSAMtype",
+                        "input_file": null,
+                        "label": "outSAMtype",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outputDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "quantMode": {
+                        "argument": null,
+                        "default": "TranscriptomeSAM GeneCounts",
+                        "env": null,
+                        "flag": "--quantMode",
+                        "input_file": null,
+                        "label": "quantMode",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "readFilesCommand": {
+                        "argument": null,
+                        "default": "zcat",
+                        "env": null,
+                        "flag": "--readFilesCommand",
+                        "input_file": null,
+                        "label": "readFilesCommand",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "readFilesIn": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "readFilesIn",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "runThreadN": {
+                        "argument": null,
+                        "default": 16,
+                        "env": null,
+                        "flag": "--runThreadN",
+                        "input_file": null,
+                        "label": "runThreadN",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "starversion": {
+                        "argument": null,
+                        "default": "2.7.11a",
+                        "env": "VERSION",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Star version",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "twopassMode": {
+                        "argument": null,
+                        "default": "Basic",
+                        "env": null,
+                        "flag": "--twopassMode",
+                        "input_file": null,
+                        "label": "twopassMode",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "set -e",
+                    "[ -n \"_bwb{readFilesIn}\" ] || exit 0",
+                    "FIRSTFILE=$(echo _bwb{readFilesIn} | cut -d\" \" -f1)",
+                    "SAMPLE=$(basename \"$FIRSTFILE\" | sed -E \"s/\\.(fastq|fq)(\\.gz)?$//; s/_val_[12]$//; s/_R[12](_[0-9]+)?$//; s/_trimmed$//\")",
+                    "mkdir -p _bwb{outputDir}/alignedfiles/$SAMPLE",
+                    "/usr/local/bin/$VERSION/Linux_x86_64_static/STAR --runMode alignReads --outFileNamePrefix _bwb{outputDir}/alignedfiles/$SAMPLE/ --readFilesIn _bwb{readFilesIn}"
+                ],
+                "Id": 18,
+                "ImageName": "patrickmckeever/star_async",
+                "ImageTag": "0.4",
+                "IterAttrs": [
+                    "readFilesIn"
+                ],
+                "IterGroupSize": {
+                    "readFilesIn": 1
+                },
+                "Iterate": true,
+                "OptionsChecked": {},
+                "RequiredParams": [
+                    "genomeDir",
+                    "outputDir",
+                    "readFilesIn",
+                    "starversion",
+                    "quantMode",
+                    "outSAMtype",
+                    "alignSJDBoverhangMin",
+                    "genomeLoad",
+                    "outFilterMultimapNmax",
+                    "outSAMattributes",
+                    "runThreadN",
+                    "twopassMode",
+                    "readFilesCommand"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "starAlign_unpaired"
+            },
+            "19": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "bamfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "bamfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "inputdir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputdir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Aligned files parent directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "pattern": {
+                        "argument": null,
+                        "default": "*ome.out.bam",
+                        "env": "pattern",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "File search pattern",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "mkdir -p /tmp/output",
+                    "find _bwb{inputdir}/alignedfiles -type f -name _bwb{pattern} | sort > /tmp/output/bamfiles"
+                ],
+                "Id": 19,
+                "ImageName": "biodepot/bash_utilities",
+                "ImageTag": "alpine-3.17.1__24884064__91e2e7b9__1a66801e",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "bamfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "bamfiles": false
+                },
+                "RequiredParams": [
+                    "inputdir",
+                    "pattern"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "find_alignedfiles"
+            },
+            "2": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "alignSJDBoverhangMin": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--alignSJDBoverhangMin",
+                        "input_file": null,
+                        "label": "alignSJDBoverhangMin",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "genomeDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--genomeDir",
+                        "input_file": null,
+                        "label": "genomeDir",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "genomeLoad": {
+                        "argument": null,
+                        "default": "NoSharedMemory",
+                        "env": null,
+                        "flag": "--genomeLoad",
+                        "input_file": null,
+                        "label": "genomeLoad",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outFilterMultimapNmax": {
+                        "argument": null,
+                        "default": 20,
+                        "env": null,
+                        "flag": "--outFilterMultimapNmax",
+                        "input_file": null,
+                        "label": "outFilterMultimapNmax",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "outSAMattributes": {
+                        "argument": null,
+                        "default": "NH HI AS NM MD",
+                        "env": null,
+                        "flag": "--outSAMattributes",
+                        "input_file": null,
+                        "label": "outSAMattributes",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outSAMtype": {
+                        "argument": null,
+                        "default": "BAM Unsorted",
+                        "env": null,
+                        "flag": "--outSAMtype",
+                        "input_file": null,
+                        "label": "outSAMtype",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outputDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "quantMode": {
+                        "argument": null,
+                        "default": "TranscriptomeSAM GeneCounts",
+                        "env": null,
+                        "flag": "--quantMode",
+                        "input_file": null,
+                        "label": "quantMode",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "quantTranscriptomeBan": {
+                        "argument": null,
+                        "default": "Singleend",
+                        "env": null,
+                        "flag": "--quantTranscriptomeBan",
+                        "input_file": null,
+                        "label": "quantTranscriptomeBan",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "readFilesCommand": {
+                        "argument": null,
+                        "default": "zcat",
+                        "env": null,
+                        "flag": "--readFilesCommand",
+                        "input_file": null,
+                        "label": "readFilesCommand",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "readFilesIn": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "readFilesIn",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "runThreadN": {
+                        "argument": null,
+                        "default": 16,
+                        "env": null,
+                        "flag": "--runThreadN",
+                        "input_file": null,
+                        "label": "runThreadN",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "starversion": {
+                        "argument": null,
+                        "default": "2.7.11a",
+                        "env": "VERSION",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Star version",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "twopassMode": {
+                        "argument": null,
+                        "default": "Basic",
+                        "env": null,
+                        "flag": "--twopassMode",
+                        "input_file": null,
+                        "label": "twopassMode",
+                        "output_file": null,
+                        "type": "str"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "set -e",
+                    "[ -n \"_bwb{readFilesIn}\" ] || exit 0",
+                    "FIRSTFILE=$(echo _bwb{readFilesIn} | cut -d\" \" -f1)",
+                    "SAMPLE=$(basename \"$FIRSTFILE\" | sed -E \"s/\\.(fastq|fq)(\\.gz)?$//; s/_val_[12]$//; s/_R[12](_[0-9]+)?$//; s/_trimmed$//\")",
+                    "mkdir -p _bwb{outputDir}/alignedfiles/$SAMPLE",
+                    "/usr/local/bin/$VERSION/Linux_x86_64_static/STAR --runMode alignReads --outFileNamePrefix _bwb{outputDir}/alignedfiles/$SAMPLE/ --readFilesIn _bwb{readFilesIn}"
+                ],
+                "Id": 2,
+                "ImageName": "patrickmckeever/star_async",
+                "ImageTag": "0.4",
+                "IterAttrs": [
+                    "readFilesIn"
+                ],
+                "IterGroupSize": {
+                    "readFilesIn": 2
+                },
+                "Iterate": true,
+                "OptionsChecked": {},
+                "RequiredParams": [
+                    "genomeDir",
+                    "outputDir",
+                    "readFilesIn",
+                    "starversion",
+                    "quantMode",
+                    "outSAMtype",
+                    "alignSJDBoverhangMin",
+                    "genomeLoad",
+                    "outFilterMultimapNmax",
+                    "outSAMattributes",
+                    "runThreadN",
+                    "twopassMode",
+                    "readFilesCommand",
+                    "quantTranscriptomeBan"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "starAlign_paired"
+            },
+            "3": {
+                "ArgOrder": [
+                    "gtffile"
+                ],
+                "ArgTypes": {
+                    "genomefile": {
+                        "argument": null,
+                        "default": null,
+                        "env": "genomefile",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Genome file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "gtffile": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "GTF file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "outputfile": {
+                        "argument": null,
+                        "default": null,
+                        "env": "outputfile",
+                        "flag": "-w ",
+                        "input_file": null,
+                        "label": "Transcriptome file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "overwritefiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "overwrite",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Overwite files",
+                        "output_file": null,
+                        "type": "bool"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "[ -n \"$overwrite\" ] || [ !  -f \"$outputfile\" ] ||  exit 0",
+                    "samtools faidx _bwb{genomefile}",
+                    "gffread -g  _bwb{genomefile}"
+                ],
+                "Id": 3,
+                "ImageName": "biodepot/gffread",
+                "ImageTag": "latest",
+                "IterAttrs": [],
+                "IterGroupSize": {},
+                "Iterate": false,
+                "OptionsChecked": {
+                    "File": false,
+                    "skipGFF": false
+                },
+                "RequiredParams": [
+                    "genomefile",
+                    "gtffile",
+                    "outputfile",
+                    "overwritefiles"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "gffread"
+            },
+            "4": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "annotation_file": {
+                        "argument": null,
+                        "default": null,
+                        "env": "annotation_file",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Annotation file (gtf)",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "bypass_star_index": {
+                        "argument": null,
+                        "default": true,
+                        "env": "BYPASSSTARINDEX",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Bypass STAR generate index",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "download_dir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "download_dir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Download directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "downloadindexlink": {
+                        "argument": null,
+                        "default": null,
+                        "env": "DOWNLOADINDEXLINK",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Download index link",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "fastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "fastqfiles",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq files (R1/R2)",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "genome_dir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "genome_dir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Genome directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "genome_file": {
+                        "argument": null,
+                        "default": null,
+                        "env": "genome_file",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Genome reference file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "genomegtfURLs": {
+                        "argument": null,
+                        "default": null,
+                        "env": "genomegtfURLs",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Download URLs for genome and gtf",
+                        "output_file": null,
+                        "type": "text list"
+                    },
+                    "output_dir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "output_dir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Parent output directory (subdirs trimmed/trimmed_unpaired/alignedfiles/Tables/Counts created underneath)",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "paired_fastq_dir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "paired_fastq_dir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Directory containing paired-end fastq files (SAMPLE_R1/R2.fastq(.gz))",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "raw_annotation_file": {
+                        "argument": null,
+                        "default": null,
+                        "env": "raw_annotation_file",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Raw annotation file (gtf)",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "raw_genome_file": {
+                        "argument": null,
+                        "default": null,
+                        "env": "raw_genome_file",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Raw genome file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "starversion": {
+                        "argument": null,
+                        "default": "2.7.11a",
+                        "env": "starversion",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "STAR version",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "transcriptomefile": {
+                        "argument": null,
+                        "default": null,
+                        "env": "transcriptomefile",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Transcriptome file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "trimmedfastqfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": null,
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "unpaired_fastq_dir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "unpaired_fastq_dir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Directory containing unpaired (single-end) fastq files",
+                        "output_file": null,
+                        "type": "directory"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "[ -n \"$(find \"$paired_fastq_dir\" -maxdepth 1 -type f -name \"*.fastq.gz\" 2>/dev/null | head -n 1)\" ] || [ -n \"$(find \"$unpaired_fastq_dir\" -maxdepth 1 -type f -name \"*.fastq.gz\" 2>/dev/null | head -n 1)\" ] || { echo \"ERROR: no *.fastq.gz files found in paired_fastq_dir ($paired_fastq_dir) or unpaired_fastq_dir ($unpaired_fastq_dir)\" >&2; exit 1; }",
+                    "mkdir -p $genome_dir",
+                    "mkdir -p $output_dir"
+                ],
+                "Id": 4,
+                "ImageName": "biodepot/star-salmon-aws-start",
+                "ImageTag": "latest",
+                "IterAttrs": [],
+                "IterGroupSize": {
+                    "alignedfiles": 1,
+                    "fastqfiles": 1,
+                    "genomegtfURLs": 1,
+                    "trimmedfastqfiles": 1
+                },
+                "Iterate": false,
+                "OptionsChecked": {
+                    "awscredentialsdir": true,
+                    "bypass_star_index": false,
+                    "downloadindexlink": false,
+                    "fastqfiles": true,
+                    "trimmedfasqfiles": false,
+                    "trimmedfastqfiles": false
+                },
+                "RequiredParams": [
+                    "genome_dir",
+                    "genome_file",
+                    "annotation_file",
+                    "transcriptomefile",
+                    "download_dir",
+                    "genomegtfURLs",
+                    "starversion",
+                    "raw_genome_file",
+                    "raw_annotation_file",
+                    "paired_fastq_dir",
+                    "unpaired_fastq_dir",
+                    "output_dir"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "Start"
+            },
+            "5": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "inputfa": {
+                        "argument": null,
+                        "default": null,
+                        "env": "INPUTFA",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Input fa file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "inputgtf": {
+                        "argument": null,
+                        "default": null,
+                        "env": "INPUTGTF",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Input GTF file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "outputfa": {
+                        "argument": null,
+                        "default": null,
+                        "env": "OUTPUTFA",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output fa file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "outputgtf": {
+                        "argument": null,
+                        "default": null,
+                        "env": "OUTPUTGTF",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output GTF file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "overwritefiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "overwrite",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Overwrite existing files",
+                        "output_file": null,
+                        "type": "bool"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "format-fa-gtf.pl"
+                ],
+                "Id": 5,
+                "ImageName": "biodepot/format-fa-gtf-10x",
+                "ImageTag": "e59dda73__46262d38__80368c82",
+                "IterAttrs": [],
+                "IterGroupSize": {},
+                "Iterate": false,
+                "OptionsChecked": {
+                    "skipFormat": false
+                },
+                "RequiredParams": [
+                    "inputfa",
+                    "outputfa",
+                    "inputgtf",
+                    "outputgtf",
+                    "overwritefiles"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "10x_format_fa_gtf"
+            },
+            "6": {
+                "ArgOrder": [],
+                "ArgTypes": {
+                    "alignmentfiles": {
+                        "argument": null,
+                        "default": null,
+                        "env": "inputfile",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Alignment files ",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "gtffile": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "-g ",
+                        "input_file": null,
+                        "label": "gtf file",
+                        "output_file": null,
+                        "type": "file"
+                    },
+                    "libtype": {
+                        "argument": null,
+                        "default": "A ",
+                        "env": null,
+                        "flag": "-l ",
+                        "input_file": null,
+                        "label": "Libtype ",
+                        "output_file": null,
+                        "type": "str"
+                    },
+                    "outputdir": {
+                        "argument": null,
+                        "default": "salmon-quant",
+                        "env": "prefix",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "transcriptome": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "-t ",
+                        "input_file": null,
+                        "label": "Transcriptome",
+                        "output_file": null,
+                        "type": "file"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "export prefix=_bwb{outputdir}/Counts",
+                    "runSalmon.sh quant "
+                ],
+                "Id": 6,
+                "ImageName": "biodepot/salmon",
+                "ImageTag": "latest",
+                "IterAttrs": [
+                    "alignmentfiles"
+                ],
+                "IterGroupSize": {
+                    "alignmentfiles": 1
+                },
+                "Iterate": true,
+                "OptionsChecked": {
+                    "outputdirs": true
+                },
+                "RequiredParams": [
+                    "transcriptome",
+                    "outputdir",
+                    "alignmentfiles",
+                    "gtffile",
+                    "libtype"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "salmon"
+            },
+            "7": {
+                "ArgOrder": [
+                    "inputFiles"
+                ],
+                "ArgTypes": {
+                    "basenames": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "--basename",
+                        "input_file": null,
+                        "label": "basenames",
+                        "output_file": null,
+                        "type": "text list"
+                    },
+                    "fastqc": {
+                        "argument": null,
+                        "default": true,
+                        "env": null,
+                        "flag": "--fastqc ",
+                        "input_file": null,
+                        "label": "fastqc ",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "gzipped": {
+                        "argument": null,
+                        "default": true,
+                        "env": null,
+                        "flag": "--gzip ",
+                        "input_file": null,
+                        "label": "gzip  ",
+                        "output_file": null,
+                        "type": "bool"
+                    },
+                    "inputFiles": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Fastq files",
+                        "output_file": null,
+                        "type": "file list"
+                    },
+                    "ncores": {
+                        "argument": null,
+                        "default": 1,
+                        "env": null,
+                        "flag": "--cores ",
+                        "input_file": null,
+                        "label": "Cores ",
+                        "output_file": null,
+                        "type": "int"
+                    },
+                    "outputDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": null,
+                        "flag": "-o",
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "paired": {
+                        "argument": null,
+                        "default": false,
+                        "env": null,
+                        "flag": "--paired ",
+                        "input_file": null,
+                        "label": "Paired ",
+                        "output_file": null,
+                        "type": "bool"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "[ -n \"_bwb{inputFiles}\" ] || exit 0",
+                    "trim_galore -o _bwb{outputDir}/trimmed "
+                ],
+                "Id": 7,
+                "ImageName": "biodepot/trimgalore",
+                "ImageTag": "latest",
+                "IterAttrs": [
+                    "inputFiles"
+                ],
+                "IterGroupSize": {
+                    "basenames": 1,
+                    "inputFiles": 2
+                },
+                "Iterate": true,
+                "OptionsChecked": {
+                    "basenames": false,
+                    "inputDir": false,
+                    "outputDir": true
+                },
+                "RequiredParams": [
+                    "inputFiles",
+                    "paired",
+                    "fastqc",
+                    "gzipped",
+                    "ncores"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "Trimgalore"
+            },
+            "9": {
+                "ArgOrder": [
+                    "countsDir",
+                    "alignsDir"
+                ],
+                "ArgTypes": {
+                    "alignsDir": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Alignments directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "countsDir": {
+                        "argument": true,
+                        "default": null,
+                        "env": null,
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Counts directory",
+                        "output_file": null,
+                        "type": "directory"
+                    },
+                    "tablesDir": {
+                        "argument": null,
+                        "default": null,
+                        "env": "outputDir",
+                        "flag": null,
+                        "input_file": null,
+                        "label": "Output directory",
+                        "output_file": null,
+                        "type": "directory"
+                    }
+                },
+                "Async": false,
+                "BarrierFor": null,
+                "Command": [
+                    "export outputDir=_bwb{tablesDir}/Tables",
+                    "makeCountsMatrix.sh "
+                ],
+                "Id": 9,
+                "ImageName": "biodepot/gathercounts",
+                "ImageTag": "cbbd690a__21b9851b__e5512470",
+                "IterAttrs": [],
+                "IterGroupSize": {},
+                "Iterate": false,
+                "OptionsChecked": {
+                    "tablesDir": false
+                },
+                "RequiredParams": [
+                    "countsDir",
+                    "alignsDir",
+                    "tablesDir"
+                ],
+                "ResourceReqs": {
+                    "Cpus": 8,
+                    "Gpus": 0,
+                    "MemMb": 8000
+                },
+                "Title": "gatherCounts"
+            }
+        }
+    },
+    "schema": "biodepot.legacy"
+}
